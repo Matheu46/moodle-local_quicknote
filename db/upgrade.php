@@ -38,10 +38,21 @@ function xmldb_local_quicknote_upgrade($oldversion) {
 
     $dbman = $DB->get_manager();
 
-    // For further information please read {@link https://docs.moodle.org/dev/Upgrade_API}.
-    //
-    // You will also have to create the db/install.xml file by using the XMLDB Editor.
-    // Documentation for the XMLDB Editor can be found at {@link https://docs.moodle.org/dev/XMLDB_editor}.
+    if ($oldversion < 2026042604) {
+        $table = new xmldb_table('local_quicknotes');
+
+        $quotefield = new xmldb_field('quote', XMLDB_TYPE_TEXT, null, null, null, null, null, 'content');
+        if (!$dbman->field_exists($table, $quotefield)) {
+            $dbman->add_field($table, $quotefield);
+        }
+
+        $quoteurlfield = new xmldb_field('quoteurl', XMLDB_TYPE_TEXT, null, null, null, null, null, 'quote');
+        if (!$dbman->field_exists($table, $quoteurlfield)) {
+            $dbman->add_field($table, $quoteurlfield);
+        }
+
+        upgrade_plugin_savepoint(true, 2026042604, 'local', 'quicknote');
+    }
 
     return true;
 }

@@ -15,6 +15,34 @@
     box-shadow: 0 0.75rem 2rem rgba(15, 108, 191, 0.25);
 }
 
+.local-quicknote__highlight-action {
+    position: fixed;
+    z-index: 1060;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 999px;
+    background: #17324d;
+    color: #fff;
+    font-size: 1.25rem;
+    line-height: 1;
+    box-shadow: 0 0.5rem 1.25rem rgba(23, 50, 77, 0.22);
+    cursor: pointer;
+}
+
+.local-quicknote__highlight-action:hover,
+.local-quicknote__highlight-action:focus {
+    background: #0f2438;
+    color: #fff;
+}
+
+.local-quicknote__highlight-action[hidden] {
+    display: none;
+}
+
 .local-quicknote__toggle:hover,
 .local-quicknote__toggle:focus {
     background: #0c568f;
@@ -87,6 +115,35 @@
     border: 1px solid #d5ddea;
     border-radius: 0.75rem;
     background: #f9fbfd;
+}
+
+.local-quicknote__quote-wrapper {
+    margin-bottom: 0.75rem;
+}
+
+.local-quicknote__quote-wrapper[hidden] {
+    display: none;
+}
+
+.local-quicknote__quote {
+    margin: 0 0 0.5rem;
+    padding: 0.75rem 0.875rem;
+    border-left: 4px solid #0f6cbf;
+    border-radius: 0 0.5rem 0.5rem 0;
+    background: #eef3f8;
+    color: #314254;
+    font-style: italic;
+}
+
+.local-quicknote__quote-link {
+    font-size: 0.8rem;
+    color: #4a5f75;
+    text-decoration: underline;
+}
+
+.local-quicknote__quote-link:hover,
+.local-quicknote__quote-link:focus {
+    color: #17324d;
 }
 
 .local-quicknote__meta,

@@ -18,10 +18,15 @@ define([
         emptystate: '.local-quicknote__empty',
         status: '[data-region="note-status"]',
         updated: '[data-region="note-updated"]',
-        location: '[data-region="note-location"]'
+        location: '[data-region="note-location"]',
+        quotewrapper: '[data-region="note-quote-wrapper"]',
+        quote: '[data-region="note-quote"]',
+        quotelink: '[data-region="note-quote-link"]'
     };
 
     var SAVE_DELAY = 500;
+    var MIN_SELECTION_LENGTH = 5;
+    var HIGHLIGHT_BUTTON_CLASS = 'local-quicknote__highlight-action';
 
     var state = null;
 
@@ -51,10 +56,20 @@ define([
         };
     };
 
+    var normaliseSelectionText = function(text) {
+        return String(text || '').replace(/\s+/g, ' ').trim();
+    };
+
+    var formatQuotedNote = function(text) {
+        return '"' + normaliseSelectionText(text) + '"';
+    };
+
     var normaliseNote = function(note) {
         return $.extend({}, note, {
             clientid: note.clientid || ('note-' + note.id),
             content: note.content || '',
+            quote: note.quote || '',
+            quoteurl: note.quoteurl || '',
             url: note.url || '',
             status: note.status || ''
         });
@@ -107,6 +122,25 @@ define([
         );
     };
 
+    var setNoteQuote = function($note, quote, quoteurl) {
+        var $wrapper = $note.find(SELECTORS.quotewrapper);
+        var $quote = $note.find(SELECTORS.quote);
+        var $link = $note.find(SELECTORS.quotelink);
+
+        if (!quote) {
+            $wrapper.attr('hidden', 'hidden');
+            $quote.text('');
+            $link.attr('href', '#');
+            $link.attr('hidden', 'hidden');
+            return;
+        }
+
+        $quote.text(quote);
+        $link.attr('href', quoteurl || '#');
+        $link.attr('hidden', quoteurl ? null : 'hidden');
+        $wrapper.removeAttr('hidden');
+    };
+
     var updateNoteElement = function(note, $note, preservecontent) {
         var $textarea = $note.find(SELECTORS.textarea);
         var currentcontent = preservecontent ? $textarea.val() : note.content;
@@ -120,6 +154,7 @@ define([
         $note.find(SELECTORS.deletebutton).attr('data-noteid', note.id || 0);
 
         setNoteStatus($note, note.status);
+        setNoteQuote($note, note.quote, note.quoteurl);
         setNoteUpdated($note, note.timemodified);
         setNoteLocation($note, note.url);
 
@@ -155,7 +190,8 @@ define([
             return true;
         }
 
-        return String(note.content || '').toLowerCase().indexOf(term) !== -1;
+        return String(note.content || '').toLowerCase().indexOf(term) !== -1 ||
+            String(note.quote || '').toLowerCase().indexOf(term) !== -1;
     };
 
     var applyFilter = function() {
@@ -203,6 +239,101 @@ define([
         applyFilter();
     };
 
+    var openSidebar = function() {
+        setOpenState(true);
+    };
+
+    var createHighlightButton = function() {
+        var $button = $('<button>', {
+            type: 'button',
+            class: HIGHLIGHT_BUTTON_CLASS,
+            'aria-label': 'Salvar selecao como anotacao',
+            text: '+'
+        });
+
+        $button.attr('hidden', 'hidden');
+        $('body').append($button);
+
+        return $button;
+    };
+
+    var hideHighlightButton = function(clearselection) {
+        if (!state || !state.highlightbutton) {
+            return;
+        }
+
+        state.highlightbutton.attr('hidden', 'hidden');
+        state.highlightselectiontext = '';
+
+        if (clearselection) {
+            window.getSelection().removeAllRanges();
+        }
+    };
+
+    var showHighlightButton = function(rect, text) {
+        var buttonwidth = 40;
+        var buttonheight = 40;
+        var spacing = 10;
+        var top = rect.top - buttonheight - spacing;
+        var left = rect.left + (rect.width / 2) - (buttonwidth / 2);
+        var maxleft = Math.max(spacing, window.innerWidth - buttonwidth - spacing);
+
+        if (top < spacing) {
+            top = rect.bottom + spacing;
+        }
+
+        left = Math.max(spacing, Math.min(left, maxleft));
+
+        state.highlightselectiontext = text;
+        state.highlightbutton.css({
+            top: top + 'px',
+            left: left + 'px'
+        });
+        state.highlightbutton.removeAttr('hidden');
+    };
+
+    var getValidSelection = function() {
+        var selection = window.getSelection();
+        var text;
+        var range;
+        var container;
+
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+            return null;
+        }
+
+        text = normaliseSelectionText(selection.toString());
+
+        if (text.length <= MIN_SELECTION_LENGTH) {
+            return null;
+        }
+
+        range = selection.getRangeAt(0);
+        container = range.commonAncestorContainer;
+
+        if (container && container.nodeType === Node.TEXT_NODE) {
+            container = container.parentNode;
+        }
+
+        if (!container || $(container).closest(SELECTORS.root).length) {
+            return null;
+        }
+
+        if ($(container).closest('input, textarea, button').length) {
+            return null;
+        }
+
+        return {
+            text: text,
+            rect: range.getBoundingClientRect()
+        };
+    };
+
+    var prependNote = function(note) {
+        state.notes.unshift(note);
+        renderNotes();
+    };
+
     var setOpenState = function(isopen) {
         var $panel = state.root.find(SELECTORS.panel);
         var $toggle = state.root.find(SELECTORS.toggle);
@@ -226,29 +357,28 @@ define([
                 id: note.id || 0,
                 courseid: state.courseid,
                 content: note.content,
-                url: window.location.href
+                url: note.url || window.location.href,
+                quote: note.quote || '',
+                quoteurl: note.quoteurl || ''
             }
         }])[0];
 
         request.done(function(response) {
             var savednote = normaliseNote(response);
             var $currentnote = getNoteElementByKey(note.clientid);
-            var $textarea;
-            var currentcontent;
 
             note.id = savednote.id;
             note.courseid = savednote.courseid;
             note.userid = savednote.userid;
             note.url = savednote.url;
+            note.quote = savednote.quote;
+            note.quoteurl = savednote.quoteurl;
             note.timecreated = savednote.timecreated;
             note.timemodified = savednote.timemodified;
             note.status = state.strings.savedtext;
 
             if ($currentnote.length) {
-                $textarea = $currentnote.find(SELECTORS.textarea);
-                currentcontent = $textarea.val();
-                updateNoteElement(note, $currentnote, true);
-                $textarea.val(currentcontent);
+                setNoteStatus($currentnote, note.status);
             }
         }).fail(function(error) {
             note.status = state.strings.errortext;
@@ -325,7 +455,39 @@ define([
         });
     };
 
+    var createHighlightNote = function(text) {
+        var note = createDraftNote();
+        var quoteurl = window.location.href + '#:~:text=' + encodeURIComponent(text);
+
+        note.content = '';
+        note.url = window.location.href;
+        note.quote = formatQuotedNote(text);
+        note.quoteurl = quoteurl;
+        note.timemodified = Math.floor(Date.now() / 1000);
+        note.status = state.strings.savingtext;
+
+        prependNote(note);
+        openSidebar();
+        saveNote(note);
+    };
+
     var bindEvents = function() {
+        state.highlightbutton.on('mousedown', function(e) {
+            e.preventDefault();
+        });
+
+        state.highlightbutton.on('click', function() {
+            var text = state.highlightselectiontext;
+
+            hideHighlightButton(true);
+
+            if (!text) {
+                return;
+            }
+
+            createHighlightNote(text);
+        });
+
         state.root.on('click', SELECTORS.toggle, function() {
             setOpenState(!state.root.hasClass('is-open'));
         });
@@ -336,17 +498,12 @@ define([
 
         state.root.on('click', SELECTORS.add, function() {
             var note = createDraftNote();
-            var $list = getList();
             var $note;
             var $textarea;
 
-            state.notes.unshift(note);
-            $list.find(SELECTORS.emptystate).remove();
+            prependNote(note);
 
-            $note = createNoteElement(note);
-            $list.prepend($note);
-            applyFilter();
-
+            $note = getNoteElementByKey(note.clientid);
             $textarea = $note.find(SELECTORS.textarea);
             if ($textarea.length) {
                 $textarea.trigger('focus');
@@ -420,6 +577,39 @@ define([
                 getList().find(SELECTORS.note).show();
             }
         });
+
+        $(document).on('mouseup.local_quicknote', function(e) {
+            if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
+                return;
+            }
+
+            window.setTimeout(function() {
+                var selection = getValidSelection();
+
+                if (!selection || !selection.rect || !selection.rect.width) {
+                    hideHighlightButton(false);
+                    return;
+                }
+
+                showHighlightButton(selection.rect, selection.text);
+            }, 0);
+        });
+
+        $(document).on('mousedown.local_quicknote', function(e) {
+            if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
+                return;
+            }
+
+            hideHighlightButton(false);
+        });
+
+        $(document).on('selectionchange.local_quicknote', function() {
+            var selection = window.getSelection();
+
+            if (!selection || selection.isCollapsed) {
+                hideHighlightButton(false);
+            }
+        });
     };
 
     return {
@@ -446,6 +636,9 @@ define([
                     noresultstext: 'Nenhuma anotacao encontrada para este termo.'
                 }
             };
+
+            state.highlightbutton = createHighlightButton();
+            state.highlightselectiontext = '';
 
             bindEvents();
             loadNotes();

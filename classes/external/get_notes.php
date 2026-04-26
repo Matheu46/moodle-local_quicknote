@@ -88,6 +88,8 @@ class get_notes extends \external_api {
                 'userid' => new \external_value(PARAM_INT, 'Owner user id.'),
                 'courseid' => new \external_value(PARAM_INT, 'Course id.'),
                 'content' => new \external_value(PARAM_RAW, 'Note content.'),
+                'quote' => new \external_value(PARAM_RAW, 'Selected quote text.'),
+                'quoteurl' => new \external_value(PARAM_RAW, 'URL pointing to the selected quote.'),
                 'url' => new \external_value(PARAM_RAW_TRIMMED, 'Last saved page URL.'),
                 'timecreated' => new \external_value(PARAM_INT, 'Creation timestamp.'),
                 'timemodified' => new \external_value(PARAM_INT, 'Last modification timestamp.'),

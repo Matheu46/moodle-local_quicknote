@@ -44,6 +44,8 @@ class save_note extends \external_api {
             'courseid' => new \external_value(PARAM_INT, 'Course id.'),
             'content' => new \external_value(PARAM_RAW, 'Note content.'),
             'url' => new \external_value(PARAM_RAW_TRIMMED, 'Current page URL.'),
+            'quote' => new \external_value(PARAM_RAW, 'Selected quote text.', VALUE_OPTIONAL),
+            'quoteurl' => new \external_value(PARAM_RAW, 'URL pointing to the selected quote.', VALUE_OPTIONAL),
         ]);
     }
 
@@ -54,17 +56,36 @@ class save_note extends \external_api {
      * @param int $courseid
      * @param string $content
      * @param string $url
+     * @param string|null $quote
+     * @param string|null $quoteurl
      * @return array
      */
-    public static function execute(int $id, int $courseid, string $content, string $url): array {
+    public static function execute(
+        int $id,
+        int $courseid,
+        string $content,
+        string $url,
+        ?string $quote = null,
+        ?string $quoteurl = null
+    ): array {
         global $DB, $USER;
 
-        $params = self::validate_parameters(self::execute_parameters(), [
+        $input = [
             'id' => $id,
             'courseid' => $courseid,
             'content' => $content,
             'url' => $url,
-        ]);
+        ];
+
+        if ($quote !== null) {
+            $input['quote'] = $quote;
+        }
+
+        if ($quoteurl !== null) {
+            $input['quoteurl'] = $quoteurl;
+        }
+
+        $params = self::validate_parameters(self::execute_parameters(), $input);
 
         require_sesskey();
 
@@ -83,6 +104,14 @@ class save_note extends \external_api {
             'timemodified' => $now,
         ];
 
+        if (array_key_exists('quote', $params)) {
+            $record->quote = $params['quote'];
+        }
+
+        if (array_key_exists('quoteurl', $params)) {
+            $record->quoteurl = $params['quoteurl'];
+        }
+
         if (!empty($params['id'])) {
             $existing = $DB->get_record('local_quicknotes', [
                 'id' => $params['id'],
@@ -95,10 +124,21 @@ class save_note extends \external_api {
 
             $record->id = $existing->id;
             $record->timecreated = $existing->timecreated;
+
+            if (!property_exists($record, 'quote')) {
+                $record->quote = $existing->quote ?? null;
+            }
+
+            if (!property_exists($record, 'quoteurl')) {
+                $record->quoteurl = $existing->quoteurl ?? null;
+            }
+
             $DB->update_record('local_quicknotes', $record);
             $saved = $DB->get_record('local_quicknotes', ['id' => $record->id], '*', MUST_EXIST);
         } else {
             $record->timecreated = $now;
+            $record->quote = $record->quote ?? null;
+            $record->quoteurl = $record->quoteurl ?? null;
             $record->id = $DB->insert_record('local_quicknotes', $record);
             $saved = $DB->get_record('local_quicknotes', ['id' => $record->id], '*', MUST_EXIST);
         }
@@ -117,6 +157,8 @@ class save_note extends \external_api {
             'userid' => new \external_value(PARAM_INT, 'Owner user id.'),
             'courseid' => new \external_value(PARAM_INT, 'Course id.'),
             'content' => new \external_value(PARAM_RAW, 'Note content.'),
+            'quote' => new \external_value(PARAM_RAW, 'Selected quote text.'),
+            'quoteurl' => new \external_value(PARAM_RAW, 'URL pointing to the selected quote.'),
             'url' => new \external_value(PARAM_RAW_TRIMMED, 'Last saved page URL.'),
             'timecreated' => new \external_value(PARAM_INT, 'Creation timestamp.'),
             'timemodified' => new \external_value(PARAM_INT, 'Last modification timestamp.'),
@@ -135,6 +177,8 @@ class save_note extends \external_api {
             'userid' => (int) $note->userid,
             'courseid' => (int) $note->courseid,
             'content' => (string) ($note->content ?? ''),
+            'quote' => (string) ($note->quote ?? ''),
+            'quoteurl' => (string) ($note->quoteurl ?? ''),
             'url' => (string) $note->url,
             'timecreated' => (int) $note->timecreated,
             'timemodified' => (int) $note->timemodified,
