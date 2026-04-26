@@ -75,24 +75,28 @@
                         <span class="sr-only">Delete note</span>
                     </button>
                 </div>
+
                 <div class="local-quicknote__quote-wrapper" data-region="note-quote-wrapper" hidden>
                     <blockquote class="local-quicknote__quote" data-region="note-quote"></blockquote>
                     <a
                         class="local-quicknote__quote-link"
                         data-region="note-quote-link"
                         href="#"
+                        hidden
                     >
                         Ver no texto
                     </a>
                 </div>
-                <div class="local-quicknote__meta" data-region="note-updated"></div>
+
                 <div class="local-quicknote__meta" data-region="note-location"></div>
+
                 <label class="sr-only" for="">{{placeholder}}</label>
                 <textarea
                     class="local-quicknote__textarea"
                     data-note-key=""
                     placeholder="{{placeholder}}"
                 ></textarea>
+
             </article>
         </template>
     </aside>

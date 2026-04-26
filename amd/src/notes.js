@@ -65,7 +65,7 @@ define([
     };
 
     var normaliseNote = function(note) {
-        return $.extend({}, note, {
+        var normalisednote = $.extend({}, note, {
             clientid: note.clientid || ('note-' + note.id),
             content: note.content || '',
             quote: note.quote || '',
@@ -73,6 +73,11 @@ define([
             url: note.url || '',
             status: note.status || ''
         });
+
+        normalisednote.hasquote = !!(normalisednote.quote && normalisednote.quote.trim() !== '');
+        normalisednote.quotetext = normalisednote.quote;
+
+        return normalisednote;
     };
 
     var getRoot = function() {
@@ -108,10 +113,10 @@ define([
         );
     };
 
-    var setNoteLocation = function($note, url) {
+    var setNoteLocation = function($note, url, hasquote) {
         var $location = $note.find(SELECTORS.location);
 
-        if (!url) {
+        if (hasquote || !url) {
             $location.empty();
             return;
         }
@@ -122,12 +127,12 @@ define([
         );
     };
 
-    var setNoteQuote = function($note, quote, quoteurl) {
+    var setNoteQuote = function($note, note) {
         var $wrapper = $note.find(SELECTORS.quotewrapper);
         var $quote = $note.find(SELECTORS.quote);
         var $link = $note.find(SELECTORS.quotelink);
 
-        if (!quote) {
+        if (!note.hasquote) {
             $wrapper.attr('hidden', 'hidden');
             $quote.text('');
             $link.attr('href', '#');
@@ -135,9 +140,9 @@ define([
             return;
         }
 
-        $quote.text(quote);
-        $link.attr('href', quoteurl || '#');
-        $link.attr('hidden', quoteurl ? null : 'hidden');
+        $quote.text(note.quotetext);
+        $link.attr('href', note.quoteurl || '#');
+        $link.attr('hidden', note.quoteurl ? null : 'hidden');
         $wrapper.removeAttr('hidden');
     };
 
@@ -154,9 +159,9 @@ define([
         $note.find(SELECTORS.deletebutton).attr('data-noteid', note.id || 0);
 
         setNoteStatus($note, note.status);
-        setNoteQuote($note, note.quote, note.quoteurl);
+        setNoteQuote($note, note);
         setNoteUpdated($note, note.timemodified);
-        setNoteLocation($note, note.url);
+        setNoteLocation($note, note.url, note.hasquote);
 
         if ($textarea.val() !== currentcontent) {
             $textarea.val(currentcontent);
@@ -367,18 +372,26 @@ define([
             var savednote = normaliseNote(response);
             var $currentnote = getNoteElementByKey(note.clientid);
 
+            // Garante as chaves de compatibilidade antes de qualquer renderizacao/atualizacao visual.
+            savednote.hasquote = !!(savednote.quote && savednote.quote.trim() !== '');
+            savednote.quotetext = savednote.quote;
+
             note.id = savednote.id;
             note.courseid = savednote.courseid;
             note.userid = savednote.userid;
             note.url = savednote.url;
             note.quote = savednote.quote;
             note.quoteurl = savednote.quoteurl;
+            note.hasquote = savednote.hasquote;
+            note.quotetext = savednote.quotetext;
             note.timecreated = savednote.timecreated;
             note.timemodified = savednote.timemodified;
             note.status = state.strings.savedtext;
 
             if ($currentnote.length) {
                 setNoteStatus($currentnote, note.status);
+                setNoteQuote($currentnote, note);
+                setNoteLocation($currentnote, note.url, note.hasquote);
             }
         }).fail(function(error) {
             note.status = state.strings.errortext;

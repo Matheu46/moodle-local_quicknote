@@ -84,6 +84,8 @@ function local_quicknote_before_standard_top_of_body_html() {
 
     return $OUTPUT->render_from_template('local_quicknote/sidebar', [
         'courseid' => (int) $course->id,
+        'hasquote' => false,
+        'quotetext' => '',
         'title' => 'Anotações Rápidas',
         'togglelabel' => 'Abrir Notas',
         'closelabel' => 'Fechar',

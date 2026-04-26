@@ -158,6 +158,8 @@ class save_note extends \external_api {
             'courseid' => new \external_value(PARAM_INT, 'Course id.'),
             'content' => new \external_value(PARAM_RAW, 'Note content.'),
             'quote' => new \external_value(PARAM_RAW, 'Selected quote text.'),
+            'hasquote' => new \external_value(PARAM_BOOL, 'Whether the note contains a quote.'),
+            'quotetext' => new \external_value(PARAM_RAW, 'Quote text safe for template rendering.'),
             'quoteurl' => new \external_value(PARAM_RAW, 'URL pointing to the selected quote.'),
             'url' => new \external_value(PARAM_RAW_TRIMMED, 'Last saved page URL.'),
             'timecreated' => new \external_value(PARAM_INT, 'Creation timestamp.'),
@@ -172,12 +174,16 @@ class save_note extends \external_api {
      * @return array
      */
     public static function export_note(\stdClass $note): array {
+        $quote = (string) ($note->quote ?? '');
+
         return [
             'id' => (int) $note->id,
             'userid' => (int) $note->userid,
             'courseid' => (int) $note->courseid,
             'content' => (string) ($note->content ?? ''),
-            'quote' => (string) ($note->quote ?? ''),
+            'quote' => $quote,
+            'hasquote' => trim($quote) !== '',
+            'quotetext' => $quote,
             'quoteurl' => (string) ($note->quoteurl ?? ''),
             'url' => (string) $note->url,
             'timecreated' => (int) $note->timecreated,
