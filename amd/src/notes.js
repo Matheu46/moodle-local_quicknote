@@ -575,6 +575,40 @@ define([
             deleteNote(note, $note);
         });
 
+        // NOVA FUNÇÃO: Intercepta o clique no link da citação com truque de DOM
+        state.root.on('click', SELECTORS.quotelink, function(e) {
+            var targetUrl = $(this).attr('href');
+            var currentUrl = window.location.href.split('#')[0];
+
+            if (targetUrl && (targetUrl.indexOf(currentUrl) === 0 || targetUrl.indexOf('#') === 0)) {
+                e.preventDefault();
+                
+                var hashIndex = targetUrl.indexOf('#');
+                if (hashIndex === -1) {
+                    return;
+                }
+
+                // 1. Inicia o fechamento visual da gaveta
+                setOpenState(false);
+                
+                // 2. O Truque: Apagamos o texto da citação temporariamente na gaveta
+                var $quoteElement = $(this).closest(SELECTORS.note).find(SELECTORS.quote);
+                var originalText = $quoteElement.text();
+                $quoteElement.text('');
+
+                // 3. Disparamos a navegação para o fragmento
+                window.setTimeout(function() {
+                    // Como a gaveta está sem o texto, o navegador obrigatoriamente vai destacar o texto principal do curso
+                    window.location.hash = targetUrl.substring(hashIndex + 1);
+                    
+                    // 4. Devolvemos o texto para a gaveta logo em seguida
+                    window.setTimeout(function() {
+                        $quoteElement.text(originalText);
+                    }, 100);
+                }, 10);
+            }
+        });
+
         state.root.on('input keyup', SELECTORS.search, function() {
             var term = getSearchTerm();
 
