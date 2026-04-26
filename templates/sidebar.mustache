@@ -1,0 +1,89 @@
+<div
+    id="local-quicknote-root"
+    class="local-quicknote"
+    data-courseid="{{courseid}}"
+    data-placeholder="{{placeholder}}"
+    data-emptytext="{{emptytext}}"
+    data-savingtext="{{savingtext}}"
+    data-savedtext="{{savedtext}}"
+    data-errortext="{{errortext}}"
+    data-updatedlabel="{{updatedlabel}}"
+    data-locationlabel="{{locationlabel}}"
+>
+    <button
+        type="button"
+        class="local-quicknote__toggle"
+        data-action="toggle"
+        aria-controls="local-quicknote-panel"
+        aria-expanded="false"
+        aria-label="{{togglelabel}}"
+    >
+        {{#pix}} i/edit, core {{/pix}}
+        <span class="sr-only">{{togglelabel}}</span>
+    </button>
+
+    <aside
+        id="local-quicknote-panel"
+        class="local-quicknote__panel"
+        data-region="panel"
+        aria-hidden="true"
+    >
+        <div class="local-quicknote__header">
+            <h3 class="local-quicknote__title">{{title}}</h3>
+            <button
+                type="button"
+                class="local-quicknote__close"
+                data-action="close"
+                aria-label="{{closelabel}}"
+            >
+                {{#pix}} i/close, core {{/pix}}
+                <span class="sr-only">{{closelabel}}</span>
+            </button>
+        </div>
+
+        <div class="local-quicknote__toolbar">
+            <button type="button" class="btn btn-primary" data-action="add">
+                {{addlabel}}
+            </button>
+        </div>
+
+        <div class="local-quicknote__search">
+            <label class="sr-only" for="local-quicknote-search">{{placeholder}}</label>
+            <input
+                id="local-quicknote-search"
+                type="text"
+                class="form-control quicknote-search-input"
+                data-action="search"
+                placeholder="Buscar em minhas notas..."
+            >
+        </div>
+
+        <div class="local-quicknote__notes" data-region="notes-list">
+            <p class="local-quicknote__empty">{{emptytext}}</p>
+        </div>
+        <template data-region="note-template">
+            <article class="local-quicknote__note" data-note-key="">
+                <div class="local-quicknote__note-actions">
+                    <span class="local-quicknote__status" data-region="note-status"></span>
+                    <button
+                        type="button"
+                        class="btn btn-link btn-sm local-quicknote__delete"
+                        data-action="delete-note"
+                        data-noteid=""
+                    >
+                        {{#pix}} i/delete, core {{/pix}}
+                        <span class="sr-only">Delete note</span>
+                    </button>
+                </div>
+                <div class="local-quicknote__meta" data-region="note-updated"></div>
+                <div class="local-quicknote__meta" data-region="note-location"></div>
+                <label class="sr-only" for="">{{placeholder}}</label>
+                <textarea
+                    class="local-quicknote__textarea"
+                    data-note-key=""
+                    placeholder="{{placeholder}}"
+                ></textarea>
+            </article>
+        </template>
+    </aside>
+</div>
