@@ -15,17 +15,27 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Plugin strings are defined here.
  *
  * @package     local_quicknote
+ * @category    string
  * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_quicknote';
-$plugin->release = '0.1.0';
-$plugin->version = 2026050102;
-$plugin->requires = 2022041900;
-$plugin->maturity = MATURITY_BETA;
+$string['pluginname'] = 'Quick Note';
+$string['sidebar:title'] = 'Minhas anotações';
+$string['sidebar:toggle'] = 'Abrir anotações';
+$string['sidebar:close'] = 'Fechar anotações';
+$string['note:add'] = 'Nova anotação';
+$string['note:placeholder'] = 'Escreva uma anotação privada...';
+$string['note:empty'] = 'Nenhuma anotação ainda neste curso.';
+$string['note:saving'] = 'Salvando...';
+$string['note:saved'] = 'Salvo automaticamente';
+$string['note:delete'] = 'Excluir anotação';
+$string['note:error'] = 'Não foi possível salvar esta anotação';
+$string['note:updated'] = 'Atualizado';
+$string['note:location'] = 'Página';
+$string['search:placeholder'] = 'Pesquisar em minhas anotações...';

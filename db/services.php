@@ -18,7 +18,7 @@
  * External service definitions.
  *
  * @package     local_quicknote
- * @copyright   2026 IFRN
+ * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

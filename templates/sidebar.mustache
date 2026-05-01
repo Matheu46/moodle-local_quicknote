@@ -54,7 +54,7 @@
                 type="text"
                 class="form-control quicknote-search-input"
                 data-action="search"
-                placeholder="Buscar em minhas notas..."
+                placeholder="{{#str}} search:placeholder, local_quicknote {{/str}}"
             >
         </div>
 
@@ -72,7 +72,7 @@
                         data-noteid=""
                     >
                         {{#pix}} i/delete, core {{/pix}}
-                        <span class="sr-only">Delete note</span>
+                        <span class="sr-only">{{#str}} note:delete, local_quicknote {{/str}}</span>
                     </button>
                 </div>
 

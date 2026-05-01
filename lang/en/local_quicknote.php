@@ -19,7 +19,7 @@
  *
  * @package     local_quicknote
  * @category    string
- * @copyright   2026 IFRN
+ * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -34,6 +34,8 @@ $string['note:placeholder'] = 'Write a quick private note...';
 $string['note:empty'] = 'No notes yet in this course.';
 $string['note:saving'] = 'Saving...';
 $string['note:saved'] = 'Saved automatically';
+$string['note:delete'] = 'Delete note';
 $string['note:error'] = 'Could not save this note';
 $string['note:updated'] = 'Updated';
 $string['note:location'] = 'Page';
+$string['search:placeholder'] = 'Search in my notes...';

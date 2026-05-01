@@ -18,7 +18,7 @@
  * Plugin callbacks.
  *
  * @package     local_quicknote
- * @copyright   2026 IFRN
+ * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -86,16 +86,16 @@ function local_quicknote_before_standard_top_of_body_html() {
         'courseid' => (int) $course->id,
         'hasquote' => false,
         'quotetext' => '',
-        'title' => 'Anotações Rápidas',
-        'togglelabel' => 'Abrir Notas',
-        'closelabel' => 'Fechar',
-        'addlabel' => 'Adicionar',
-        'placeholder' => 'Escreva sua reflexão...',
-        'emptytext' => 'Nenhuma anotação.',
-        'savingtext' => 'Salvando...',
-        'savedtext' => 'Salvo',
-        'errortext' => 'Erro',
-        'updatedlabel' => 'Atualizado',
-        'locationlabel' => 'Local',
+        'title' => get_string('sidebar:title', 'local_quicknote'),
+        'togglelabel' => get_string('note:toggle', 'local_quicknote'),
+        'closelabel' => get_string('note:close', 'local_quicknote'),
+        'addlabel' => get_string('note:add', 'local_quicknote'),
+        'placeholder' => get_string('note:placeholder', 'local_quicknote'),
+        'emptytext' => get_string('note:empty', 'local_quicknote'),
+        'savingtext' => get_string('note:saving', 'local_quicknote'),
+        'savedtext' => get_string('note:saved', 'local_quicknote'),
+        'errortext' => get_string('note:error', 'local_quicknote'),
+        'updatedlabel' => get_string('note:updated', 'local_quicknote'),
+        'locationlabel' => get_string('note:location', 'local_quicknote'),
     ]);
 }

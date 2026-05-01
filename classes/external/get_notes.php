@@ -27,7 +27,7 @@ use context_course;
  * Retrieve quick notes for the current user and course.
  *
  * @package     local_quicknote
- * @copyright   2026 IFRN
+ * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_notes extends \external_api {
