@@ -18,8 +18,7 @@
  * Code to be executed after the plugin's database scheme has been installed is defined here.
  *
  * @package     local_quicknote
- * @category    upgrade
- * @copyright   2026 Your Name <you@example.com>
+ * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

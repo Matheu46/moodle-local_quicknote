@@ -19,7 +19,7 @@
  *
  * @package     local_quicknote
  * @category    upgrade
- * @copyright   2026 Your Name <you@example.com>
+ * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
