@@ -25,17 +25,23 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Quick Note';
+$string['pluginname'] = 'Quick Notes';
+$string['default_enabled'] = 'Enabled by default';
+$string['default_enabled_desc'] = 'Defines whether the notes icon will be active by default in courses that have not yet been manually configured.';
+$string['config:active_course'] = 'Activate Quick Notes in this course';
 $string['sidebar:title'] = 'My notes';
-$string['sidebar:toggle'] = 'Open quick notes';
-$string['sidebar:close'] = 'Close quick notes';
+$string['sidebar:toggle'] = 'Open notes';
+$string['sidebar:close'] = 'Close notes';
 $string['note:add'] = 'New note';
-$string['note:placeholder'] = 'Write a quick private note...';
+$string['note:placeholder'] = 'Write a private note...';
 $string['note:empty'] = 'No notes yet in this course.';
 $string['note:saving'] = 'Saving...';
 $string['note:saved'] = 'Saved automatically';
 $string['note:delete'] = 'Delete note';
+$string['note:delete_confirm'] = 'Delete this note?';
 $string['note:error'] = 'Could not save this note';
 $string['note:updated'] = 'Updated';
 $string['note:location'] = 'Page';
 $string['search:placeholder'] = 'Search in my notes...';
+$string['search:noresultstext'] = 'No notes found matching your search.';
+$string['select:highlightlabel'] = 'Save selection as note';

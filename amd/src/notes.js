@@ -252,7 +252,7 @@ define([
         var $button = $('<button>', {
             type: 'button',
             class: HIGHLIGHT_BUTTON_CLASS,
-            'aria-label': 'Salvar selecao como anotacao',
+            'aria-label': state.strings.highlightlabel,
             text: '+'
         });
 
@@ -372,7 +372,7 @@ define([
             var savednote = normaliseNote(response);
             var $currentnote = getNoteElementByKey(note.clientid);
 
-            // Garante as chaves de compatibilidade antes de qualquer renderizacao/atualizacao visual.
+            // insures compatibility keys before any rendering/visual update.
             savednote.hasquote = !!(savednote.quote && savednote.quote.trim() !== '');
             savednote.quotetext = savednote.quote;
 
@@ -568,14 +568,13 @@ define([
                 return;
             }
 
-            if (!window.confirm('Delete this note?')) {
+            if (!window.confirm(state.strings.deleteconfirm)) {
                 return;
             }
 
             deleteNote(note, $note);
         });
 
-        // NOVA FUNÇÃO: Intercepta o clique no link da citação com truque de DOM
         state.root.on('click', SELECTORS.quotelink, function(e) {
             var targetUrl = $(this).attr('href');
             var currentUrl = window.location.href.split('#')[0];
@@ -588,20 +587,15 @@ define([
                     return;
                 }
 
-                // 1. Inicia o fechamento visual da gaveta
                 setOpenState(false);
                 
-                // 2. O Truque: Apagamos o texto da citação temporariamente na gaveta
                 var $quoteElement = $(this).closest(SELECTORS.note).find(SELECTORS.quote);
                 var originalText = $quoteElement.text();
                 $quoteElement.text('');
 
-                // 3. Disparamos a navegação para o fragmento
                 window.setTimeout(function() {
-                    // Como a gaveta está sem o texto, o navegador obrigatoriamente vai destacar o texto principal do curso
                     window.location.hash = targetUrl.substring(hashIndex + 1);
                     
-                    // 4. Devolvemos o texto para a gaveta logo em seguida
                     window.setTimeout(function() {
                         $quoteElement.text(originalText);
                     }, 100);
@@ -680,7 +674,9 @@ define([
                     errortext: $root.attr('data-errortext'),
                     updatedlabel: $root.attr('data-updatedlabel'),
                     locationlabel: $root.attr('data-locationlabel'),
-                    noresultstext: 'Nenhuma anotacao encontrada para este termo.'
+                    highlightlabel: $root.attr('data-highlightlabel'),
+                    deleteconfirm: $root.attr('data-deleteconfirm'),
+                    noresultstext: $root.attr('data-noresultstext')
                 }
             };
 

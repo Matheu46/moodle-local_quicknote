@@ -39,7 +39,7 @@ behat/
 phpunit.xml
 
 # ==========================================
-# Arquivos de Ferramentas de IA (Cursor, Copilot, etc)
+# Archives of AI tools (Cursor, Copilot, etc)
 # ==========================================
 *.codex
 .cursor/

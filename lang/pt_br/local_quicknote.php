@@ -25,7 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Quick Note';
+$string['pluginname'] = 'Anotações Rápidas';
+$string['default_enabled'] = 'Ativado por padrão';
+$string['default_enabled_desc'] = 'Define se o ícone de anotações estará ativo por padrão em cursos que ainda não foram configurados manualmente.';
+$string['config:active_course'] = 'Ativar Anotações Rápidas neste curso';
 $string['sidebar:title'] = 'Minhas anotações';
 $string['sidebar:toggle'] = 'Abrir anotações';
 $string['sidebar:close'] = 'Fechar anotações';
@@ -35,7 +38,10 @@ $string['note:empty'] = 'Nenhuma anotação ainda neste curso.';
 $string['note:saving'] = 'Salvando...';
 $string['note:saved'] = 'Salvo automaticamente';
 $string['note:delete'] = 'Excluir anotação';
+$string['note:delete_confirm'] = 'Excluir esta anotação?';
 $string['note:error'] = 'Não foi possível salvar esta anotação';
 $string['note:updated'] = 'Atualizado';
 $string['note:location'] = 'Página';
 $string['search:placeholder'] = 'Pesquisar em minhas anotações...';
+$string['search:noresultstext'] = 'Nenhuma anotação encontrada correspondente à sua pesquisa.';
+$string['select:highlightlabel'] = 'Salvar seleção como anotação';

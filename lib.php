@@ -33,12 +33,11 @@ use context_course;
  * @return bool
  */
 function local_quicknote_is_enabled_for_course($course) {
-    // Busca a configuração específica do curso.
+
     $enabled = get_config('local_quicknote_course_' . $course->id, 'enabled');
 
-    // Se o professor nunca alterou a configuração neste curso (valor é nulo/vazio).
     if ($enabled === false || $enabled === null || $enabled === '') {
-        // Retorna o padrão definido pelo administrador em Administração do Site.
+        // Return the default setting defined by the administrator in Site Administration.
         return (bool) get_config('local_quicknote', 'default_enabled');
     }
 
@@ -75,9 +74,6 @@ function local_quicknote_before_standard_top_of_body_html() {
         return '';
     }
 
-    // A chamada do CSS foi removida daqui! O Moodle carrega o styles.css nativamente.
-
-    // A chamada do JS (AMD) é permitida aqui, pois o Moodle a empurra para o rodapé automaticamente.
     $PAGE->requires->js_call_amd('local_quicknote/notes', 'init', [[
         'courseid' => (int) $course->id,
     ]]);
@@ -97,5 +93,8 @@ function local_quicknote_before_standard_top_of_body_html() {
         'errortext' => get_string('note:error', 'local_quicknote'),
         'updatedlabel' => get_string('note:updated', 'local_quicknote'),
         'locationlabel' => get_string('note:location', 'local_quicknote'),
+        'deleteconfirm' => get_string('note:delete_confirm', 'local_quicknote'),
+        'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
+        'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
     ]);
 }
