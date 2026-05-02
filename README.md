@@ -44,7 +44,7 @@ Teachers can control QuickNote per course:
 
 1. Open the target course.
 2. Go to the course settings form.
-3. Find the `Quick Notes` section.
+3. Find the `QuickNote` section.
 4. Enable or disable QuickNote for that course.
 
 This makes it easy to align the tool with the pedagogical design of each course.

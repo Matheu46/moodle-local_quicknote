@@ -25,10 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Quick notes';
+$string['pluginname'] = 'QuickNote';
 $string['default_enabled'] = 'Enabled by default';
 $string['default_enabled_desc'] = 'Defines whether the notes icon will be active by default in courses that have not yet been manually configured.';
-$string['config:active_course'] = 'Activate quick notes in this course';
+$string['config:active_course'] = 'Activate QuickNote in this course';
 $string['sidebar:title'] = 'My notes';
 $string['sidebar:toggle'] = 'Open notes';
 $string['sidebar:close'] = 'Close notes';
