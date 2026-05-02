@@ -4,6 +4,8 @@ Designed for the native Boost experience in Moodle 4.4 and 4.5+, QuickNote helps
 
 Instead of forcing learners to copy text into external apps, QuickNote keeps the study workflow inside Moodle. Students can highlight a passage, save it instantly as a quote, add their own interpretation, and revisit the original context later through browser text-fragment navigation. The result is a cleaner, more focused note-taking experience that supports active reading, revision, and deeper engagement with course content.
 
+<img width="1155" height="949" alt="demo-quicknote" src="https://github.com/user-attachments/assets/07d02bb9-0a81-49fe-837e-10d1b4672b72" />
+
 ## ✨ Features
 
 - **Highlight to Note**: Students can select text anywhere inside a course page and use a floating action button to save the selection instantly as a quote.
