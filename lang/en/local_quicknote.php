@@ -42,6 +42,7 @@ $string['note:delete_confirm'] = 'Delete this note?';
 $string['note:error'] = 'Could not save this note';
 $string['note:updated'] = 'Updated';
 $string['note:location'] = 'Page';
+$string['note:viewintext'] = 'View in text';
 $string['search:placeholder'] = 'Search in my notes...';
 $string['search:noresultstext'] = 'No notes found matching your search.';
 $string['select:highlightlabel'] = 'Save selection as note';

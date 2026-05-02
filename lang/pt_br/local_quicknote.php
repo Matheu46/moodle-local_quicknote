@@ -42,6 +42,7 @@ $string['note:delete_confirm'] = 'Excluir esta anotação?';
 $string['note:error'] = 'Não foi possível salvar esta anotação';
 $string['note:updated'] = 'Atualizado';
 $string['note:location'] = 'Página';
+$string['note:viewintext'] = 'Ver no texto';
 $string['search:placeholder'] = 'Pesquisar em minhas anotações...';
 $string['search:noresultstext'] = 'Nenhuma anotação encontrada correspondente à sua pesquisa.';
 $string['select:highlightlabel'] = 'Salvar seleção como anotação';
