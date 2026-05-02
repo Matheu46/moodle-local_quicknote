@@ -25,10 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Anotações Rápidas';
+$string['pluginname'] = 'Anotações rápidas';
 $string['default_enabled'] = 'Ativado por padrão';
 $string['default_enabled_desc'] = 'Define se o ícone de anotações estará ativo por padrão em cursos que ainda não foram configurados manualmente.';
-$string['config:active_course'] = 'Ativar Anotações Rápidas neste curso';
+$string['config:active_course'] = 'Ativar Anotações rápidas neste curso';
 $string['sidebar:title'] = 'Minhas anotações';
 $string['sidebar:toggle'] = 'Abrir anotações';
 $string['sidebar:close'] = 'Fechar anotações';

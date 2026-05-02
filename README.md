@@ -67,7 +67,7 @@ QuickNote can be installed like any standard Moodle local plugin.
 Clone or copy the plugin into your Moodle local plugins directory:
 
 ```bash
-git clone <repository-url> /path/to/moodle/local/quicknote
+git clone https://github.com/Matheu46/moodle-local_quicknote.git /path/to/moodle/local/quicknote
 ```
 
 Then complete the Moodle upgrade:
@@ -104,7 +104,7 @@ QuickNote is designed to be simple for students from the first interaction.
 ## 🐛 Bug Reports & Support
 
 If you find a bug or have a feature request, please open an issue on our tracker:
-[(https://github.com/Matheu46/quicknote/issues)](#)
+[(https://github.com/Matheu46/moodle-local_quicknote/issues)](#)
 
 Pull requests are welcome!
 
