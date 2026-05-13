@@ -69,7 +69,7 @@ function local_quicknote_before_standard_top_of_body_html() {
         return '';
     }
 
-    if (!has_capability('moodle/course:view', $context)) {
+    if (!is_enrolled($context) && !has_capability('moodle/course:view', $context)) {
         return '';
     }
 
