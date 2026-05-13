@@ -22,8 +22,6 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 use context_course;
 
 /**
@@ -44,6 +42,11 @@ function local_quicknote_is_enabled_for_course($course) {
     return (string) $enabled !== '0';
 }
 
+/**
+ * Injects the QuickNote UI in the standard top of body HTML.
+ *
+ * @return void
+ */
 function local_quicknote_before_standard_top_of_body_html() {
     global $OUTPUT, $PAGE, $USER;
 

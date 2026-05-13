@@ -24,8 +24,11 @@
 
 namespace local_quicknote;
 
-defined('MOODLE_INTERNAL') || die();
-
+/**
+ * Class hooks for QuickNote.
+ *
+ * @package    local_quicknote
+ */
 class hooks {
     /**
      * Adds QuickNote settings to the course edit form using Hook API.
@@ -45,7 +48,7 @@ class hooks {
             }
         }
 
-        // Adds a new section and checkbox at the end of the settings page
+        // Adds a new section and checkbox at the end of the settings page.
         $mform->addElement('header', 'local_quicknote_header', get_string('pluginname', 'local_quicknote'));
         $mform->addElement('advcheckbox', 'local_quicknote_enabled', get_string('config:active_course', 'local_quicknote'));
 

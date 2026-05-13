@@ -32,7 +32,7 @@ if ($ADMIN->fulltree) {
         'local_quicknote/default_enabled',
         get_string('default_enabled', 'local_quicknote'),
         get_string('default_enabled_desc', 'local_quicknote'),
-        1                                 
+        1
     ));
 
     $ADMIN->add('localplugins', $settings);
