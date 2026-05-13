@@ -32,6 +32,8 @@ namespace local_quicknote;
 class hooks {
     /**
      * Adds QuickNote settings to the course edit form using Hook API.
+     * 
+     * @param \core_course\hook\after_form_definition $hook The hook object.
      */
     public static function course_edit_form(\core_course\hook\after_form_definition $hook) {
         $mform = method_exists($hook, 'get_mform') ? $hook->get_mform() : $hook->mform;
@@ -57,6 +59,8 @@ class hooks {
 
     /**
      * Persists QuickNote settings using Hook API.
+     * 
+     * @param \core_course\hook\after_form_submission $hook The hook object.
      */
     public static function course_edit_submission(\core_course\hook\after_form_submission $hook) {
         $courseid = optional_param('id', 0, PARAM_INT);

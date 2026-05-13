@@ -16,7 +16,7 @@
 /**
  * Plugin strings are defined here.
  *
- * @package     local_quicknote
+ * @module      local_quicknote/notes
  * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,7 +25,7 @@ define([
     'jquery',
     'core/ajax',
     'core/notification'
-], function($, Ajax, Notification) {
+], function ($, Ajax, Notification) {
     var SELECTORS = {
         root: '#local-quicknote-root',
         panel: '[data-region="panel"]',
@@ -53,11 +53,11 @@ define([
 
     var state = null;
 
-    var escapeHtml = function(value) {
+    var escapeHtml = function (value) {
         return $('<div>').text(String(value || '')).html();
     };
 
-    var formatTimestamp = function(timestamp) {
+    var formatTimestamp = function (timestamp) {
         if (!timestamp) {
             return '';
         }
@@ -65,7 +65,7 @@ define([
         return new Date(timestamp * 1000).toLocaleString();
     };
 
-    var createDraftNote = function() {
+    var createDraftNote = function () {
         var now = Math.floor(Date.now() / 1000);
 
         return {
@@ -79,15 +79,15 @@ define([
         };
     };
 
-    var normaliseSelectionText = function(text) {
+    var normaliseSelectionText = function (text) {
         return String(text || '').replace(/\s+/g, ' ').trim();
     };
 
-    var formatQuotedNote = function(text) {
+    var formatQuotedNote = function (text) {
         return '"' + normaliseSelectionText(text) + '"';
     };
 
-    var normaliseNote = function(note) {
+    var normaliseNote = function (note) {
         var normalisednote = $.extend({}, note, {
             clientid: note.clientid || ('note-' + note.id),
             content: note.content || '',
@@ -103,40 +103,40 @@ define([
         return normalisednote;
     };
 
-    var getRoot = function() {
+    var getRoot = function () {
         return $(SELECTORS.root);
     };
 
-    var getList = function() {
+    var getList = function () {
         return state.root.find(SELECTORS.list);
     };
 
-    var getSearchTerm = function() {
+    var getSearchTerm = function () {
         var value = state.root.find(SELECTORS.search).val() || '';
         return String(value).toLowerCase();
     };
 
-    var getNoteByKey = function(key) {
-        return state.notes.find(function(note) {
+    var getNoteByKey = function (key) {
+        return state.notes.find(function (note) {
             return note.clientid === key;
         }) || null;
     };
 
-    var getNoteElementByKey = function(key) {
+    var getNoteElementByKey = function (key) {
         return state.root.find(SELECTORS.note + '[data-note-key="' + key + '"]').first();
     };
 
-    var setNoteStatus = function($note, text) {
+    var setNoteStatus = function ($note, text) {
         $note.find(SELECTORS.status).text(text || '');
     };
 
-    var setNoteUpdated = function($note, timestamp) {
+    var setNoteUpdated = function ($note, timestamp) {
         $note.find(SELECTORS.updated).text(
             state.strings.updatedlabel + ': ' + formatTimestamp(timestamp)
         );
     };
 
-    var setNoteLocation = function($note, url, hasquote) {
+    var setNoteLocation = function ($note, url, hasquote) {
         var $location = $note.find(SELECTORS.location);
 
         if (hasquote || !url) {
@@ -150,7 +150,7 @@ define([
         );
     };
 
-    var setNoteQuote = function($note, note) {
+    var setNoteQuote = function ($note, note) {
         var $wrapper = $note.find(SELECTORS.quotewrapper);
         var $quote = $note.find(SELECTORS.quote);
         var $link = $note.find(SELECTORS.quotelink);
@@ -169,7 +169,7 @@ define([
         $wrapper.removeAttr('hidden');
     };
 
-    var updateNoteElement = function(note, $note, preservecontent) {
+    var updateNoteElement = function (note, $note, preservecontent) {
         var $textarea = $note.find(SELECTORS.textarea);
         var currentcontent = preservecontent ? $textarea.val() : note.content;
         var textareaid = 'local-quicknote-textarea-' + note.clientid;
@@ -191,7 +191,7 @@ define([
         }
     };
 
-    var createNoteElement = function(note) {
+    var createNoteElement = function (note) {
         var template = state.root.find(SELECTORS.noteTemplate).get(0);
         var element = template.content.firstElementChild.cloneNode(true);
         var $note = $(element);
@@ -201,19 +201,19 @@ define([
         return $note;
     };
 
-    var renderEmptyState = function() {
+    var renderEmptyState = function () {
         getList().html(
             '<p class="local-quicknote__empty">' + escapeHtml(state.strings.emptytext) + '</p>'
         );
     };
 
-    var renderNoResultsState = function() {
+    var renderNoResultsState = function () {
         getList().html(
             '<p class="local-quicknote__empty">' + escapeHtml(state.strings.noresultstext) + '</p>'
         );
     };
 
-    var noteMatchesSearch = function(note, term) {
+    var noteMatchesSearch = function (note, term) {
         if (!term) {
             return true;
         }
@@ -222,7 +222,7 @@ define([
             String(note.quote || '').toLowerCase().indexOf(term) !== -1;
     };
 
-    var applyFilter = function() {
+    var applyFilter = function () {
         var term = getSearchTerm();
         var visiblecount = 0;
 
@@ -231,7 +231,7 @@ define([
             return;
         }
 
-        getList().find(SELECTORS.note).each(function() {
+        getList().find(SELECTORS.note).each(function () {
             var $note = $(this);
             var note = getNoteByKey($note.attr('data-note-key'));
             var matches = note && noteMatchesSearch(note, term);
@@ -251,7 +251,7 @@ define([
         }
     };
 
-    var renderNotes = function() {
+    var renderNotes = function () {
         var $list = getList();
 
         if (!state.notes.length) {
@@ -260,21 +260,21 @@ define([
         }
 
         $list.empty();
-        state.notes.forEach(function(note) {
+        state.notes.forEach(function (note) {
             $list.append(createNoteElement(note));
         });
 
         applyFilter();
     };
 
-    var openSidebar = function() {
+    var openSidebar = function () {
         setOpenState(true);
     };
 
-    var createHighlightButton = function() {
+    var createHighlightButton = function () {
         var $button = $('<button>', {
             type: 'button',
-            class: HIGHLIGHT_BUTTON_CLASS,
+            'class': HIGHLIGHT_BUTTON_CLASS,
             'aria-label': state.strings.highlightlabel,
             text: '+'
         });
@@ -285,7 +285,7 @@ define([
         return $button;
     };
 
-    var hideHighlightButton = function(clearselection) {
+    var hideHighlightButton = function (clearselection) {
         if (!state || !state.highlightbutton) {
             return;
         }
@@ -298,7 +298,7 @@ define([
         }
     };
 
-    var showHighlightButton = function(rect, text) {
+    var showHighlightButton = function (rect, text) {
         var buttonwidth = 40;
         var buttonheight = 40;
         var spacing = 10;
@@ -320,7 +320,7 @@ define([
         state.highlightbutton.removeAttr('hidden');
     };
 
-    var getValidSelection = function() {
+    var getValidSelection = function () {
         var selection = window.getSelection();
         var text;
         var range;
@@ -357,12 +357,12 @@ define([
         };
     };
 
-    var prependNote = function(note) {
+    var prependNote = function (note) {
         state.notes.unshift(note);
         renderNotes();
     };
 
-    var setOpenState = function(isopen) {
+    var setOpenState = function (isopen) {
         var $panel = state.root.find(SELECTORS.panel);
         var $toggle = state.root.find(SELECTORS.toggle);
 
@@ -371,7 +371,7 @@ define([
         $toggle.attr('aria-expanded', isopen ? 'true' : 'false');
     };
 
-    var saveNote = function(note) {
+    var saveNote = function (note) {
         var request;
         var $note = getNoteElementByKey(note.clientid);
 
@@ -391,11 +391,11 @@ define([
             }
         }])[0];
 
-        request.done(function(response) {
+        request.done(function (response) {
             var savednote = normaliseNote(response);
             var $currentnote = getNoteElementByKey(note.clientid);
 
-            // insures compatibility keys before any rendering/visual update.
+            // Insures compatibility keys before any rendering/visual update.
             savednote.hasquote = !!(savednote.quote && savednote.quote.trim() !== '');
             savednote.quotetext = savednote.quote;
 
@@ -416,7 +416,7 @@ define([
                 setNoteQuote($currentnote, note);
                 setNoteLocation($currentnote, note.url, note.hasquote);
             }
-        }).fail(function(error) {
+        }).fail(function (error) {
             note.status = state.strings.errortext;
 
             if ($note.length) {
@@ -427,20 +427,20 @@ define([
         });
     };
 
-    var scheduleSave = function(note) {
+    var scheduleSave = function (note) {
         var existingtimer = state.timers[note.clientid];
 
         if (existingtimer) {
             window.clearTimeout(existingtimer);
         }
 
-        state.timers[note.clientid] = window.setTimeout(function() {
+        state.timers[note.clientid] = window.setTimeout(function () {
             delete state.timers[note.clientid];
             saveNote(note);
         }, SAVE_DELAY);
     };
 
-    var loadNotes = function() {
+    var loadNotes = function () {
         var request = Ajax.call([{
             methodname: 'local_quicknote_get_notes',
             args: {
@@ -448,18 +448,18 @@ define([
             }
         }])[0];
 
-        request.done(function(response) {
-            state.notes = response.map(function(note) {
+        request.done(function (response) {
+            state.notes = response.map(function (note) {
                 return normaliseNote(note);
             });
 
             renderNotes();
-        }).fail(function(error) {
+        }).fail(function (error) {
             Notification.exception(error);
         });
     };
 
-    var deleteNote = function(note, $note) {
+    var deleteNote = function (note, $note) {
         var request = Ajax.call([{
             methodname: 'local_quicknote_delete_note',
             args: {
@@ -467,12 +467,12 @@ define([
             }
         }])[0];
 
-        request.done(function(response) {
+        request.done(function (response) {
             if (!response.deleted) {
                 return;
             }
 
-            state.notes = state.notes.filter(function(item) {
+            state.notes = state.notes.filter(function (item) {
                 return item.clientid !== note.clientid;
             });
 
@@ -486,12 +486,12 @@ define([
             if (!state.notes.length) {
                 renderEmptyState();
             }
-        }).fail(function(error) {
+        }).fail(function (error) {
             Notification.exception(error);
         });
     };
 
-    var createHighlightNote = function(text) {
+    var createHighlightNote = function (text) {
         var note = createDraftNote();
         var quoteurl = window.location.href + '#:~:text=' + encodeURIComponent(text);
 
@@ -507,12 +507,12 @@ define([
         saveNote(note);
     };
 
-    var bindEvents = function() {
-        state.highlightbutton.on('mousedown', function(e) {
+    var bindEvents = function () {
+        state.highlightbutton.on('mousedown', function (e) {
             e.preventDefault();
         });
 
-        state.highlightbutton.on('click', function() {
+        state.highlightbutton.on('click', function () {
             var text = state.highlightselectiontext;
 
             hideHighlightButton(true);
@@ -524,15 +524,15 @@ define([
             createHighlightNote(text);
         });
 
-        state.root.on('click', SELECTORS.toggle, function() {
+        state.root.on('click', SELECTORS.toggle, function () {
             setOpenState(!state.root.hasClass('is-open'));
         });
 
-        state.root.on('click', SELECTORS.close, function() {
+        state.root.on('click', SELECTORS.close, function () {
             setOpenState(false);
         });
 
-        state.root.on('click', SELECTORS.add, function() {
+        state.root.on('click', SELECTORS.add, function () {
             var note = createDraftNote();
             var $note;
             var $textarea;
@@ -546,7 +546,7 @@ define([
             }
         });
 
-        state.root.on('input', SELECTORS.textarea, function() {
+        state.root.on('input', SELECTORS.textarea, function () {
             var $textarea = $(this);
             var note = getNoteByKey($textarea.attr('data-note-key'));
 
@@ -562,7 +562,7 @@ define([
             applyFilter();
         });
 
-        state.root.on('click', SELECTORS.deletebutton, function(e) {
+        state.root.on('click', SELECTORS.deletebutton, function (e) {
             var $button = $(e.currentTarget);
             var $note = $button.closest(SELECTORS.note);
             var note = getNoteByKey($note.attr('data-note-key'));
@@ -577,7 +577,7 @@ define([
                     delete state.timers[note.clientid];
                 }
 
-                state.notes = state.notes.filter(function(item) {
+                state.notes = state.notes.filter(function (item) {
                     return item.clientid !== note.clientid;
                 });
 
@@ -598,35 +598,35 @@ define([
             deleteNote(note, $note);
         });
 
-        state.root.on('click', SELECTORS.quotelink, function(e) {
+        state.root.on('click', SELECTORS.quotelink, function (e) {
             var targetUrl = $(this).attr('href');
             var currentUrl = window.location.href.split('#')[0];
 
             if (targetUrl && (targetUrl.indexOf(currentUrl) === 0 || targetUrl.indexOf('#') === 0)) {
                 e.preventDefault();
-                
+
                 var hashIndex = targetUrl.indexOf('#');
                 if (hashIndex === -1) {
                     return;
                 }
 
                 setOpenState(false);
-                
+
                 var $quoteElement = $(this).closest(SELECTORS.note).find(SELECTORS.quote);
                 var originalText = $quoteElement.text();
                 $quoteElement.text('');
 
-                window.setTimeout(function() {
+                window.setTimeout(function () {
                     window.location.hash = targetUrl.substring(hashIndex + 1);
-                    
-                    window.setTimeout(function() {
+
+                    window.setTimeout(function () {
                         $quoteElement.text(originalText);
                     }, 100);
                 }, 10);
             }
         });
 
-        state.root.on('input keyup', SELECTORS.search, function() {
+        state.root.on('input keyup', SELECTORS.search, function () {
             var term = getSearchTerm();
 
             if (!state.notes.length) {
@@ -642,12 +642,12 @@ define([
             }
         });
 
-        $(document).on('mouseup.local_quicknote', function(e) {
+        $(document).on('mouseup.local_quicknote', function (e) {
             if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
                 return;
             }
 
-            window.setTimeout(function() {
+            window.setTimeout(function () {
                 var selection = getValidSelection();
 
                 if (!selection || !selection.rect || !selection.rect.width) {
@@ -659,7 +659,7 @@ define([
             }, 0);
         });
 
-        $(document).on('mousedown.local_quicknote', function(e) {
+        $(document).on('mousedown.local_quicknote', function (e) {
             if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
                 return;
             }
@@ -667,7 +667,7 @@ define([
             hideHighlightButton(false);
         });
 
-        $(document).on('selectionchange.local_quicknote', function() {
+        $(document).on('selectionchange.local_quicknote', function () {
             var selection = window.getSelection();
 
             if (!selection || selection.isCollapsed) {
@@ -677,7 +677,7 @@ define([
     };
 
     return {
-        init: function(config) {
+        init: function (config) {
             var $root = getRoot();
 
             if (!$root.length) {
