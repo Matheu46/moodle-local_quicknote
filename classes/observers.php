@@ -32,7 +32,7 @@ namespace local_quicknote;
 class observers {
     /**
      * Save QuickNote configuration when the course is updated.
-     * 
+     *
      * @param \core\event\course_updated $event The event triggered.
      */
     public static function course_updated(\core\event\course_updated $event) {
