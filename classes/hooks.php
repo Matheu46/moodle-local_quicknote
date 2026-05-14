@@ -70,4 +70,83 @@ class hooks {
             set_config('enabled', $enabled, 'local_quicknote_course_' . $courseid);
         }
     }
+
+    /**
+     * Injects the QuickNote UI in the standard top of body HTML.
+     *
+     * @param \core\hook\output\before_standard_top_of_body_html_generation $hook The hook object.
+     */
+    public static function before_standard_top_of_body_html_generation(\core\hook\output\before_standard_top_of_body_html_generation $hook) {
+        global $OUTPUT, $PAGE, $USER;
+
+        if (during_initial_install() || (defined('CLI_SCRIPT') && CLI_SCRIPT)) {
+            return;
+        }
+
+        if (!isloggedin() || isguestuser()) {
+            return;
+        }
+
+        if (empty($PAGE->course->id) || (int) $PAGE->course->id === SITEID) {
+            return;
+        }
+
+        $course = get_course($PAGE->course->id);
+        $context = \context_course::instance($course->id, IGNORE_MISSING);
+
+        if (!$context) {
+            return;
+        }
+
+        if (!is_enrolled($context) && !has_capability('moodle/course:view', $context)) {
+            return;
+        }
+
+        if (!self::is_enabled_for_course($course)) {
+            return;
+        }
+
+        $PAGE->requires->js_call_amd('local_quicknote/notes', 'init', [[
+            'courseid' => (int) $course->id,
+        ]]);
+
+        $html = $OUTPUT->render_from_template('local_quicknote/sidebar', [
+            'courseid' => (int) $course->id,
+            'hasquote' => false,
+            'quotetext' => '',
+            'title' => get_string('sidebar:title', 'local_quicknote'),
+            'togglelabel' => get_string('sidebar:toggle', 'local_quicknote'),
+            'closelabel' => get_string('sidebar:close', 'local_quicknote'),
+            'addlabel' => get_string('note:add', 'local_quicknote'),
+            'placeholder' => get_string('note:placeholder', 'local_quicknote'),
+            'emptytext' => get_string('note:empty', 'local_quicknote'),
+            'savingtext' => get_string('note:saving', 'local_quicknote'),
+            'savedtext' => get_string('note:saved', 'local_quicknote'),
+            'errortext' => get_string('note:error', 'local_quicknote'),
+            'updatedlabel' => get_string('note:updated', 'local_quicknote'),
+            'locationlabel' => get_string('note:location', 'local_quicknote'),
+            'deleteconfirm' => get_string('note:delete_confirm', 'local_quicknote'),
+            'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
+            'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
+        ]);
+
+        $hook->add_html($html);
+    }
+
+    /**
+     * Checks whether QuickNote is enabled for the current course.
+     *
+     * @param \stdClass $course The course object.
+     * @return bool
+     */
+    private static function is_enabled_for_course(\stdClass $course): bool {
+        $enabled = get_config('local_quicknote_course_' . $course->id, 'enabled');
+
+        if ($enabled === false || $enabled === null || $enabled === '') {
+            // Return the default setting defined by the administrator in Site Administration.
+            return (bool) get_config('local_quicknote', 'default_enabled');
+        }
+
+        return (string) $enabled !== '0';
+    }
 }

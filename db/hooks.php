@@ -34,4 +34,8 @@ $callbacks = [
         'hook' => \core_course\hook\after_form_submission::class,
         'callback' => [\local_quicknote\hooks::class, 'course_edit_submission'],
     ],
+    [
+        'hook' => \core\hook\output\before_standard_top_of_body_html_generation::class,
+        'callback' => 'local_quicknote\hooks::before_standard_top_of_body_html_generation',
+    ],
 ];
