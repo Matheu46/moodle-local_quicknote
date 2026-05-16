@@ -593,9 +593,9 @@ define([
             }
 
             Str.get_strings([
-                { key: 'confirm', component: 'core' },
-                { key: 'delete', component: 'core' },
-                { key: 'cancel', component: 'core' }
+                {key: 'confirm', component: 'core'},
+                {key: 'delete', component: 'core'},
+                {key: 'cancel', component: 'core'}
             ]).done(function(strings) {
                 Notification.confirm(
                     strings[0],
