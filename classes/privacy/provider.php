@@ -16,7 +16,15 @@
 
 namespace local_quicknote\privacy;
 
-defined('MOODLE_INTERNAL') || die();
+use context;
+use context_system;
+use core_privacy\local\metadata\collection;
+use core_privacy\local\request\approved_contextlist;
+use core_privacy\local\request\approved_userlist;
+use core_privacy\local\request\contextlist;
+use core_privacy\local\request\transform;
+use core_privacy\local\request\userlist;
+use core_privacy\local\request\writer;
 
 /**
  * Privacy API provider for local_quicknote.
@@ -28,16 +36,16 @@ defined('MOODLE_INTERNAL') || die();
  */
 class provider implements
     \core_privacy\local\metadata\provider,
-    \core_privacy\local\request\plugin\provider,
-    \core_privacy\local\request\core_userlist_provider {
+    \core_privacy\local\request\core_userlist_provider,
+    \core_privacy\local\request\plugin\provider {
 
     /**
      * Returns metadata.
      *
-     * @param \core_privacy\local\metadata\collection $collection The initialised collection to add items to.
-     * @return \core_privacy\local\metadata\collection A listing of user data stored through this system.
+     * @param collection $collection The initialised collection to add items to.
+     * @return collection A listing of user data stored through this system.
      */
-    public static function get_metadata(\core_privacy\local\metadata\collection $collection): \core_privacy\local\metadata\collection {
+    public static function get_metadata(collection $collection): collection {
         $collection->add_database_table('local_quicknote_notes', [
             'userid' => 'privacy:metadata:local_quicknote_notes:userid',
             'courseid' => 'privacy:metadata:local_quicknote_notes:courseid',
@@ -56,10 +64,10 @@ class provider implements
      * Get the list of contexts that contain user information for the specified user.
      *
      * @param int $userid The user to search.
-     * @return \core_privacy\local\request\contextlist The contextlist containing the list of contexts used in this plugin.
+     * @return contextlist The contextlist containing the list of contexts used in this plugin.
      */
-    public static function get_contexts_for_userid(int $userid): \core_privacy\local\request\contextlist {
-        $contextlist = new \core_privacy\local\request\contextlist();
+    public static function get_contexts_for_userid(int $userid): contextlist {
+        $contextlist = new contextlist();
 
         // Notes are associated with courses. If courseid is 0, they are associated with the system context.
         $sql = "SELECT c.id
@@ -70,7 +78,7 @@ class provider implements
 
         $params = [
             'courselevel' => CONTEXT_COURSE,
-            'systemcontextid' => \context_system::instance()->id,
+            'systemcontextid' => context_system::instance()->id,
             'userid' => $userid,
         ];
 
@@ -82,9 +90,9 @@ class provider implements
     /**
      * Export all user data for the specified user, in the specified contexts.
      *
-     * @param \core_privacy\local\request\approved_contextlist $contextlist The approved contexts to export information for.
+     * @param approved_contextlist $contextlist The approved contexts to export information for.
      */
-    public static function export_user_data(\core_privacy\local\request\approved_contextlist $contextlist) {
+    public static function export_user_data(approved_contextlist $contextlist) {
         global $DB;
 
         if (empty($contextlist->count())) {
@@ -93,7 +101,7 @@ class provider implements
 
         $userid = $contextlist->get_user()->id;
 
-        list($contextsql, $contextparams) = $DB->get_in_or_equal($contextlist->get_contextids(), SQL_PARAMS_NAMED);
+        [$contextsql, $contextparams] = $DB->get_in_or_equal($contextlist->get_contextids(), SQL_PARAMS_NAMED);
         $params = ['userid' => $userid] + $contextparams;
 
         $sql = "SELECT qn.*, c.id AS contextid
@@ -103,22 +111,22 @@ class provider implements
                  WHERE qn.userid = :userid AND c.id $contextsql";
 
         $params['courselevel'] = CONTEXT_COURSE;
-        $params['systemcontextid'] = \context_system::instance()->id;
+        $params['systemcontextid'] = context_system::instance()->id;
 
         $notes = $DB->get_recordset_sql($sql, $params);
 
         foreach ($notes as $note) {
-            $context = \context::instance_by_id($note->contextid);
+            $context = context::instance_by_id($note->contextid);
             $data = (object) [
                 'content' => $note->content,
                 'quote' => $note->quote,
                 'quoteurl' => $note->quoteurl,
                 'url' => $note->url,
-                'timecreated' => \core_privacy\local\request\transform::datetime($note->timecreated),
-                'timemodified' => \core_privacy\local\request\transform::datetime($note->timemodified),
+                'timecreated' => transform::datetime($note->timecreated),
+                'timemodified' => transform::datetime($note->timemodified),
             ];
 
-            \core_privacy\local\request\writer::with_context($context)->export_data(
+            writer::with_context($context)->export_data(
                 [get_string('pluginname', 'local_quicknote'), $note->id],
                 $data
             );
@@ -129,14 +137,14 @@ class provider implements
     /**
      * Delete all use data which matches the specified context.
      *
-     * @param \context $context A user context.
+     * @param context $context A user context.
      */
-    public static function delete_data_for_all_users_in_context(\context $context) {
+    public static function delete_data_for_all_users_in_context(context $context) {
         global $DB;
 
         if ($context->contextlevel == CONTEXT_COURSE) {
             $DB->delete_records('local_quicknote_notes', ['courseid' => $context->instanceid]);
-        } else if ($context->id == \context_system::instance()->id) {
+        } else if ($context->id == context_system::instance()->id) {
             $DB->delete_records('local_quicknote_notes', ['courseid' => 0]);
         }
     }
@@ -144,9 +152,9 @@ class provider implements
     /**
      * Delete all user data for the specified user, in the specified contexts.
      *
-     * @param \core_privacy\local\request\approved_contextlist $contextlist The approved contexts and user information to delete information for.
+     * @param approved_contextlist $contextlist The approved contexts and user information to delete information for.
      */
-    public static function delete_data_for_user(\core_privacy\local\request\approved_contextlist $contextlist) {
+    public static function delete_data_for_user(approved_contextlist $contextlist) {
         global $DB;
 
         if (empty($contextlist->count())) {
@@ -154,7 +162,7 @@ class provider implements
         }
 
         $userid = $contextlist->get_user()->id;
-        $systemcontextid = \context_system::instance()->id;
+        $systemcontextid = context_system::instance()->id;
         $courseids = [];
         $deletesystem = false;
 
@@ -167,7 +175,7 @@ class provider implements
         }
 
         if (!empty($courseids)) {
-            list($insql, $inparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+            [$insql, $inparams] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
             $params = ['userid' => $userid] + $inparams;
             $select = "userid = :userid AND courseid $insql";
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
@@ -181,9 +189,9 @@ class provider implements
     /**
      * Get the list of users who have data within a context.
      *
-     * @param \core_privacy\local\request\userlist $userlist The userlist containing the list of users who have data in this context/plugin combination.
+     * @param userlist $userlist The userlist containing the list of users who have data in this context/plugin combination.
      */
-    public static function get_users_in_context(\core_privacy\local\request\userlist $userlist) {
+    public static function get_users_in_context(userlist $userlist) {
         $context = $userlist->get_context();
 
         if ($context->contextlevel == CONTEXT_COURSE) {
@@ -192,7 +200,7 @@ class provider implements
                      WHERE courseid = :courseid";
             $params = ['courseid' => $context->instanceid];
             $userlist->add_from_sql('userid', $sql, $params);
-        } else if ($context->id == \context_system::instance()->id) {
+        } else if ($context->id == context_system::instance()->id) {
             $sql = "SELECT userid
                       FROM {local_quicknote_notes}
                      WHERE courseid = 0";
@@ -203,9 +211,9 @@ class provider implements
     /**
      * Delete multiple users within a single context.
      *
-     * @param \core_privacy\local\request\approved_userlist $userlist The approved context and user information to delete information for.
+     * @param approved_userlist $userlist The approved context and user information to delete information for.
      */
-    public static function delete_data_for_users(\core_privacy\local\request\approved_userlist $userlist) {
+    public static function delete_data_for_users(approved_userlist $userlist) {
         global $DB;
 
         $context = $userlist->get_context();
@@ -215,13 +223,13 @@ class provider implements
             return;
         }
 
-        list($usersql, $userparams) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        [$usersql, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
 
         if ($context->contextlevel == CONTEXT_COURSE) {
             $params = ['courseid' => $context->instanceid] + $userparams;
             $select = "courseid = :courseid AND userid $usersql";
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
-        } else if ($context->id == \context_system::instance()->id) {
+        } else if ($context->id == context_system::instance()->id) {
             $params = ['courseid' => 0] + $userparams;
             $select = "courseid = :courseid AND userid $usersql";
             $DB->delete_records_select('local_quicknote_notes', $select, $params);

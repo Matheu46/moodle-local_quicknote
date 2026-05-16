@@ -24,6 +24,8 @@
 
 namespace local_quicknote;
 
+use core\hook\output\before_standard_top_of_body_html_generation;
+
 /**
  * Class hooks for QuickNote.
  *
@@ -76,7 +78,7 @@ class hooks {
      *
      * @param \core\hook\output\before_standard_top_of_body_html_generation $hook The hook object.
      */
-    public static function before_standard_top_of_body_html_generation(\core\hook\output\before_standard_top_of_body_html_generation $hook) {
+    public static function before_standard_top_of_body_html_generation(before_standard_top_of_body_html_generation $hook) {
         global $OUTPUT, $PAGE, $USER;
 
         if (during_initial_install() || (defined('CLI_SCRIPT') && CLI_SCRIPT)) {
