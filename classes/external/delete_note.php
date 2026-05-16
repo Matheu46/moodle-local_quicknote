@@ -64,8 +64,6 @@ class delete_note extends \external_api {
             'noteid' => $noteid,
         ]);
 
-        require_sesskey();
-
         $note = $DB->get_record('local_quicknotes', ['id' => $params['noteid']], '*', MUST_EXIST);
 
         if ((int) $note->userid !== (int) $USER->id) {
