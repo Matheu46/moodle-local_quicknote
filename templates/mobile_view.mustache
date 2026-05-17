@@ -1,0 +1,40 @@
+{{=<% %>=}}
+<ion-list>
+    <ion-item>
+        <ion-label position="stacked">Nova Anotação</ion-label>
+        <ion-textarea [(ngModel)]="newNoteContent" rows="4" placeholder="Escreva sua anotação aqui..."></ion-textarea>
+    </ion-item>
+    <div class="ion-padding">
+        <ion-button expand="block" (click)="saveNote()" [disabled]="!newNoteContent || newNoteContent.trim() === ''">
+            Salvar Anotação
+        </ion-button>
+    </div>
+</ion-list>
+
+<ion-list>
+    <ion-item-divider>
+        <ion-label>Anotações do Curso</ion-label>
+    </ion-item-divider>
+
+    <!-- Iteração sobre a lista de anotações usando Angular -->
+    <ion-item *ngFor="let note of notes">
+        <ion-label class="ion-text-wrap">
+            <p>{{ note.content }}</p>
+            <p>
+                <small>{{ note.timecreated * 1000 | date:'short' }}</small>
+            </p>
+        </ion-label>
+        <!-- Ícone/Botão de lixeira -->
+        <ion-button fill="clear" color="danger" slot="end" (click)="deleteNote(note.id)">
+            <ion-icon name="fas-trash" slot="icon-only"></ion-icon>
+        </ion-button>
+    </ion-item>
+
+    <!-- Estado vazio -->
+    <ion-item *ngIf="notes && notes.length === 0">
+        <ion-label class="ion-text-center">
+            <p>Nenhuma anotação encontrada neste curso.</p>
+        </ion-label>
+    </ion-item>
+</ion-list>
+<%={{ }}=%>
