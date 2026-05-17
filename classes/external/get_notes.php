@@ -63,8 +63,6 @@ class get_notes extends \external_api {
             'courseid' => $courseid,
         ]);
 
-        require_sesskey();
-
         $course = get_course($params['courseid']);
         require_login($course);
 

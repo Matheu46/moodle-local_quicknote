@@ -95,8 +95,6 @@ class save_note extends \external_api {
 
         $params = self::validate_parameters(self::execute_parameters(), $input);
 
-        require_sesskey();
-
         $course = get_course($params['courseid']);
         require_login($course);
 
