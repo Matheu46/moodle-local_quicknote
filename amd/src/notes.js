@@ -43,6 +43,7 @@ define([
         status: '[data-region="note-status"]',
         updated: '[data-region="note-updated"]',
         location: '[data-region="note-location"]',
+        reminder: '[data-region="note-reminder"]',
         quotewrapper: '[data-region="note-quote-wrapper"]',
         quote: '[data-region="note-quote"]',
         quotelink: '[data-region="note-quote-link"]'
@@ -66,6 +67,30 @@ define([
         return new Date(timestamp * 1000).toLocaleString();
     };
 
+    var formatDatetimeLocal = function(timestamp) {
+        if (!timestamp) {
+            return '';
+        }
+        var d = new Date(timestamp * 1000);
+        var pad = function(n) { return n < 10 ? '0' + n : n; };
+        return d.getFullYear() + '-' +
+               pad(d.getMonth() + 1) + '-' +
+               pad(d.getDate()) + 'T' +
+               pad(d.getHours()) + ':' +
+               pad(d.getMinutes());
+    };
+
+    var parseDatetimeLocal = function(val) {
+        if (!val) {
+            return null;
+        }
+        var d = new Date(val);
+        if (isNaN(d.getTime())) {
+            return null;
+        }
+        return Math.floor(d.getTime() / 1000);
+    };
+
     var createDraftNote = function() {
         var now = Math.floor(Date.now() / 1000);
 
@@ -76,6 +101,8 @@ define([
             url: window.location.href,
             timecreated: now,
             timemodified: now,
+            remindertime: null,
+            eventid: null,
             status: ''
         };
     };
@@ -95,7 +122,9 @@ define([
             quote: note.quote || '',
             quoteurl: note.quoteurl || '',
             url: note.url || '',
-            status: note.status || ''
+            status: note.status || '',
+            remindertime: note.remindertime || null,
+            eventid: note.eventid || null
         });
 
         normalisednote.hasquote = !!(normalisednote.quote && normalisednote.quote.trim() !== '');
@@ -172,14 +201,22 @@ define([
 
     var updateNoteElement = function(note, $note, preservecontent) {
         var $textarea = $note.find(SELECTORS.textarea);
+        var $reminder = $note.find(SELECTORS.reminder);
         var currentcontent = preservecontent ? $textarea.val() : note.content;
         var textareaid = 'local-quicknote-textarea-' + note.clientid;
+        var reminderid = 'local-quicknote-reminder-' + note.clientid;
 
         $note.attr('data-note-key', note.clientid);
+        
         $textarea.attr('id', textareaid);
         $textarea.attr('data-note-key', note.clientid);
         $textarea.attr('placeholder', state.strings.placeholder);
-        $note.find('label').attr('for', textareaid);
+        $textarea.prev('label').attr('for', textareaid);
+
+        $reminder.attr('id', reminderid);
+        $reminder.attr('data-note-key', note.clientid);
+        $reminder.prev('label').attr('for', reminderid);
+
         $note.find(SELECTORS.deletebutton).attr('data-noteid', note.id || 0);
 
         setNoteStatus($note, note.status);
@@ -189,6 +226,11 @@ define([
 
         if ($textarea.val() !== currentcontent) {
             $textarea.val(currentcontent);
+        }
+
+        var currentreminder = preservecontent ? $reminder.val() : formatDatetimeLocal(note.remindertime);
+        if ($reminder.val() !== currentreminder) {
+            $reminder.val(currentreminder);
         }
     };
 
@@ -388,7 +430,8 @@ define([
                 content: note.content,
                 url: note.url || window.location.href,
                 quote: note.quote || '',
-                quoteurl: note.quoteurl || ''
+                quoteurl: note.quoteurl || '',
+                remindertime: note.remindertime
             }
         }])[0];
 
@@ -410,6 +453,8 @@ define([
             note.quotetext = savednote.quotetext;
             note.timecreated = savednote.timecreated;
             note.timemodified = savednote.timemodified;
+            note.remindertime = savednote.remindertime;
+            note.eventid = savednote.eventid;
             note.status = state.strings.savedtext;
 
             if ($currentnote.length) {
@@ -561,6 +606,21 @@ define([
 
             scheduleSave(note);
             applyFilter();
+        });
+
+        state.root.on('change', SELECTORS.reminder, function() {
+            var $reminder = $(this);
+            var note = getNoteByKey($reminder.attr('data-note-key'));
+
+            if (!note) {
+                return;
+            }
+
+            note.remindertime = parseDatetimeLocal($reminder.val());
+            note.url = window.location.href;
+            note.timemodified = Math.floor(Date.now() / 1000);
+
+            scheduleSave(note);
         });
 
         state.root.on('click', SELECTORS.deletebutton, function(e) {

@@ -127,6 +127,17 @@
 
                 <div class="local-quicknote__meta" data-region="note-location"></div>
 
+                <div class="local-quicknote__reminder-wrapper">
+                    <label class="sr-only" for="">{{#str}} note:reminder, local_quicknote {{/str}}</label>
+                    <input
+                        type="datetime-local"
+                        class="local-quicknote__reminder form-control form-control-sm"
+                        data-region="note-reminder"
+                        data-note-key=""
+                        title="{{#str}} note:reminder, local_quicknote {{/str}}"
+                    >
+                </div>
+
                 <label class="sr-only" for="">{{placeholder}}</label>
                 <textarea
                     class="local-quicknote__textarea"

@@ -69,7 +69,7 @@ class get_notes extends \external_api {
         $context = context_course::instance($course->id);
         self::validate_context($context);
 
-        $records = $DB->get_records('local_quicknotes', [
+        $records = $DB->get_records('local_quicknote_notes', [
             'userid' => $USER->id,
             'courseid' => $course->id,
         ], 'timemodified DESC, id DESC');
@@ -101,6 +101,8 @@ class get_notes extends \external_api {
                 'url' => new \external_value(PARAM_RAW_TRIMMED, 'Last saved page URL.'),
                 'timecreated' => new \external_value(PARAM_INT, 'Creation timestamp.'),
                 'timemodified' => new \external_value(PARAM_INT, 'Last modification timestamp.'),
+                'eventid' => new \external_value(PARAM_INT, 'Calendar event id.', VALUE_OPTIONAL),
+                'remindertime' => new \external_value(PARAM_INT, 'Reminder timestamp.', VALUE_OPTIONAL),
             ])
         );
     }

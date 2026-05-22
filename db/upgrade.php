@@ -39,7 +39,7 @@ function xmldb_local_quicknote_upgrade($oldversion) {
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2026042604) {
-        $table = new xmldb_table('local_quicknotes');
+        $table = new xmldb_table('local_quicknote_notes');
 
         $quotefield = new xmldb_field('quote', XMLDB_TYPE_TEXT, null, null, null, null, null, 'content');
         if (!$dbman->field_exists($table, $quotefield)) {
@@ -52,6 +52,22 @@ function xmldb_local_quicknote_upgrade($oldversion) {
         }
 
         upgrade_plugin_savepoint(true, 2026042604, 'local', 'quicknote');
+    }
+
+    if ($oldversion < 2026052200) {
+        $table = new xmldb_table('local_quicknote_notes');
+
+        $eventidfield = new xmldb_field('eventid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'timemodified');
+        if (!$dbman->field_exists($table, $eventidfield)) {
+            $dbman->add_field($table, $eventidfield);
+        }
+
+        $reminderfield = new xmldb_field('remindertime', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'eventid');
+        if (!$dbman->field_exists($table, $reminderfield)) {
+            $dbman->add_field($table, $reminderfield);
+        }
+
+        upgrade_plugin_savepoint(true, 2026052200, 'local', 'quicknote');
     }
 
     return true;

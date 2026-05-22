@@ -54,6 +54,7 @@ class save_note extends \external_api {
             'url' => new \external_value(PARAM_RAW_TRIMMED, 'Current page URL.'),
             'quote' => new \external_value(PARAM_RAW, 'Selected quote text.', VALUE_OPTIONAL),
             'quoteurl' => new \external_value(PARAM_RAW, 'URL pointing to the selected quote.', VALUE_OPTIONAL),
+            'remindertime' => new \external_value(PARAM_INT, 'Reminder timestamp.', VALUE_OPTIONAL),
         ]);
     }
 
@@ -66,6 +67,7 @@ class save_note extends \external_api {
      * @param string $url
      * @param string|null $quote
      * @param string|null $quoteurl
+     * @param int|null $remindertime
      * @return array
      */
     public static function execute(
@@ -74,9 +76,12 @@ class save_note extends \external_api {
         string $content,
         string $url,
         ?string $quote = null,
-        ?string $quoteurl = null
+        ?string $quoteurl = null,
+        ?int $remindertime = null
     ): array {
-        global $DB, $USER;
+        global $DB, $USER, $CFG;
+
+        require_once($CFG->dirroot . '/calendar/lib.php');
 
         $input = [
             'id' => $id,
@@ -91,6 +96,10 @@ class save_note extends \external_api {
 
         if ($quoteurl !== null) {
             $input['quoteurl'] = $quoteurl;
+        }
+
+        if ($remindertime !== null) {
+            $input['remindertime'] = $remindertime;
         }
 
         $params = self::validate_parameters(self::execute_parameters(), $input);
@@ -118,8 +127,12 @@ class save_note extends \external_api {
             $record->quoteurl = $params['quoteurl'];
         }
 
+        if (array_key_exists('remindertime', $params)) {
+            $record->remindertime = $params['remindertime'] ?: null;
+        }
+
         if (!empty($params['id'])) {
-            $existing = $DB->get_record('local_quicknotes', [
+            $existing = $DB->get_record('local_quicknote_notes', [
                 'id' => $params['id'],
                 'userid' => $USER->id,
             ], '*', MUST_EXIST);
@@ -130,6 +143,7 @@ class save_note extends \external_api {
 
             $record->id = $existing->id;
             $record->timecreated = $existing->timecreated;
+            $record->eventid = $existing->eventid;
 
             if (!property_exists($record, 'quote')) {
                 $record->quote = $existing->quote ?? null;
@@ -139,14 +153,61 @@ class save_note extends \external_api {
                 $record->quoteurl = $existing->quoteurl ?? null;
             }
 
-            $DB->update_record('local_quicknotes', $record);
-            $saved = $DB->get_record('local_quicknotes', ['id' => $record->id], '*', MUST_EXIST);
+            if (!property_exists($record, 'remindertime')) {
+                $record->remindertime = $existing->remindertime ?? null;
+            }
+
+            // Handle Calendar Event Update/Delete/Create
+            if (!empty($record->remindertime)) {
+                $eventdata = new \stdClass();
+                $eventdata->name = get_string('pluginname', 'local_quicknote') . ': ' . core_text::substr(strip_tags($record->content), 0, 50);
+                $eventdata->description = $record->content;
+                $eventdata->eventtype = 'user';
+                $eventdata->timestart = $record->remindertime;
+                $eventdata->userid = $USER->id;
+                $eventdata->courseid = 0;
+
+                if (!empty($record->eventid)) {
+                    $event = \calendar_event::load($record->eventid);
+                    if ($event) {
+                        $event->update($eventdata, false);
+                    }
+                } else {
+                    $event = \calendar_event::create($eventdata, false);
+                    $record->eventid = $event->id;
+                }
+            } else if (!empty($record->eventid)) {
+                $event = \calendar_event::load($record->eventid);
+                if ($event) {
+                    $event->delete();
+                }
+                $record->eventid = null;
+                $record->remindertime = null;
+            }
+
+            $DB->update_record('local_quicknote_notes', $record);
+            $saved = $DB->get_record('local_quicknote_notes', ['id' => $record->id], '*', MUST_EXIST);
         } else {
             $record->timecreated = $now;
             $record->quote = $record->quote ?? null;
             $record->quoteurl = $record->quoteurl ?? null;
-            $record->id = $DB->insert_record('local_quicknotes', $record);
-            $saved = $DB->get_record('local_quicknotes', ['id' => $record->id], '*', MUST_EXIST);
+            $record->remindertime = $record->remindertime ?? null;
+
+            if (!empty($record->remindertime)) {
+                $eventdata = new \stdClass();
+                $eventdata->name = get_string('pluginname', 'local_quicknote') . ': ' . core_text::substr(strip_tags($record->content), 0, 50);
+                $eventdata->description = $record->content;
+                $eventdata->eventtype = 'user';
+                $eventdata->timestart = $record->remindertime;
+                $eventdata->userid = $USER->id;
+                $eventdata->courseid = 0;
+
+                $event = \calendar_event::create($eventdata, false);
+                $record->eventid = $event->id;
+            }
+
+            $record->id = $DB->insert_record('local_quicknote_notes', $record);
+            $saved = $DB->get_record('local_quicknote_notes', ['id' => $record->id], '*', MUST_EXIST);
         }
 
         return self::export_note($saved);
@@ -170,6 +231,8 @@ class save_note extends \external_api {
             'url' => new \external_value(PARAM_RAW_TRIMMED, 'Last saved page URL.'),
             'timecreated' => new \external_value(PARAM_INT, 'Creation timestamp.'),
             'timemodified' => new \external_value(PARAM_INT, 'Last modification timestamp.'),
+            'eventid' => new \external_value(PARAM_INT, 'Calendar event id.', VALUE_OPTIONAL),
+            'remindertime' => new \external_value(PARAM_INT, 'Reminder timestamp.', VALUE_OPTIONAL),
         ]);
     }
 
@@ -194,6 +257,8 @@ class save_note extends \external_api {
             'url' => (string) $note->url,
             'timecreated' => (int) $note->timecreated,
             'timemodified' => (int) $note->timemodified,
+            'eventid' => !empty($note->eventid) ? (int) $note->eventid : null,
+            'remindertime' => !empty($note->remindertime) ? (int) $note->remindertime : null,
         ];
     }
 }

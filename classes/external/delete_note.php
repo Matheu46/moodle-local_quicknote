@@ -58,13 +58,15 @@ class delete_note extends \external_api {
      * @return array
      */
     public static function execute(int $noteid): array {
-        global $DB, $USER;
+        global $DB, $USER, $CFG;
+
+        require_once($CFG->dirroot . '/calendar/lib.php');
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'noteid' => $noteid,
         ]);
 
-        $note = $DB->get_record('local_quicknotes', ['id' => $params['noteid']], '*', MUST_EXIST);
+        $note = $DB->get_record('local_quicknote_notes', ['id' => $params['noteid']], '*', MUST_EXIST);
 
         if ((int) $note->userid !== (int) $USER->id) {
             throw new invalid_parameter_exception('You can only delete your own notes.');
@@ -76,7 +78,15 @@ class delete_note extends \external_api {
         $context = context_course::instance($course->id);
         self::validate_context($context);
 
-        $DB->delete_records('local_quicknotes', ['id' => $note->id]);
+        // Delete Calendar Event if it exists.
+        if (!empty($note->eventid)) {
+            $event = \calendar_event::load($note->eventid);
+            if ($event) {
+                $event->delete();
+            }
+        }
+
+        $DB->delete_records('local_quicknote_notes', ['id' => $note->id]);
 
         return [
             'noteid' => (int) $note->id,
