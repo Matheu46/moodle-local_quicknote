@@ -44,6 +44,9 @@ define([
         updated: '[data-region="note-updated"]',
         location: '[data-region="note-location"]',
         reminder: '[data-region="note-reminder"]',
+        reminderwrapper: '[data-region="note-reminder-wrapper"]',
+        togglereminder: '[data-action="toggle-reminder"]',
+        clearreminder: '[data-action="clear-reminder"]',
         quotewrapper: '[data-region="note-quote-wrapper"]',
         quote: '[data-region="note-quote"]',
         quotelink: '[data-region="note-quote-link"]'
@@ -72,7 +75,9 @@ define([
             return '';
         }
         var d = new Date(timestamp * 1000);
-        var pad = function(n) { return n < 10 ? '0' + n : n; };
+        var pad = function(n) {
+            return n < 10 ? '0' + n : n;
+        };
         return d.getFullYear() + '-' +
                pad(d.getMonth() + 1) + '-' +
                pad(d.getDate()) + 'T' +
@@ -82,11 +87,11 @@ define([
 
     var parseDatetimeLocal = function(val) {
         if (!val) {
-            return null;
+            return 0;
         }
         var d = new Date(val);
         if (isNaN(d.getTime())) {
-            return null;
+            return 0;
         }
         return Math.floor(d.getTime() / 1000);
     };
@@ -207,7 +212,7 @@ define([
         var reminderid = 'local-quicknote-reminder-' + note.clientid;
 
         $note.attr('data-note-key', note.clientid);
-        
+
         $textarea.attr('id', textareaid);
         $textarea.attr('data-note-key', note.clientid);
         $textarea.attr('placeholder', state.strings.placeholder);
@@ -231,6 +236,18 @@ define([
         var currentreminder = preservecontent ? $reminder.val() : formatDatetimeLocal(note.remindertime);
         if ($reminder.val() !== currentreminder) {
             $reminder.val(currentreminder);
+        }
+
+        var $toggleBtn = $note.find(SELECTORS.togglereminder);
+        var $wrapper = $note.find(SELECTORS.reminderwrapper);
+
+        if (currentreminder) {
+            $toggleBtn.addClass('d-none');
+            $wrapper.removeClass('d-none');
+        } else {
+            $toggleBtn.removeClass('d-none');
+            $wrapper.removeClass('d-flex');
+            $wrapper.addClass('d-none');
         }
     };
 
@@ -621,6 +638,32 @@ define([
             note.timemodified = Math.floor(Date.now() / 1000);
 
             scheduleSave(note);
+        });
+
+        state.root.on('click', SELECTORS.togglereminder, function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var $note = $btn.closest(SELECTORS.note);
+            var $wrapper = $note.find(SELECTORS.reminderwrapper);
+            var $input = $note.find(SELECTORS.reminder);
+
+            $btn.addClass('d-none');
+            $wrapper.removeClass('d-none');
+            $input.focus();
+        });
+
+        state.root.on('click', SELECTORS.clearreminder, function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var $note = $btn.closest(SELECTORS.note);
+            var $wrapper = $note.find(SELECTORS.reminderwrapper);
+            var $toggle = $note.find(SELECTORS.togglereminder);
+            var $input = $note.find(SELECTORS.reminder);
+
+            $input.val('');
+            $wrapper.addClass('d-none');
+            $toggle.removeClass('d-none');
+            $input.trigger('change');
         });
 
         state.root.on('click', SELECTORS.deletebutton, function(e) {

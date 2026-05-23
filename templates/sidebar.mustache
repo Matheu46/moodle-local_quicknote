@@ -127,23 +127,32 @@
 
                 <div class="local-quicknote__meta" data-region="note-location"></div>
 
-                <div class="local-quicknote__reminder-wrapper">
-                    <label class="sr-only" for="">{{#str}} note:reminder, local_quicknote {{/str}}</label>
-                    <input
-                        type="datetime-local"
-                        class="local-quicknote__reminder form-control form-control-sm"
-                        data-region="note-reminder"
-                        data-note-key=""
-                        title="{{#str}} note:reminder, local_quicknote {{/str}}"
-                    >
-                </div>
-
                 <label class="sr-only" for="">{{placeholder}}</label>
                 <textarea
                     class="local-quicknote__textarea"
                     data-note-key=""
                     placeholder="{{placeholder}}"
                 ></textarea>
+
+                <div class="local-quicknote__reminder-container mt-2">
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0 local-quicknote__toggle-reminder" data-action="toggle-reminder">
+                        <i class="fa fa-calendar"></i> {{#str}} reminder:add, local_quicknote {{/str}}
+                    </button>
+
+                    <div class="local-quicknote__reminder-wrapper d-flex align-items-center mt-1 d-none" data-region="note-reminder-wrapper">
+                        <label class="sr-only" for="">{{#str}} reminder:set, local_quicknote {{/str}}</label>
+                        <input
+                            type="datetime-local"
+                            class="local-quicknote__reminder form-control form-control-sm"
+                            data-region="note-reminder"
+                            data-note-key=""
+                            title="{{#str}} reminder:set, local_quicknote {{/str}}"
+                        >
+                        <button type="button" class="btn btn-sm btn-outline-danger ms-2 local-quicknote__clear-reminder" data-action="clear-reminder" title="{{#str}} clear {{/str}}">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                </div>
 
             </article>
         </template>

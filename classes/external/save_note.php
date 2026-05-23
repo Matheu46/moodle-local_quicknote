@@ -157,7 +157,7 @@ class save_note extends \external_api {
                 $record->remindertime = $existing->remindertime ?? null;
             }
 
-            // Handle Calendar Event Update/Delete/Create
+            // Handle Calendar Event Update/Delete/Create.
             if (!empty($record->remindertime)) {
                 $eventdata = new \stdClass();
                 $eventdata->name = get_string('pluginname', 'local_quicknote') . ': ' . core_text::substr(strip_tags($record->content), 0, 50);
