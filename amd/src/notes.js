@@ -505,6 +505,14 @@ define([
 
         prependNote(note);
         openSidebar();
+
+        // Focus the textarea of the new note.
+        var $note = getNoteElementByKey(note.clientid);
+        var $textarea = $note.find(SELECTORS.textarea);
+        if ($textarea.length) {
+            $textarea.trigger('focus');
+        }
+
         saveNote(note);
     };
 
