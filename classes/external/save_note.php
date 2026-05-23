@@ -119,7 +119,7 @@ class save_note extends \external_api {
         }
 
         if (!empty($params['id'])) {
-            $existing = $DB->get_record('local_quicknotes', [
+            $existing = $DB->get_record('local_quicknote_notes', [
                 'id' => $params['id'],
                 'userid' => $USER->id,
             ], '*', MUST_EXIST);
@@ -139,14 +139,14 @@ class save_note extends \external_api {
                 $record->quoteurl = $existing->quoteurl ?? null;
             }
 
-            $DB->update_record('local_quicknotes', $record);
-            $saved = $DB->get_record('local_quicknotes', ['id' => $record->id], '*', MUST_EXIST);
+            $DB->update_record('local_quicknote_notes', $record);
+            $saved = $DB->get_record('local_quicknote_notes', ['id' => $record->id], '*', MUST_EXIST);
         } else {
             $record->timecreated = $now;
             $record->quote = $record->quote ?? null;
             $record->quoteurl = $record->quoteurl ?? null;
-            $record->id = $DB->insert_record('local_quicknotes', $record);
-            $saved = $DB->get_record('local_quicknotes', ['id' => $record->id], '*', MUST_EXIST);
+            $record->id = $DB->insert_record('local_quicknote_notes', $record);
+            $saved = $DB->get_record('local_quicknote_notes', ['id' => $record->id], '*', MUST_EXIST);
         }
 
         return self::export_note($saved);

@@ -39,7 +39,7 @@ function xmldb_local_quicknote_upgrade($oldversion) {
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2026042604) {
-        $table = new xmldb_table('local_quicknotes');
+        $table = new xmldb_table('local_quicknote_notes');
 
         $quotefield = new xmldb_field('quote', XMLDB_TYPE_TEXT, null, null, null, null, null, 'content');
         if (!$dbman->field_exists($table, $quotefield)) {
