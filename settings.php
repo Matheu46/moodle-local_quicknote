@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-if ($ADMIN->fulltree) {
-    $settings = new admin_settingpage('local_quicknote', 'QuickNote');
+if ($hassiteconfig) {
+    $settings = new admin_settingpage('local_quicknote', get_string('pluginname', 'local_quicknote'));
 
     // Adds global configuration checkbox.
     $settings->add(new admin_setting_configcheckbox(
@@ -33,6 +33,14 @@ if ($ADMIN->fulltree) {
         get_string('default_enabled', 'local_quicknote'),
         get_string('default_enabled_desc', 'local_quicknote'),
         1
+    ));
+
+    // Adds site-wide disabled page type patterns.
+    $settings->add(new admin_setting_configtextarea(
+        'local_quicknote/disabled_pagetypes',
+        get_string('setting:disabled_pagetypes', 'local_quicknote'),
+        get_string('setting:disabled_pagetypes_desc', 'local_quicknote'),
+        ''
     ));
 
     $ADMIN->add('localplugins', $settings);

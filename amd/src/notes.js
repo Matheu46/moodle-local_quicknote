@@ -14,8 +14,6 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin strings are defined here.
- *
  * @module      local_quicknote/notes
  * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -295,7 +293,11 @@ define([
         state.highlightselectiontext = '';
 
         if (clearselection) {
-            window.getSelection().removeAllRanges();
+            try {
+                window.getSelection().removeAllRanges();
+            } catch (e) {
+                // Ignore — selection API may not be available.
+            }
         }
     };
 
@@ -322,40 +324,46 @@ define([
     };
 
     var getValidSelection = function() {
-        var selection = window.getSelection();
+        var selection;
         var text;
         var range;
         var container;
 
-        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        try {
+            selection = window.getSelection();
+
+            if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+                return null;
+            }
+
+            text = normaliseSelectionText(selection.toString());
+
+            if (text.length <= MIN_SELECTION_LENGTH) {
+                return null;
+            }
+
+            range = selection.getRangeAt(0);
+            container = range.commonAncestorContainer;
+
+            if (container && container.nodeType === Node.TEXT_NODE) {
+                container = container.parentNode;
+            }
+
+            if (!container || $(container).closest(SELECTORS.root).length) {
+                return null;
+            }
+
+            if ($(container).closest('input, textarea, button').length) {
+                return null;
+            }
+
+            return {
+                text: text,
+                rect: range.getBoundingClientRect()
+            };
+        } catch (e) {
             return null;
         }
-
-        text = normaliseSelectionText(selection.toString());
-
-        if (text.length <= MIN_SELECTION_LENGTH) {
-            return null;
-        }
-
-        range = selection.getRangeAt(0);
-        container = range.commonAncestorContainer;
-
-        if (container && container.nodeType === Node.TEXT_NODE) {
-            container = container.parentNode;
-        }
-
-        if (!container || $(container).closest(SELECTORS.root).length) {
-            return null;
-        }
-
-        if ($(container).closest('input, textarea, button').length) {
-            return null;
-        }
-
-        return {
-            text: text,
-            rect: range.getBoundingClientRect()
-        };
     };
 
     var prependNote = function(note) {
@@ -396,7 +404,6 @@ define([
             var savednote = normaliseNote(response);
             var $currentnote = getNoteElementByKey(note.clientid);
 
-            // Insures compatibility keys before any rendering/visual update.
             savednote.hasquote = !!(savednote.quote && savednote.quote.trim() !== '');
             savednote.quotetext = savednote.quote;
 
@@ -505,14 +512,6 @@ define([
 
         prependNote(note);
         openSidebar();
-
-        // Focus the textarea of the new note.
-        var $note = getNoteElementByKey(note.clientid);
-        var $textarea = $note.find(SELECTORS.textarea);
-        if ($textarea.length) {
-            $textarea.trigger('focus');
-        }
-
         saveNote(note);
     };
 
@@ -531,6 +530,20 @@ define([
             }
 
             createHighlightNote(text);
+        });
+
+        // Handle text selection highlight on mouseup.
+        // Synchronous handler — no setTimeout(0) — avoids event queue interference.
+        $(document).on('mouseup.local_quicknote', function(e) {
+            if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
+                return;
+            }
+            var result = getValidSelection();
+            if (result && result.rect && result.rect.width) {
+                showHighlightButton(result.rect, result.text);
+            } else {
+                hideHighlightButton(false);
+            }
         });
 
         state.root.on('click', SELECTORS.toggle, function() {
@@ -662,38 +675,6 @@ define([
             }
         });
 
-        $(document).on('mouseup.local_quicknote', function(e) {
-            if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
-                return;
-            }
-
-            window.setTimeout(function() {
-                var selection = getValidSelection();
-
-                if (!selection || !selection.rect || !selection.rect.width) {
-                    hideHighlightButton(false);
-                    return;
-                }
-
-                showHighlightButton(selection.rect, selection.text);
-            }, 0);
-        });
-
-        $(document).on('mousedown.local_quicknote', function(e) {
-            if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
-                return;
-            }
-
-            hideHighlightButton(false);
-        });
-
-        $(document).on('selectionchange.local_quicknote', function() {
-            var selection = window.getSelection();
-
-            if (!selection || selection.isCollapsed) {
-                hideHighlightButton(false);
-            }
-        });
     };
 
     return {
