@@ -29,4 +29,12 @@ $observers = [
         'eventname'   => '\core\event\course_updated',
         'callback'    => '\local_quicknote\observers::course_updated',
     ],
+    [
+        'eventname'   => '\core\event\user_enrolment_deleted',
+        'callback'    => '\local_quicknote\observers::user_enrolment_deleted',
+    ],
+    [
+        'eventname'   => '\core\event\user_deleted',
+        'callback'    => '\local_quicknote\observers::user_deleted',
+    ],
 ];
