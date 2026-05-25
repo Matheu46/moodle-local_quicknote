@@ -55,7 +55,12 @@
         aria-expanded="false"
         aria-label="{{togglelabel}}"
     >
-        {{#pix}} i/edit, core {{/pix}}
+        <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--edit">
+            {{#pix}} i/edit, core {{/pix}}
+        </span>
+        <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--close">
+            {{#pix}} e/cancel, core {{/pix}}
+        </span>
         <span class="sr-only">{{togglelabel}}</span>
     </button>
 

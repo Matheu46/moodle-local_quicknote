@@ -20,23 +20,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-.local-quicknote__toggle {
-    position: fixed;
-    right: 1.5rem;
-    bottom: 1.5rem;
-    z-index: 1050;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.5rem;
-    height: 3.5rem;
-    border: 0;
-    border-radius: 999px;
-    background: #0f6cbf;
-    color: #fff;
-    box-shadow: 0 0.75rem 2rem rgba(15, 108, 191, 0.25);
-}
-
 .local-quicknote__highlight-action {
     position: fixed;
     z-index: 1060;
@@ -65,10 +48,66 @@
     display: none;
 }
 
+.local-quicknote__toggle {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1050;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border: 0;
+    border-radius: 999px;
+    background: #0f6cbf;
+    color: #fff;
+    box-shadow: 0 0.75rem 2rem rgba(15, 108, 191, 0.25);
+    transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.local-quicknote__toggle-icon {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+}
+
+.local-quicknote__toggle-icon .icon {
+    margin: 0 !important;
+}
+
+.local-quicknote__toggle-icon--edit {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+}
+
+.local-quicknote__toggle-icon--close {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0);
+}
+
+.local-quicknote.is-open .local-quicknote__toggle-icon--edit {
+    opacity: 0;
+    transform: rotate(90deg) scale(0);
+}
+
+.local-quicknote.is-open .local-quicknote__toggle-icon--close {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+}
+
 .local-quicknote__toggle:hover,
 .local-quicknote__toggle:focus {
     background: #0c568f;
     color: #fff;
+    transform: scale(1.05);
+}
+
+.local-quicknote.is-open .local-quicknote__toggle:hover,
+.local-quicknote.is-open .local-quicknote__toggle:focus {
+    background: #0f2438;
 }
 
 .local-quicknote__toggle .icon {
