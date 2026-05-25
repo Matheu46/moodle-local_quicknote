@@ -19,10 +19,9 @@
  *
  * @package     local_quicknote
  * @copyright   2026 Matheus Mathias
+ * @author      Matthias Giger <https://github.com/mattgig>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Provides the steps to restore QuickNote plugin data.
@@ -30,7 +29,6 @@ defined('MOODLE_INTERNAL') || die();
  * @package    local_quicknote
  */
 class restore_local_quicknote_plugin extends restore_local_plugin {
-
     /**
      * Define course-level restore structure.
      *
@@ -81,7 +79,8 @@ class restore_local_quicknote_plugin extends restore_local_plugin {
      */
     public function process_quicknote_module(array $data): void {
         $courseid = $this->get_courseid();
-        $newcmid = $this->get_new_parentid('course_module');
+        $oldcmid = $this->task->get_moduleid();
+        $newcmid = $this->get_mappingid('course_module', $oldcmid);
 
         if (!isset($data['value'])) {
             return;

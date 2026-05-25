@@ -19,10 +19,9 @@
  *
  * @package     local_quicknote
  * @copyright   2026 Matheus Mathias
+ * @author      Matthias Giger <https://github.com/mattgig>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Provides the steps to backup QuickNote plugin data.
@@ -30,7 +29,6 @@ defined('MOODLE_INTERNAL') || die();
  * @package    local_quicknote
  */
 class backup_local_quicknote_plugin extends backup_local_plugin {
-
     /**
      * Define course-level plugin structure.
      *
@@ -70,6 +68,8 @@ class backup_local_quicknote_plugin extends backup_local_plugin {
 
         if (isset($settings[$cmid])) {
             $modulesetting->set_source_array([['value' => $settings[$cmid]]]);
+        } else {
+            $modulesetting->set_source_array([]);
         }
 
         return $plugin;

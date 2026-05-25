@@ -76,4 +76,3 @@ function local_quicknote_coursemodule_edit_post_actions($data, $course) {
 
     return $data;
 }
-
