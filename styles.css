@@ -109,6 +109,10 @@
     margin-bottom: 1rem;
 }
 
+.local-quicknote__toolbar {
+    margin-bottom: .5rem;
+}
+
 .local-quicknote__title {
     margin: 0;
     font-size: 1.1rem;

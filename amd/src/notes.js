@@ -34,6 +34,7 @@ define([
         close: '[data-action="close"]',
         add: '[data-action="add"]',
         search: '[data-action="search"]',
+        searchwrapper: '.local-quicknote__search',
         deletebutton: '[data-action="delete-note"]',
         textarea: '.local-quicknote__textarea',
         note: '.local-quicknote__note',
@@ -62,6 +63,16 @@ define([
         }
 
         return new Date(timestamp * 1000).toLocaleString();
+    };
+
+    var updateSearchVisibility = function() {
+        var $searchwrapper = state.root.find(SELECTORS.searchwrapper);
+        if (state.notes.length > 0) {
+            $searchwrapper.show();
+        } else {
+            $searchwrapper.hide();
+            state.root.find(SELECTORS.search).val('');
+        }
     };
 
     var createDraftNote = function() {
@@ -252,6 +263,8 @@ define([
 
     var renderNotes = function() {
         var $list = getList();
+
+        updateSearchVisibility();
 
         if (!state.notes.length) {
             renderEmptyState();
@@ -494,6 +507,7 @@ define([
             if (!state.notes.length) {
                 renderEmptyState();
             }
+            updateSearchVisibility();
         }).fail(function(error) {
             Notification.exception(error);
         });
@@ -610,6 +624,7 @@ define([
                 } else {
                     applyFilter();
                 }
+                updateSearchVisibility();
                 return;
             }
 
