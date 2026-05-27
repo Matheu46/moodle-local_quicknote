@@ -30,11 +30,15 @@ $context = context_system::instance();
 
 // Get optional parameters.
 $coursefilter = optional_param('coursefilter', 0, PARAM_INT);
+$searchterm = optional_param('searchterm', '', PARAM_TEXT);
 
 // Set up page.
 $url = new moodle_url('/local/quicknote/view.php');
 if ($coursefilter) {
     $url->param('coursefilter', $coursefilter);
+}
+if ($searchterm !== '') {
+    $url->param('searchterm', $searchterm);
 }
 
 $PAGE->set_url($url);
@@ -54,6 +58,15 @@ foreach ($usercourses as $c) {
     ];
 }
 
+// Check if user has notes to show the search bar.
+$countsql = "SELECT COUNT('x') FROM {local_quicknote_notes} WHERE userid = :userid";
+$countparams = ['userid' => $USER->id];
+if ($coursefilter > 0) {
+    $countsql .= " AND courseid = :courseid";
+    $countparams['courseid'] = $coursefilter;
+}
+$hasnotestosearch = $DB->count_records_sql($countsql, $countparams) > 0;
+
 // Build SQL query for notes.
 $sql = "SELECT qn.id, qn.content, qn.quote, qn.quoteurl, qn.timemodified, c.fullname as coursefullname, c.id as courseid
         FROM {local_quicknote_notes} qn
@@ -64,6 +77,12 @@ $params = ['userid' => $USER->id];
 if ($coursefilter > 0) {
     $sql .= " AND qn.courseid = :courseid";
     $params['courseid'] = $coursefilter;
+}
+
+if ($searchterm !== '') {
+    $sql .= " AND (" . $DB->sql_like('qn.content', ':searchcontent', false, false) . " OR " . $DB->sql_like('qn.quote', ':searchquote', false, false) . ")";
+    $params['searchcontent'] = '%' . $DB->sql_like_escape($searchterm) . '%';
+    $params['searchquote'] = '%' . $DB->sql_like_escape($searchterm) . '%';
 }
 
 $sql .= " ORDER BY qn.timemodified DESC";
@@ -93,6 +112,11 @@ $templatecontext = [
     'filterbycourse' => get_string('filterbycourse', 'local_quicknote'),
     'allcourses' => get_string('allcourses', 'local_quicknote'),
     'nonotesfound' => get_string('note:empty', 'local_quicknote'),
+    'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
+    'searchnotes' => get_string('search:placeholder', 'local_quicknote'),
+    'search' => get_string('search', 'local_quicknote'),
+    'hasnotestosearch' => $hasnotestosearch,
+    'searchterm' => $searchterm,
     'courses' => $courses,
     'notes' => $notes
 ];
