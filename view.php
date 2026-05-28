@@ -55,7 +55,7 @@ foreach ($usercourses as $c) {
     $courses[] = [
         'id' => $c->id,
         'fullname' => format_string($c->fullname, true, ['context' => context_course::instance($c->id)]),
-        'selected' => ($c->id == $coursefilter)
+        'selected' => ($c->id == $coursefilter),
     ];
 }
 
@@ -81,7 +81,10 @@ if ($coursefilter > 0) {
 }
 
 if ($searchterm !== '') {
-    $sql .= " AND (" . $DB->sql_like('qn.content', ':searchcontent', false, false) . " OR " . $DB->sql_like('qn.quote', ':searchquote', false, false) . ")";
+    $contentlike = $DB->sql_like('qn.content', ':searchcontent', false, false);
+    $quotelike = $DB->sql_like('qn.quote', ':searchquote', false, false);
+    $sql .= " AND ({$contentlike} OR {$quotelike})";
+
     $params['searchcontent'] = '%' . $DB->sql_like_escape($searchterm) . '%';
     $params['searchquote'] = '%' . $DB->sql_like_escape($searchterm) . '%';
 }
@@ -99,14 +102,13 @@ if ($export === 'pdf') {
     $pdf->setPrintFooter(true);
     $pdf->AddPage();
     $pdf->SetFont('helvetica', '', 12);
-    
+
     $title = get_string('notescenter', 'local_quicknote');
     $pdf->writeHTML('<h2 style="margin-bottom: 16px;>' . $title . '</h2>', true, false, true, false, '');
 
     if (empty($noterecords)) {
         $pdf->writeHTML('<p>' . get_string('note:empty', 'local_quicknote') . '</p>', true, false, true, false, '');
     } else {
-
         $currentcourseid = null;
 
         foreach ($noterecords as $record) {
@@ -117,9 +119,17 @@ if ($export === 'pdf') {
             $html = '';
 
             if ($currentcourseid !== $record->courseid) {
-                $coursefullname = format_string($record->coursefullname, true, ['context' => context_course::instance($record->courseid)]);
+                $coursefullname = format_string(
+                    $record->coursefullname,
+                    true,
+                    [
+                        'context' => context_course::instance($record->courseid),
+                    ]
+                );
 
-                $html .= '<h3 style="color: #0056b3; margin-top: 25px; border-bottom: 1px solid #eee;">' . $coursefullname . '</h3>';
+                $html .= '<h3 style="color: #0056b3; margin-top: 25px; border-bottom: 1px solid #eee;">'
+                    . $coursefullname
+                    . '</h3>';
 
                 $currentcourseid = $record->courseid;
             }
@@ -133,7 +143,11 @@ if ($export === 'pdf') {
                 $quote = format_text($record->quote, FORMAT_PLAIN);
                 $html .= '<blockquote style="margin-bottom: 4px; color: #555;"><i>' . $quote . '</i>';
                 if (!empty($record->quoteurl)) {
-                    $html .= '<br><small><a href="' . $record->quoteurl . '">' . get_string('note:viewintext', 'local_quicknote') . '</a></small>';
+                    $html .= '<br><small><a href="'
+                        . $record->quoteurl
+                        . '">'
+                        . get_string('note:viewintext', 'local_quicknote')
+                        . '</a></small>';
                 }
                 $html .= '</blockquote><br>';
             }
@@ -157,7 +171,13 @@ foreach ($noterecords as $record) {
 
     // Prepare variables for the template. Mustache escapes standard tags {{ }} automatically.
     $notes[] = [
-        'coursefullname' => format_string($record->coursefullname, true, ['context' => context_course::instance($record->courseid)]),
+        'coursefullname' => format_string(
+            $record->coursefullname,
+            true,
+            [
+                'context' => context_course::instance($record->courseid),
+            ]
+        ),
         'content' => $record->content,
         'timeupdated' => userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig')),
         'quote' => !empty($record->quote) ? $record->quote : null,
@@ -179,7 +199,7 @@ $templatecontext = [
     'coursefilter' => $coursefilter,
     'searchterm' => $searchterm,
     'courses' => $courses,
-    'notes' => $notes
+    'notes' => $notes,
 ];
 
 // Output page.
