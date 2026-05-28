@@ -1,20 +1,57 @@
 {{!
-    @template local_quicknote/view
+    This file is part of Moodle - http://moodle.org/
 
-    Context variables required for this template:
-    * filterbycourse: str
-    * allcourses: str
-    * nonotesfound: str
-    * courses: array
-        * id: int
-        * fullname: str
-        * selected: bool
-    * notes: array
-        * coursefullname: str
-        * content: str
-        * timeupdated: str
-        * quote: str (optional)
-        * quoteurl: str (optional)
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+    @template local_quicknote/view
+    @copyright 2026 Matheus Mathias
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    View template for local_quicknote.
+
+    Example context (json):
+    {
+        "filterbycourse": "Filter by course",
+        "allcourses": "All courses",
+        "nonotesfound": "No notes found.",
+        "searchnotes": "Search notes...",
+        "search": "Search",
+        "exportpdf": "Export to PDF",
+        "hasnotestosearch": true,
+        "hasnotes": true,
+        "coursefilter": 0,
+        "searchterm": "",
+        "config": {
+            "wwwroot": "http://localhost/moodle"
+        },
+        "courses": [
+            {
+                "id": 1,
+                "fullname": "Digital Systems",
+                "selected": false
+            }
+        ],
+        "notes": [
+            {
+                "coursefullname": "Digital Systems",
+                "content": "Remember to review logic gates for the exam.",
+                "timeupdated": "May 28, 2026, 14:03",
+                "quote": "The NAND gate is universal.",
+                "quoteurl": "http://localhost/moodle/mod/page/view.php?id=2"
+            }
+        ]
+    }
 }}
 
 <div class="local-quicknote-center">
