@@ -18,32 +18,42 @@
 }}
 
 <div class="local-quicknote-center">
-    <form method="GET" action="{{config.wwwroot}}/local/quicknote/view.php" class="mb-4">
-        <div class="form-group row align-items-center">
-            <label for="coursefilter" class="col-sm-3 col-md-2 col-form-label font-weight-bold">{{filterbycourse}}</label>
-            <div class="col-sm-9 col-md-4 col-lg-4 mb-2 mb-md-0">
-                <select name="coursefilter" id="coursefilter" class="custom-select form-select" onchange="this.form.submit()">
-                    <option value="0">{{allcourses}}</option>
-                    {{#courses}}
-                        <option value="{{id}}" {{#selected}}selected{{/selected}}>{{fullname}}</option>
-                    {{/courses}}
-                </select>
-            </div>
-            {{#hasnotestosearch}}
-            <div class="col-sm-12 col-md-6 col-lg-6">
-                <div class="input-group">
-                    <label class="sr-only" for="searchterm">{{searchnotes}}</label>
-                    <input type="text" name="searchterm" id="searchterm" class="form-control" placeholder="{{searchnotes}}" value="{{searchterm}}">
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fa fa-search mr-1" aria-hidden="true"></i>{{search}}
-                        </button>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <form method="GET" action="{{config.wwwroot}}/local/quicknote/view.php" class="flex-grow-1">
+            <div class="form-group row align-items-center mb-0">
+                <label for="coursefilter" class="col-sm-3 col-md-2 col-form-label font-weight-bold">{{filterbycourse}}</label>
+                <div class="col-sm-9 col-md-4 col-lg-4 mb-2 mb-md-0">
+                    <select name="coursefilter" id="coursefilter" class="custom-select form-select" onchange="this.form.submit()">
+                        <option value="0">{{allcourses}}</option>
+                        {{#courses}}
+                            <option value="{{id}}" {{#selected}}selected{{/selected}}>{{fullname}}</option>
+                        {{/courses}}
+                    </select>
+                </div>
+                {{#hasnotestosearch}}
+                <div class="col-sm-12 col-md-6 col-lg-6">
+                    <div class="input-group">
+                        <label class="sr-only" for="searchterm">{{searchnotes}}</label>
+                        <input type="text" name="searchterm" id="searchterm" class="form-control" placeholder="{{searchnotes}}" value="{{searchterm}}">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fa fa-search mr-1" aria-hidden="true"></i>{{search}}
+                            </button>
+                        </div>
                     </div>
                 </div>
+                {{/hasnotestosearch}}
             </div>
-            {{/hasnotestosearch}}
+        </form>
+
+        {{#hasnotes}}
+        <div class="mt-3 text-right">
+            <a href="{{config.wwwroot}}/local/quicknote/view.php?export=pdf&amp;coursefilter={{coursefilter}}&amp;searchterm={{searchterm}}" class="btn btn-secondary text-nowrap">
+                <i class="fa fa-file-pdf-o mr-1" aria-hidden="true"></i>{{exportpdf}}
+            </a>
         </div>
-    </form>
+        {{/hasnotes}}
+    </div>
 
     <div class="row">
         {{#notes}}

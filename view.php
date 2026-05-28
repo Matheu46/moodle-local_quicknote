@@ -31,6 +31,7 @@ $context = context_system::instance();
 // Get optional parameters.
 $coursefilter = optional_param('coursefilter', 0, PARAM_INT);
 $searchterm = optional_param('searchterm', '', PARAM_TEXT);
+$export = optional_param('export', '', PARAM_ALPHA);
 
 // Set up page.
 $url = new moodle_url('/local/quicknote/view.php');
@@ -85,10 +86,67 @@ if ($searchterm !== '') {
     $params['searchquote'] = '%' . $DB->sql_like_escape($searchterm) . '%';
 }
 
-$sql .= " ORDER BY qn.timemodified DESC";
+$sql .= " ORDER BY c.fullname ASC, qn.timemodified DESC";
 
 // Execute query.
 $noterecords = $DB->get_records_sql($sql, $params);
+
+if ($export === 'pdf') {
+    require_once($CFG->libdir . '/pdflib.php');
+
+    $pdf = new \pdf();
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(true);
+    $pdf->AddPage();
+    $pdf->SetFont('helvetica', '', 12);
+    
+    $title = get_string('notescenter', 'local_quicknote');
+    $pdf->writeHTML('<h2 style="margin-bottom: 16px;>' . $title . '</h2>', true, false, true, false, '');
+
+    if (empty($noterecords)) {
+        $pdf->writeHTML('<p>' . get_string('note:empty', 'local_quicknote') . '</p>', true, false, true, false, '');
+    } else {
+
+        $currentcourseid = null;
+
+        foreach ($noterecords as $record) {
+            if (empty(trim($record->content)) && empty(trim($record->quote))) {
+                continue;
+            }
+
+            $html = '';
+
+            if ($currentcourseid !== $record->courseid) {
+                $coursefullname = format_string($record->coursefullname, true, ['context' => context_course::instance($record->courseid)]);
+
+                $html .= '<h3 style="color: #0056b3; margin-top: 25px; border-bottom: 1px solid #eee;">' . $coursefullname . '</h3>';
+
+                $currentcourseid = $record->courseid;
+            }
+
+            $timeupdated = userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig'));
+            $content = format_text($record->content, FORMAT_PLAIN);
+
+            $html .= '<p style="text-align: right;"><small><i>' . $timeupdated . '</i></small></p>';
+
+            if (!empty($record->quote)) {
+                $quote = format_text($record->quote, FORMAT_PLAIN);
+                $html .= '<blockquote style="margin-bottom: 4px; color: #555;"><i>' . $quote . '</i>';
+                if (!empty($record->quoteurl)) {
+                    $html .= '<br><small><a href="' . $record->quoteurl . '">' . get_string('note:viewintext', 'local_quicknote') . '</a></small>';
+                }
+                $html .= '</blockquote><br>';
+            }
+            $html .= '<p>' . nl2br($content) . '</p>';
+            $html .= '<hr style="color: #f8f9fa;">';
+
+            $pdf->writeHTML($html, true, false, true, false, '');
+        }
+    }
+
+    $pdf->Output('my_quicknotes.pdf', 'D');
+    die();
+}
 
 $notes = [];
 foreach ($noterecords as $record) {
@@ -115,7 +173,10 @@ $templatecontext = [
     'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
     'searchnotes' => get_string('search:placeholder', 'local_quicknote'),
     'search' => get_string('search', 'local_quicknote'),
+    'exportpdf' => get_string('exportpdf', 'local_quicknote'),
     'hasnotestosearch' => $hasnotestosearch,
+    'hasnotes' => !empty($notes),
+    'coursefilter' => $coursefilter,
     'searchterm' => $searchterm,
     'courses' => $courses,
     'notes' => $notes

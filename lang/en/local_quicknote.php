@@ -46,6 +46,7 @@ $string['note:viewintext'] = 'View in text';
 $string['notescenter'] = 'Notes center';
 $string['viewnotescenter'] = 'View notes center';
 $string['filterbycourse'] = 'Filter by course';
+$string['exportpdf'] = 'Export to PDF';
 $string['allcourses'] = 'All courses';
 $string['pluginname'] = 'QuickNote';
 $string['privacy:metadata:local_quicknote_notes'] = 'Information about private quick notes created by users in courses.';
