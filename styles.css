@@ -75,7 +75,7 @@
 }
 
 .local-quicknote__toggle-icon .icon {
-    margin: 0 !important;
+    margin: 0;
 }
 
 .local-quicknote__toggle-icon--edit {

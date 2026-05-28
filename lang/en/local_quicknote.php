@@ -25,9 +25,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['allcourses'] = 'All courses';
 $string['config:active_course'] = 'Activate QuickNote in this course';
 $string['default_enabled'] = 'Enabled by default';
 $string['default_enabled_desc'] = 'Defines whether the notes icon will be active by default in courses that have not yet been manually configured.';
+$string['exportpdf'] = 'Export to PDF';
+$string['filterbycourse'] = 'Filter by course';
 $string['module:default'] = 'Use default (site settings)';
 $string['module:disabled'] = 'Disabled for students';
 $string['module:enabled'] = 'Enabled for students';
@@ -43,6 +46,7 @@ $string['note:saved'] = 'Saved automatically';
 $string['note:saving'] = 'Saving...';
 $string['note:updated'] = 'Updated';
 $string['note:viewintext'] = 'View in text';
+$string['notescenter'] = 'Notes center';
 $string['pluginname'] = 'QuickNote';
 $string['privacy:metadata:local_quicknote_notes'] = 'Information about private quick notes created by users in courses.';
 $string['privacy:metadata:local_quicknote_notes:content'] = 'The text content of the note.';
@@ -53,6 +57,7 @@ $string['privacy:metadata:local_quicknote_notes:timecreated'] = 'The time when t
 $string['privacy:metadata:local_quicknote_notes:timemodified'] = 'The time when the note was last modified.';
 $string['privacy:metadata:local_quicknote_notes:url'] = 'The page URL where the note was created.';
 $string['privacy:metadata:local_quicknote_notes:userid'] = 'The user who created the note.';
+$string['search'] = 'Search';
 $string['search:noresultstext'] = 'No notes found matching your search.';
 $string['search:placeholder'] = 'Search in my notes...';
 $string['select:highlightlabel'] = 'Save selection as note';
@@ -61,3 +66,4 @@ $string['setting:disabled_pagetypes_desc'] = 'List of page type patterns where Q
 $string['sidebar:close'] = 'Close notes';
 $string['sidebar:title'] = 'My notes';
 $string['sidebar:toggle'] = 'Open notes';
+$string['viewnotescenter'] = 'View notes center';

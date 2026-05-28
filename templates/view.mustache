@@ -1,0 +1,134 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+    @template local_quicknote/view
+    @copyright 2026 Matheus Mathias
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    View template for local_quicknote.
+
+    Example context (json):
+    {
+        "filterbycourse": "Filter by course",
+        "allcourses": "All courses",
+        "nonotesfound": "No notes found.",
+        "searchnotes": "Search notes...",
+        "search": "Search",
+        "exportpdf": "Export to PDF",
+        "hasnotestosearch": true,
+        "hasnotes": true,
+        "coursefilter": 0,
+        "searchterm": "",
+        "config": {
+            "wwwroot": "http://localhost/moodle"
+        },
+        "courses": [
+            {
+                "id": 1,
+                "fullname": "Digital Systems",
+                "selected": false
+            }
+        ],
+        "notes": [
+            {
+                "coursefullname": "Digital Systems",
+                "content": "Remember to review logic gates for the exam.",
+                "timeupdated": "May 28, 2026, 14:03",
+                "quote": "The NAND gate is universal.",
+                "quoteurl": "http://localhost/moodle/mod/page/view.php?id=2"
+            }
+        ]
+    }
+}}
+
+<div class="local-quicknote-center">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <form method="GET" action="{{config.wwwroot}}/local/quicknote/view.php" class="flex-grow-1">
+            <div class="form-group row align-items-center mb-0">
+                <label for="coursefilter" class="col-sm-3 col-md-2 col-form-label font-weight-bold">{{filterbycourse}}</label>
+                <div class="col-sm-9 col-md-4 col-lg-4 mb-2 mb-md-0">
+                    <select name="coursefilter" id="coursefilter" class="custom-select form-select" onchange="this.form.submit()">
+                        <option value="0">{{allcourses}}</option>
+                        {{#courses}}
+                            <option value="{{id}}" {{#selected}}selected{{/selected}}>{{fullname}}</option>
+                        {{/courses}}
+                    </select>
+                </div>
+                {{#hasnotestosearch}}
+                <div class="col-sm-12 col-md-6 col-lg-6">
+                    <div class="input-group">
+                        <label class="sr-only" for="searchterm">{{searchnotes}}</label>
+                        <input type="text" name="searchterm" id="searchterm" class="form-control" placeholder="{{searchnotes}}" value="{{searchterm}}">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fa fa-search mr-1" aria-hidden="true"></i>{{search}}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {{/hasnotestosearch}}
+            </div>
+        </form>
+
+        {{#hasnotes}}
+        <div class="mt-3 text-right">
+            <a href="{{config.wwwroot}}/local/quicknote/view.php?export=pdf&amp;coursefilter={{coursefilter}}&amp;searchterm={{searchterm}}" class="btn btn-secondary text-nowrap">
+                <i class="fa fa-file-pdf-o mr-1" aria-hidden="true"></i>{{exportpdf}}
+            </a>
+        </div>
+        {{/hasnotes}}
+    </div>
+
+    <div class="row">
+        {{#notes}}
+        <div class="col-12 col-md-6 col-xl-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                    <span class="badge badge-primary bg-primary text-white text-truncate d-inline-block w-100" style="max-width: 100%; text-align: left;" title="{{coursefullname}}">{{coursefullname}}</span>
+                </div>
+                <div class="card-body">
+                    {{#quote}}
+                    <blockquote class="blockquote border-left border-primary pl-3 mb-3" style="border-width: 3px !important; border-color: #0f6cbf !important;">
+                        <p class="mb-1 font-italic text-muted" style="font-size: 0.95rem;">{{quote}}</p>
+                        {{#quoteurl}}
+                        <footer class="blockquote-footer mt-1">
+                            <a href="{{quoteurl}}" target="_blank" class="small">{{#str}} note:viewintext, local_quicknote {{/str}}</a>
+                        </footer>
+                        {{/quoteurl}}
+                    </blockquote>
+                    {{/quote}}
+                    <p class="card-text">{{content}}</p>
+                </div>
+                <div class="card-footer bg-white border-top-0 text-muted small pb-3">
+                    <i class="fa fa-clock-o mr-1"></i>{{timeupdated}}
+                </div>
+            </div>
+        </div>
+        {{/notes}}
+        {{^notes}}
+        <div class="col-12">
+            <div class="alert alert-info">
+                {{#hasnotestosearch}}
+                    {{noresultstext}}
+                {{/hasnotestosearch}}
+                {{^hasnotestosearch}}
+                    {{nonotesfound}}
+                {{/hasnotestosearch}}
+            </div>
+        </div>
+        {{/notes}}
+    </div>
+</div>
