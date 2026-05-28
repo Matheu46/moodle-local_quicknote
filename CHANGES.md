@@ -1,5 +1,16 @@
 # Moodle plugin: local_quicknote
 
+## 0.3.0 (2026-05-28)
+- **Core Improvements**:
+    - Implement Notes Center page (`view.php`).
+    - Added **PDF Export** functionality (`view.php?export=pdf`).
+    - **Search & Filters**:
+        - **Global Search**: Search across all notes from all courses.
+        - **Course Filter**: Filter notes by specific course.
+        - **Empty State**: Clean UI when no notes are found.
+- **UI/UX**:
+    - Animated toggle icon transition in the quicknote sidebar.
+
 ## 0.2.0 (2026-05-25)
 *Contributions by @mattgig:*
 
