@@ -31,46 +31,44 @@
 class backup_local_quicknote_plugin extends backup_local_plugin {
     /**
      * Define course-level plugin structure.
+     * All data is wrapped at the course level as this is a local plugin.
      *
-     * @return backup_nested_element
+     * @return backup_plugin_element
      */
     protected function define_course_plugin_structure(): backup_nested_element {
-        $plugin = $this->get_plugin_element();
+        $plugin = $this->get_plugin_element(null);
 
-        $coursenode = new backup_nested_element('quicknote_course', null, ['enabled']);
-        $plugin->add_child($coursenode);
+        // Use the recommended plugin wrapper to encapsulate all plugin data.
+        $pluginwrapper = new backup_nested_element($this->get_recommended_name());
+        $plugin->add_child($pluginwrapper);
+
+        // Course-level settings node.
+        $coursenode = new backup_nested_element('quicknote_course', ['id'], ['enabled']);
+        $pluginwrapper->add_child($coursenode);
 
         $courseid = $this->step->get_task()->get_courseid();
         $enabled = get_config('local_quicknote_course_' . $courseid, 'enabled');
+        $coursenode->set_source_array([['id' => $courseid, 'enabled' => $enabled !== false ? $enabled : '']]);
 
-        $coursenode->set_source_array([['enabled' => $enabled !== false ? $enabled : '']]);
+        // Module-level settings container node.
+        $modulesnode = new backup_nested_element('quicknote_modules');
+        $pluginwrapper->add_child($modulesnode);
 
-        return $plugin;
-    }
+        $modulenode = new backup_nested_element('quicknote_module', ['id'], ['cmid', 'value']);
+        $modulesnode->add_child($modulenode);
 
-    /**
-     * Define module-level plugin structure.
-     *
-     * @return backup_nested_element
-     */
-    protected function define_module_plugin_structure(): backup_nested_element {
-        $plugin = $this->get_plugin_element();
-
-        $modulesetting = new backup_nested_element('quicknote_module', null, ['value']);
-        $plugin->add_child($modulesetting);
-
-        $cmid = $this->step->get_task()->get_moduleid();
-        $courseid = $this->step->get_task()->get_courseid();
-
+        // Retrieve the JSON string containing module-specific settings.
         $settingsjson = get_config('local_quicknote_course_' . $courseid, 'module_settings');
         $settings = $settingsjson ? json_decode($settingsjson, true) : [];
         $settings = is_array($settings) ? $settings : [];
 
-        if (isset($settings[$cmid])) {
-            $modulesetting->set_source_array([['value' => $settings[$cmid]]]);
-        } else {
-            $modulesetting->set_source_array([]);
+        // Transform the JSON settings into an array format suitable for XML generation.
+        $modulesdata = [];
+        $i = 1;
+        foreach ($settings as $cmid => $val) {
+            $modulesdata[] = ['id' => $i++, 'cmid' => $cmid, 'value' => $val];
         }
+        $modulenode->set_source_array($modulesdata);
 
         return $plugin;
     }
