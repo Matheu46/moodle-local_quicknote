@@ -104,7 +104,11 @@ class hooks {
             return;
         }
 
-        if (empty($PAGE->course->id) || (int) $PAGE->course->id === SITEID) {
+        if (empty($PAGE->course->id) || $PAGE->course->id === SITEID) {
+            return;
+        }
+
+        if (empty($PAGE->context->contextlevel) || !in_array($PAGE->context->contextlevel, [CONTEXT_COURSE, CONTEXT_MODULE])) {
             return;
         }
 
