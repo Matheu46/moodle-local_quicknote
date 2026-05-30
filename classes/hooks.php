@@ -96,7 +96,7 @@ class hooks {
     public static function before_standard_top_of_body_html_generation(before_standard_top_of_body_html_generation $hook) {
         global $OUTPUT, $PAGE, $USER;
 
-        if (during_initial_install() || (defined('CLI_SCRIPT') && CLI_SCRIPT)) {
+        if (during_initial_install() || (defined('CLI_SCRIPT') && CLI_SCRIPT && !defined('PHPUNIT_TEST'))) {
             return;
         }
 
