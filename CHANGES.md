@@ -1,5 +1,9 @@
 # Moodle plugin: local_quicknote
 
+## 0.3.1 (2026-05-30)
+- Fix backup and restore.
+- Restrict quicknote rendering to course and module contexts.
+
 ## 0.3.0 (2026-05-28)
 - **Core Improvements**:
     - Implement Notes Center page (`view.php`).
