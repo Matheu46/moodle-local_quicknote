@@ -336,14 +336,15 @@ define([
         state.highlightbutton.removeAttr('hidden');
     };
 
-    var getValidSelection = function() {
+    var getValidSelection = function(targetWindow) {
         var selection;
         var text;
         var range;
         var container;
+        var win = targetWindow || window;
 
         try {
-            selection = window.getSelection();
+            selection = win.getSelection();
 
             if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
                 return null;
@@ -650,7 +651,6 @@ define([
                     }
                 );
             }).fail(Notification.exception);
-
         });
 
         state.root.on('click', SELECTORS.quotelink, function(e) {
@@ -697,6 +697,15 @@ define([
             }
         });
 
+        // Listen for highlight messages triggered inside iframes.
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.app === 'quicknote' && event.data.action === 'iframe_highlight') {
+                var text = event.data.text;
+                if (text && text.length > MIN_SELECTION_LENGTH) {
+                    createHighlightNote(text);
+                }
+            }
+        });
     };
 
     return {
@@ -731,6 +740,88 @@ define([
 
             bindEvents();
             loadNotes();
+        },
+
+        initIframe: function(config) {
+            state = {
+                highlightselectiontext: '',
+                timers: {},
+                strings: {
+                    highlightlabel: config.highlightlabel || '+'
+                }
+            };
+
+            state.highlightbutton = createHighlightButton();
+
+            // Central handler for mouseup events across contexts.
+            var handleMouseUp = function(e, win) {
+                if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
+                    return;
+                }
+
+                window.setTimeout(function() {
+                    var result = getValidSelection(win);
+
+                    if (result && result.rect && result.rect.width) {
+                        showHighlightButton(result.rect, result.text);
+                    } else {
+                        hideHighlightButton(false);
+                    }
+                }, 10);
+            };
+
+            // Listen on the current iframe context (e.g., embed.php).
+            document.addEventListener('mouseup', function(e) {
+                handleMouseUp(e, window);
+            }, true);
+
+            // Attempt to locate an inner iframe (e.g., H5P) and attach the listener.
+            var attachToInnerIframe = function(attempts) {
+                if (attempts <= 0) {
+                    return;
+                }
+
+                var h5pIframe = document.querySelector('.h5p-iframe');
+                if (h5pIframe) {
+                    var bindInner = function() {
+                        try {
+                            var innerWin = h5pIframe.contentWindow;
+                            var innerDoc = h5pIframe.contentDocument;
+
+                            innerDoc.addEventListener('mouseup', function(e) {
+                                handleMouseUp(e, innerWin);
+                            }, true);
+                        } catch (err) {
+                            // Cross-origin boundaries may prevent attachment.
+                        }
+                    };
+
+                    if (h5pIframe.contentDocument && h5pIframe.contentDocument.readyState === 'complete') {
+                        bindInner();
+                    } else {
+                        h5pIframe.addEventListener('load', bindInner);
+                    }
+                } else {
+                    setTimeout(function() { attachToInnerIframe(attempts - 1); }, 500);
+                }
+            };
+
+            // Retry for up to 5 seconds (10 attempts * 500ms).
+            attachToInnerIframe(10);
+
+            state.highlightbutton.on('mousedown', function(e) { e.preventDefault(); });
+            state.highlightbutton.on('click', function() {
+                var text = state.highlightselectiontext;
+                hideHighlightButton(true);
+
+                if (text) {
+                    window.parent.postMessage({
+                        app: 'quicknote',
+                        action: 'iframe_highlight',
+                        text: text
+                    }, '*');
+                }
+            });
         }
     };
 });

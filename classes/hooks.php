@@ -113,6 +113,20 @@ class hooks {
         }
 
         $course = get_course($PAGE->course->id);
+
+        if ($PAGE->pagelayout === 'embedded') {
+            // In H5P Core, inserting JS worked, but it didn't in mod_hvp and SCORM.
+            $PAGE->requires->js_call_amd('local_quicknote/notes', 'initIframe', [[
+                'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote')
+            ]]);
+            return;
+        }
+
+        $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print'];
+        if (in_array($PAGE->pagelayout, $excludedlayouts)) {
+            return;
+        }
+
         $context = \context_course::instance($course->id, IGNORE_MISSING);
 
         if (!$context) {
