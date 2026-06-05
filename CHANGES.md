@@ -1,5 +1,11 @@
 # Moodle plugin: local_quicknote
 
+## 0.4.0 (2026-06-04)
+- Replaced some hardcoded CSS colors with Moodle's native Bootstrap variables. The QuickNote toggle button now have the same color of your Moodle theme's primary color.
+- Lowered the `z-index` of the QuickNote toggle button to 120, ensuring it remains below the Moodle message drawer (z-index 121) to prevent interaction conflicts.
+- **Fix H5P**: Resolved the issue where the QuickNote toggle button was incorrectly rendered inside `mod_h5pactivity` iframes, preventing duplicate icons.
+- Enabled QuickNote highlight capture support for native Moodle H5P activities (`mod_h5pactivity`) through cross-window communication.
+
 ## 0.3.1 (2026-05-30)
 - Fix backup and restore.
 - Restrict quicknote rendering to course and module contexts.

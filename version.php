@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_quicknote';
-$plugin->release = '0.3.1';
-$plugin->version = 2026053000;
+$plugin->release = '0.4.0';
+$plugin->version = 2026060400;
 $plugin->requires = 2022041900;
 $plugin->maturity = MATURITY_BETA;

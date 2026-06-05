@@ -117,7 +117,7 @@ class hooks {
         if ($PAGE->pagelayout === 'embedded') {
             // In H5P Core, inserting JS worked, but it didn't in mod_hvp and SCORM.
             $PAGE->requires->js_call_amd('local_quicknote/notes', 'initIframe', [[
-                'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote')
+                'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
             ]]);
             return;
         }
