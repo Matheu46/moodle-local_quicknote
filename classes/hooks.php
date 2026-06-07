@@ -183,8 +183,15 @@ class hooks {
             'courseid' => (int) $course->id,
         ]]);
 
+        $position = get_config('local_quicknote', 'position');
+        if (empty($position)) {
+            $position = 'right';
+        }
+        $positionclass = 'local-quicknote--' . $position;
+
         $html = $OUTPUT->render_from_template('local_quicknote/sidebar', [
             'courseid' => (int) $course->id,
+            'positionclass' => $positionclass,
             'hasquote' => false,
             'quotetext' => '',
             'title' => get_string('sidebar:title', 'local_quicknote'),

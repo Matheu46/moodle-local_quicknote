@@ -35,6 +35,18 @@ if ($hassiteconfig) {
         1
     ));
 
+    // Adds position option.
+    $settings->add(new admin_setting_configselect(
+        'local_quicknote/position',
+        get_string('position', 'local_quicknote'),
+        get_string('position_desc', 'local_quicknote'),
+        'right',
+        [
+            'right' => get_string('position_right', 'local_quicknote'),
+            'left'  => get_string('position_left', 'local_quicknote'),
+        ]
+    ));
+
     // Adds site-wide disabled page type patterns.
     $settings->add(new admin_setting_configtextarea(
         'local_quicknote/disabled_pagetypes',

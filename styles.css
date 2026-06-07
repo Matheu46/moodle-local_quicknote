@@ -66,6 +66,10 @@
     transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+.local-quicknote__toggle[aria-expanded="true"] {
+    z-index: 1046;
+}
+
 .local-quicknote__toggle-icon {
     position: absolute;
     display: inline-flex;
@@ -96,6 +100,11 @@
 .local-quicknote.is-open .local-quicknote__toggle-icon--close {
     opacity: 1;
     transform: rotate(0deg) scale(1);
+}
+
+.local-quicknote--left .local-quicknote__toggle {
+    right: auto;
+    left: 1.5rem;
 }
 
 .local-quicknote__toggle:hover,
@@ -132,7 +141,20 @@
     transition: transform 0.2s ease;
 }
 
+.local-quicknote--left .local-quicknote__panel {
+    right: auto;
+    left: 0;
+    border-left: none;
+    border-right: 1px solid #d5ddea;
+    box-shadow: 0.5rem 0 1.5rem rgba(0, 0, 0, 0.12);
+    transform: translateX(-100%);
+}
+
 .local-quicknote.is-open .local-quicknote__panel {
+    transform: translateX(0);
+}
+
+.local-quicknote.is-open.local-quicknote--left .local-quicknote__panel {
     transform: translateX(0);
 }
 
@@ -238,6 +260,11 @@
     .local-quicknote__toggle {
         right: 1rem;
         bottom: 1rem;
+    }
+
+    .local-quicknote--left .local-quicknote__toggle {
+        right: auto;
+        left: 1rem;
     }
 
     .local-quicknote__panel {
