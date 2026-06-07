@@ -802,14 +802,18 @@ define([
                         h5pIframe.addEventListener('load', bindInner);
                     }
                 } else {
-                    setTimeout(function() { attachToInnerIframe(attempts - 1); }, 500);
+                    setTimeout(function() {
+                        attachToInnerIframe(attempts - 1);
+                    }, 500);
                 }
             };
 
             // Retry for up to 5 seconds (10 attempts * 500ms).
             attachToInnerIframe(10);
 
-            state.highlightbutton.on('mousedown', function(e) { e.preventDefault(); });
+            state.highlightbutton.on('mousedown', function(e) {
+                e.preventDefault();
+            });
             state.highlightbutton.on('click', function() {
                 var text = state.highlightselectiontext;
                 hideHighlightButton(true);

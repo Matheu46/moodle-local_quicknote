@@ -66,6 +66,10 @@
     transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+.local-quicknote__toggle[aria-expanded="true"] {
+    z-index: 1046;
+}
+
 .local-quicknote__toggle-icon {
     position: absolute;
     display: inline-flex;
