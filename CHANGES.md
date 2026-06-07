@@ -1,5 +1,9 @@
 # Moodle plugin: local_quicknote
 
+## 0.5.0 (2026-06-07)
+- **New Feature**: Added an administration setting allowing administrators to choose whether the QuickNote toggle icon and sidebar is displayed on the left or right side of the screen.
+- **UI/UX**: Adjusted the `z-index` logic to dynamically increase only when the sidebar is open, preventing it from being hidden behind its own sidebar while still remaining below the Moodle message drawer when closed.
+
 ## 0.4.0 (2026-06-04)
 - Replaced some hardcoded CSS colors with Moodle's native Bootstrap variables. The QuickNote toggle button now have the same color of your Moodle theme's primary color.
 - Lowered the `z-index` of the QuickNote toggle button to 120, ensuring it remains below the Moodle message drawer (z-index 121) to prevent interaction conflicts.
