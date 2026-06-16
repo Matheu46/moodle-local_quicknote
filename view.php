@@ -32,6 +32,12 @@ $context = context_system::instance();
 $coursefilter = optional_param('coursefilter', 0, PARAM_INT);
 $searchterm = optional_param('searchterm', '', PARAM_TEXT);
 $export = optional_param('export', '', PARAM_ALPHA);
+$page = optional_param('page', 0, PARAM_INT);
+$perpage = get_config('local_quicknote', 'perpage');
+if ($perpage === false) {
+    $perpage = 12;
+}
+$perpage = (int)$perpage;
 
 // Set up page.
 $url = new moodle_url('/local/quicknote/view.php');
@@ -69,30 +75,39 @@ if ($coursefilter > 0) {
 $hasnotestosearch = $DB->count_records_sql($countsql, $countparams) > 0;
 
 // Build SQL query for notes.
-$sql = "SELECT qn.id, qn.content, qn.quote, qn.quoteurl, qn.timemodified, c.fullname as coursefullname, c.id as courseid
-        FROM {local_quicknote_notes} qn
+$sqlfrom = "FROM {local_quicknote_notes} qn
         JOIN {course} c ON c.id = qn.courseid
         WHERE qn.userid = :userid";
 $params = ['userid' => $USER->id];
 
 if ($coursefilter > 0) {
-    $sql .= " AND qn.courseid = :courseid";
+    $sqlfrom .= " AND qn.courseid = :courseid";
     $params['courseid'] = $coursefilter;
 }
 
 if ($searchterm !== '') {
     $contentlike = $DB->sql_like('qn.content', ':searchcontent', false, false);
     $quotelike = $DB->sql_like('qn.quote', ':searchquote', false, false);
-    $sql .= " AND ({$contentlike} OR {$quotelike})";
+    $sqlfrom .= " AND ({$contentlike} OR {$quotelike})";
 
     $params['searchcontent'] = '%' . $DB->sql_like_escape($searchterm) . '%';
     $params['searchquote'] = '%' . $DB->sql_like_escape($searchterm) . '%';
 }
 
-$sql .= " ORDER BY c.fullname ASC, qn.timemodified DESC";
+$sqlorder = " ORDER BY qn.timemodified DESC";
+
+$sqlcount = "SELECT COUNT(qn.id) " . $sqlfrom;
+$totalcount = $DB->count_records_sql($sqlcount, $params);
+
+$sql = "SELECT qn.id, qn.content, qn.quote, qn.quoteurl, qn.timemodified, c.fullname as coursefullname, c.id as courseid
+        " . $sqlfrom . $sqlorder;
 
 // Execute query.
-$noterecords = $DB->get_records_sql($sql, $params);
+if ($export === 'pdf' || $perpage === 0) {
+    $noterecords = $DB->get_records_sql($sql, $params);
+} else {
+    $noterecords = $DB->get_records_sql($sql, $params, $page * $perpage, $perpage);
+}
 
 if ($export === 'pdf') {
     require_once($CFG->libdir . '/pdflib.php');
@@ -185,8 +200,16 @@ foreach ($noterecords as $record) {
     ];
 }
 
+if ($perpage > 0) {
+    $pagingbar = new paging_bar($totalcount, $page, $perpage, $url);
+    $pagingbarhtml = $OUTPUT->render($pagingbar);
+} else {
+    $pagingbarhtml = '';
+}
+
 // Prepare template context.
 $templatecontext = [
+    'pagingbar' => $pagingbarhtml,
     'filterbycourse' => get_string('filterbycourse', 'local_quicknote'),
     'allcourses' => get_string('allcourses', 'local_quicknote'),
     'nonotesfound' => get_string('note:empty', 'local_quicknote'),

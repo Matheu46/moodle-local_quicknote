@@ -55,5 +55,19 @@ if ($hassiteconfig) {
         ''
     ));
 
+    // Adds notes per page option.
+    $settings->add(new admin_setting_configselect(
+        'local_quicknote/perpage',
+        get_string('perpage', 'local_quicknote'),
+        get_string('perpage_desc', 'local_quicknote'),
+        12,
+        [
+            12 => '12',
+            24 => '24',
+            48 => '48',
+            0  => get_string('all', 'core'),
+        ]
+    ));
+
     $ADMIN->add('localplugins', $settings);
 }
