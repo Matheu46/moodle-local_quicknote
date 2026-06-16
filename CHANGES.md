@@ -1,5 +1,10 @@
 # Moodle plugin: local_quicknote
 
+## 0.6.0 (2026-06-15)
+- **Pagination**: Implemented pagination in the Notes Center to limit the number of notes fetched and displayed at once.
+- **Admin Configuration**: Added a new global setting (`perpage`) to customize the number of notes displayed per page (options: 12, 24, 48, or no pagination).
+- **Sorting**: Changed the default sorting in the Notes Center to order strictly by the last modified date (newest first).
+
 ## 0.5.0 (2026-06-07)
 - **New Feature**: Added an administration setting allowing administrators to choose whether the QuickNote toggle icon and sidebar is displayed on the left or right side of the screen.
 - **UI/UX**: Adjusted the `z-index` logic to dynamically increase only when the sidebar is open, preventing it from being hidden behind its own sidebar while still remaining below the Moodle message drawer when closed.
