@@ -196,6 +196,10 @@ define([
         setNoteUpdated($note, note.timemodified);
         setNoteLocation($note, note.url, note.hasquote);
 
+        if (state && !state.speechSupported) {
+            $note.find('[data-action="mic"]').hide();
+        }
+
         if ($textarea.val() !== currentcontent) {
             $textarea.val(currentcontent);
         }
@@ -606,6 +610,74 @@ define([
             applyFilter();
         });
 
+        state.root.on('click', '[data-action="mic"]', function(e) {
+            e.preventDefault();
+            var $button = $(this);
+            var $textarea = $button.siblings(SELECTORS.textarea);
+
+            if (!state.speechSupported) {
+                return;
+            }
+
+            if (state.recognition && state.isRecording) {
+                state.recognition.stop();
+                return;
+            }
+
+            var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            var recognition = new SpeechRecognition();
+
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'pt-BR';
+
+            var silenceTimer = null;
+
+            var resetSilenceTimer = function() {
+                if (silenceTimer) {
+                    clearTimeout(silenceTimer);
+                }
+                silenceTimer = setTimeout(function() {
+                    if (state.isRecording) {
+                        recognition.stop();
+                    }
+                }, 4000);
+            };
+
+            recognition.onstart = function() {
+                state.isRecording = true;
+                state.recognition = recognition;
+                $button.css('color', 'red').addClass('recording');
+                resetSilenceTimer();
+            };
+
+            recognition.onresult = function(event) {
+                var lastResultIndex = event.results.length - 1;
+                var transcript = event.results[lastResultIndex][0].transcript.trim();
+
+                if (transcript) {
+                    var currentText = $textarea.val();
+                    var newText = currentText ? currentText + ' ' + transcript : transcript;
+                    $textarea.val(newText);
+
+                    $textarea.trigger('input');
+                }
+
+                resetSilenceTimer();
+            };
+
+            recognition.onend = function() {
+                state.isRecording = false;
+                state.recognition = null;
+                $button.css('color', '#6c757d').removeClass('recording');
+                if (silenceTimer) {
+                    clearTimeout(silenceTimer);
+                }
+            };
+
+            recognition.start();
+        });
+
         state.root.on('click', SELECTORS.deletebutton, function(e) {
             var $button = $(e.currentTarget);
             var $note = $button.closest(SELECTORS.note);
@@ -721,6 +793,9 @@ define([
                 courseid: Number(config.courseid || $root.attr('data-courseid')),
                 notes: [],
                 timers: {},
+                speechSupported: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+                isRecording: false,
+                recognition: null,
                 strings: {
                     placeholder: $root.attr('data-placeholder'),
                     emptytext: $root.attr('data-emptytext'),

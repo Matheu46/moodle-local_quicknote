@@ -133,11 +133,16 @@
                 <div class="local-quicknote__meta" data-region="note-location"></div>
 
                 <label class="sr-only" for="">{{placeholder}}</label>
-                <textarea
-                    class="local-quicknote__textarea"
-                    data-note-key=""
-                    placeholder="{{placeholder}}"
-                ></textarea>
+                <div style="position: relative;">
+                    <textarea
+                        class="local-quicknote__textarea"
+                        data-note-key=""
+                        placeholder="{{placeholder}}"
+                    ></textarea>
+                    <button type="button" id="quicknote-mic-btn" class="btn btn-sm btn-link local-quicknote__mic-btn" data-action="mic" style="position: absolute; right: 5px; bottom: 5px; color: #6c757d; z-index: 10;">
+                        <i class="fa fa-microphone" aria-hidden="true"></i>
+                    </button>
+                </div>
 
             </article>
         </template>
