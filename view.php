@@ -206,14 +206,16 @@ if ($export === 'md') {
             $timeupdated = userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig'));
             $content = format_text($record->content, FORMAT_PLAIN);
 
-            $md .= "*_" . $timeupdated . "_*\n\n";
+            $md .= "**" . $timeupdated . "**\n";
 
             if (!empty($record->quote)) {
-                $quote = format_text($record->quote, FORMAT_PLAIN);
+                $quote = html_entity_decode(format_text($record->quote, FORMAT_PLAIN), ENT_QUOTES, 'UTF-8');
                 $md .= "> " . str_replace("\n", "\n> ", $quote) . "\n";
                 if (!empty($record->quoteurl)) {
-                    $md .= ">\n> [_" . get_string('note:viewintext', 'local_quicknote') . "_](" . $record->quoteurl . ")\n";
+                    $md .= "> [_" . get_string('note:viewintext', 'local_quicknote') . "_](" . $record->quoteurl . ")\n";
                 }
+                $md .= "\n";
+            } else {
                 $md .= "\n";
             }
             $md .= $content . "\n\n";
