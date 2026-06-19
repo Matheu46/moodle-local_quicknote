@@ -85,6 +85,9 @@
 
         {{#hasnotes}}
         <div class="mt-3 text-right">
+            <a href="{{config.wwwroot}}/local/quicknote/view.php?export=md&amp;coursefilter={{coursefilter}}&amp;searchterm={{searchterm}}" class="btn btn-outline-secondary text-nowrap mr-2">
+                <i class="fa fa-file-text-o mr-1" aria-hidden="true"></i>{{exportmd}}
+            </a>
             <a href="{{config.wwwroot}}/local/quicknote/view.php?export=pdf&amp;coursefilter={{coursefilter}}&amp;searchterm={{searchterm}}" class="btn btn-secondary text-nowrap">
                 <i class="fa fa-file-pdf-o mr-1" aria-hidden="true"></i>{{exportpdf}}
             </a>

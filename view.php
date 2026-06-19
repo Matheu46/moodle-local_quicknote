@@ -103,7 +103,7 @@ $sql = "SELECT qn.id, qn.content, qn.quote, qn.quoteurl, qn.timemodified, c.full
         " . $sqlfrom . $sqlorder;
 
 // Execute query.
-if ($export === 'pdf' || $perpage === 0) {
+if ($export === 'pdf' || $export === 'md' || $perpage === 0) {
     $noterecords = $DB->get_records_sql($sql, $params);
 } else {
     $noterecords = $DB->get_records_sql($sql, $params, $page * $perpage, $perpage);
@@ -177,6 +177,56 @@ if ($export === 'pdf') {
     die();
 }
 
+if ($export === 'md') {
+    $md = "# " . get_string('notescenter', 'local_quicknote') . "\n\n";
+
+    if (empty($noterecords)) {
+        $md .= get_string('note:empty', 'local_quicknote') . "\n";
+    } else {
+        $currentcourseid = null;
+
+        foreach ($noterecords as $record) {
+            if (empty(trim($record->content)) && empty(trim($record->quote))) {
+                continue;
+            }
+
+            if ($currentcourseid !== $record->courseid) {
+                $coursefullname = format_string(
+                    $record->coursefullname,
+                    true,
+                    [
+                        'context' => context_course::instance($record->courseid),
+                    ]
+                );
+
+                $md .= "## " . $coursefullname . "\n\n";
+                $currentcourseid = $record->courseid;
+            }
+
+            $timeupdated = userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig'));
+            $content = format_text($record->content, FORMAT_PLAIN);
+
+            $md .= "*_" . $timeupdated . "_*\n\n";
+
+            if (!empty($record->quote)) {
+                $quote = format_text($record->quote, FORMAT_PLAIN);
+                $md .= "> " . str_replace("\n", "\n> ", $quote) . "\n";
+                if (!empty($record->quoteurl)) {
+                    $md .= ">\n> [_" . get_string('note:viewintext', 'local_quicknote') . "_](" . $record->quoteurl . ")\n";
+                }
+                $md .= "\n";
+            }
+            $md .= $content . "\n\n";
+            $md .= "---\n\n";
+        }
+    }
+
+    header('Content-Type: text/markdown; charset=utf-8');
+    header('Content-Disposition: attachment; filename="my_quicknotes.md"');
+    echo $md;
+    die();
+}
+
 $notes = [];
 foreach ($noterecords as $record) {
     // Only format notes with content or quote.
@@ -217,6 +267,7 @@ $templatecontext = [
     'searchnotes' => get_string('search:placeholder', 'local_quicknote'),
     'search' => get_string('search', 'local_quicknote'),
     'exportpdf' => get_string('exportpdf', 'local_quicknote'),
+    'exportmd' => get_string('exportmd', 'local_quicknote'),
     'hasnotestosearch' => $hasnotestosearch,
     'hasnotes' => !empty($notes),
     'coursefilter' => $coursefilter,
