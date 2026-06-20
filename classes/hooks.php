@@ -33,13 +33,23 @@ use core\hook\output\before_standard_top_of_body_html_generation;
  */
 class hooks {
     /**
-     * Adds QuickNote settings to the course edit form using Hook API.
+     * Adds QuickNote settings to the course/module edit form using Hook API.
      *
      * @param \core_course\hook\after_form_definition $hook The hook object.
      */
     public static function course_edit_form(\core_course\hook\after_form_definition $hook) {
         $mform = method_exists($hook, 'get_mform') ? $hook->get_mform() : $hook->mform;
 
+        $cmid = optional_param('update', 0, PARAM_INT);
+
+        if ($cmid > 0) {
+            // Module forms are handled via coursemodule_standard_elements in lib.php.
+            return;
+        }
+
+        $mform->addElement('header', 'local_quicknote_header', get_string('pluginname', 'local_quicknote'));
+
+        // Course edit form — per-course on/off.
         $courseid = optional_param('id', 0, PARAM_INT);
 
         $globaldefault = get_config('local_quicknote', 'default_enabled');
@@ -52,10 +62,7 @@ class hooks {
             }
         }
 
-        // Adds a new section and checkbox at the end of the settings page.
-        $mform->addElement('header', 'local_quicknote_header', get_string('pluginname', 'local_quicknote'));
         $mform->addElement('advcheckbox', 'local_quicknote_enabled', get_string('config:active_course', 'local_quicknote'));
-
         $mform->setDefault('local_quicknote_enabled', (int) $enabled);
     }
 
@@ -65,6 +72,14 @@ class hooks {
      * @param \core_course\hook\after_form_submission $hook The hook object.
      */
     public static function course_edit_submission(\core_course\hook\after_form_submission $hook) {
+        $cmid = optional_param('update', 0, PARAM_INT);
+
+        if ($cmid > 0) {
+            // Module forms are handled via coursemodule_edit_post_actions in lib.php.
+            return;
+        }
+
+        // Course form — save per-course on/off.
         $courseid = optional_param('id', 0, PARAM_INT);
         $enabled = optional_param('local_quicknote_enabled', 0, PARAM_INT);
 
@@ -89,11 +104,29 @@ class hooks {
             return;
         }
 
-        if (empty($PAGE->course->id) || (int) $PAGE->course->id === SITEID) {
+        if (empty($PAGE->course->id) || $PAGE->course->id === SITEID) {
+            return;
+        }
+
+        if (empty($PAGE->context->contextlevel) || !in_array($PAGE->context->contextlevel, [CONTEXT_COURSE, CONTEXT_MODULE])) {
             return;
         }
 
         $course = get_course($PAGE->course->id);
+
+        if ($PAGE->pagelayout === 'embedded') {
+            // In H5P Core, inserting JS worked, but it didn't in mod_hvp and SCORM.
+            $PAGE->requires->js_call_amd('local_quicknote/notes', 'initIframe', [[
+                'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
+            ]]);
+            return;
+        }
+
+        $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print'];
+        if (in_array($PAGE->pagelayout, $excludedlayouts)) {
+            return;
+        }
+
         $context = \context_course::instance($course->id, IGNORE_MISSING);
 
         if (!$context) {
@@ -108,12 +141,57 @@ class hooks {
             return;
         }
 
+        // Check per-module override.
+        $skipatterncheck = false;
+        if ($PAGE->cm) {
+            $modulesettings = get_config('local_quicknote_course_' . $course->id, 'module_settings');
+            if ($modulesettings !== false) {
+                $modulesettings = json_decode($modulesettings, true);
+                if (!is_array($modulesettings)) {
+                    $modulesettings = [];
+                }
+                if (isset($modulesettings[$PAGE->cm->id])) {
+                    $modulevalue = $modulesettings[$PAGE->cm->id];
+                    if ($modulevalue === 0) {
+                        return;
+                    }
+                    // If explicitly enabled, skip site-wide pattern check.
+                    $skipatterncheck = true;
+                }
+            }
+        }
+
+        // Check site-wide page type patterns (unless overridden by an explicit per-module enable).
+        if (empty($skipatterncheck)) {
+            $disabledpatterns = get_config('local_quicknote', 'disabled_pagetypes');
+            if (!empty($disabledpatterns)) {
+                $patterns = explode("\n", $disabledpatterns);
+                $pagetype = $PAGE->pagetype;
+                foreach ($patterns as $pattern) {
+                    $pattern = trim($pattern);
+                    if ($pattern === '') {
+                        continue;
+                    }
+                    if (fnmatch($pattern, $pagetype)) {
+                        return;
+                    }
+                }
+            }
+        }
+
         $PAGE->requires->js_call_amd('local_quicknote/notes', 'init', [[
             'courseid' => (int) $course->id,
         ]]);
 
+        $position = get_config('local_quicknote', 'position');
+        if (empty($position)) {
+            $position = 'right';
+        }
+        $positionclass = 'local-quicknote--' . $position;
+
         $html = $OUTPUT->render_from_template('local_quicknote/sidebar', [
             'courseid' => (int) $course->id,
+            'positionclass' => $positionclass,
             'hasquote' => false,
             'quotetext' => '',
             'title' => get_string('sidebar:title', 'local_quicknote'),

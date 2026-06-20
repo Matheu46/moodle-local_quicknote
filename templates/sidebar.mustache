@@ -34,7 +34,7 @@
 
 <div
     id="local-quicknote-root"
-    class="local-quicknote"
+    class="local-quicknote {{positionclass}}"
     data-courseid="{{courseid}}"
     data-placeholder="{{placeholder}}"
     data-emptytext="{{emptytext}}"
@@ -55,7 +55,12 @@
         aria-expanded="false"
         aria-label="{{togglelabel}}"
     >
-        {{#pix}} i/edit, core {{/pix}}
+        <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--edit">
+            {{#pix}} i/edit, core {{/pix}}
+        </span>
+        <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--close">
+            {{#pix}} e/cancel, core {{/pix}}
+        </span>
         <span class="sr-only">{{togglelabel}}</span>
     </button>
 
@@ -84,7 +89,7 @@
             </button>
         </div>
 
-        <div class="local-quicknote__search">
+        <div class="local-quicknote__search" style="display: none;">
             <label class="sr-only" for="local-quicknote-search">{{placeholder}}</label>
             <input
                 id="local-quicknote-search"
@@ -136,5 +141,11 @@
 
             </article>
         </template>
+
+        <div class="local-quicknote__footer mt-3 pt-3 border-top text-center">
+            <a href="{{config.wwwroot}}/local/quicknote/view.php" class="btn btn-link">
+                {{#str}} viewnotescenter, local_quicknote {{/str}}
+            </a>
+        </div>
     </aside>
 </div>

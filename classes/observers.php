@@ -44,4 +44,36 @@ class observers {
             set_config('enabled', $enabled, 'local_quicknote_course_' . $courseid);
         }
     }
+
+    /**
+     * Delete all notes for a user in a course when they are unenrolled.
+     *
+     * @param \core\event\user_enrolment_deleted $event The event triggered.
+     */
+    public static function user_enrolment_deleted(\core\event\user_enrolment_deleted $event) {
+        global $DB;
+
+        $userid = $event->relateduserid;
+        $courseid = $event->courseid;
+
+        $DB->delete_records('local_quicknote_notes', [
+            'userid' => $userid,
+            'courseid' => $courseid,
+        ]);
+    }
+
+    /**
+     * Delete all notes across all courses when a user is fully deleted.
+     *
+     * @param \core\event\user_deleted $event The event triggered.
+     */
+    public static function user_deleted(\core\event\user_deleted $event) {
+        global $DB;
+
+        $userid = $event->objectid;
+
+        $DB->delete_records('local_quicknote_notes', [
+            'userid' => $userid,
+        ]);
+    }
 }

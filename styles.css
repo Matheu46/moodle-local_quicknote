@@ -20,23 +20,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-.local-quicknote__toggle {
-    position: fixed;
-    right: 1.5rem;
-    bottom: 1.5rem;
-    z-index: 1050;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.5rem;
-    height: 3.5rem;
-    border: 0;
-    border-radius: 999px;
-    background: #0f6cbf;
-    color: #fff;
-    box-shadow: 0 0.75rem 2rem rgba(15, 108, 191, 0.25);
-}
-
 .local-quicknote__highlight-action {
     position: fixed;
     z-index: 1060;
@@ -47,17 +30,17 @@
     height: 2.5rem;
     border: 0;
     border-radius: 999px;
-    background: #17324d;
+    background-color: var(--primary);
     color: #fff;
     font-size: 1.25rem;
     line-height: 1;
-    box-shadow: 0 0.5rem 1.25rem rgba(23, 50, 77, 0.22);
+    box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.15);
     cursor: pointer;
 }
 
 .local-quicknote__highlight-action:hover,
 .local-quicknote__highlight-action:focus {
-    background: #0f2438;
+    filter: brightness(0.90);
     color: #fff;
 }
 
@@ -65,10 +48,75 @@
     display: none;
 }
 
+.local-quicknote__toggle {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1020;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.local-quicknote__toggle[aria-expanded="true"] {
+    z-index: 1046;
+}
+
+.local-quicknote__toggle-icon {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+}
+
+.local-quicknote__toggle-icon .icon {
+    margin: 0;
+}
+
+.local-quicknote__toggle-icon--edit {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+}
+
+.local-quicknote__toggle-icon--close {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0);
+}
+
+.local-quicknote.is-open .local-quicknote__toggle-icon--edit {
+    opacity: 0;
+    transform: rotate(90deg) scale(0);
+}
+
+.local-quicknote.is-open .local-quicknote__toggle-icon--close {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+}
+
+.local-quicknote--left .local-quicknote__toggle {
+    right: auto;
+    left: 1.5rem;
+}
+
 .local-quicknote__toggle:hover,
 .local-quicknote__toggle:focus {
-    background: #0c568f;
+    filter: brightness(0.95);
     color: #fff;
+    transform: scale(1.05);
+}
+
+.local-quicknote.is-open .local-quicknote__toggle:hover,
+.local-quicknote.is-open .local-quicknote__toggle:focus {
+    filter: brightness(0.95);
 }
 
 .local-quicknote__toggle .icon {
@@ -93,7 +141,20 @@
     transition: transform 0.2s ease;
 }
 
+.local-quicknote--left .local-quicknote__panel {
+    right: auto;
+    left: 0;
+    border-left: none;
+    border-right: 1px solid #d5ddea;
+    box-shadow: 0.5rem 0 1.5rem rgba(0, 0, 0, 0.12);
+    transform: translateX(-100%);
+}
+
 .local-quicknote.is-open .local-quicknote__panel {
+    transform: translateX(0);
+}
+
+.local-quicknote.is-open.local-quicknote--left .local-quicknote__panel {
     transform: translateX(0);
 }
 
@@ -107,6 +168,10 @@
 
 .local-quicknote__header {
     margin-bottom: 1rem;
+}
+
+.local-quicknote__toolbar {
+    margin-bottom: .5rem;
 }
 
 .local-quicknote__title {
@@ -151,22 +216,22 @@
 .local-quicknote__quote {
     margin: 0 0 0.5rem;
     padding: 0.75rem 0.875rem;
-    border-left: 4px solid #0f6cbf;
+    border-left: 4px solid var(--primary);
     border-radius: 0 0.5rem 0.5rem 0;
-    background: #eef3f8;
+    background: rgba(0, 0, 0, 0.04);
     color: #314254;
     font-style: italic;
 }
 
 .local-quicknote__quote-link {
     font-size: 0.8rem;
-    color: #4a5f75;
+    color: var(--primary);
     text-decoration: underline;
 }
 
 .local-quicknote__quote-link:hover,
 .local-quicknote__quote-link:focus {
-    color: #17324d;
+    filter: brightness(0.75);
 }
 
 .local-quicknote__meta,
@@ -195,6 +260,11 @@
     .local-quicknote__toggle {
         right: 1rem;
         bottom: 1rem;
+    }
+
+    .local-quicknote--left .local-quicknote__toggle {
+        right: auto;
+        left: 1rem;
     }
 
     .local-quicknote__panel {

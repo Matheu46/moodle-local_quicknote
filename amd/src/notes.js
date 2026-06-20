@@ -14,8 +14,6 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin strings are defined here.
- *
  * @module      local_quicknote/notes
  * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -36,6 +34,7 @@ define([
         close: '[data-action="close"]',
         add: '[data-action="add"]',
         search: '[data-action="search"]',
+        searchwrapper: '.local-quicknote__search',
         deletebutton: '[data-action="delete-note"]',
         textarea: '.local-quicknote__textarea',
         note: '.local-quicknote__note',
@@ -64,6 +63,16 @@ define([
         }
 
         return new Date(timestamp * 1000).toLocaleString();
+    };
+
+    var updateSearchVisibility = function() {
+        var $searchwrapper = state.root.find(SELECTORS.searchwrapper);
+        if (state.notes.length > 0) {
+            $searchwrapper.show();
+        } else {
+            $searchwrapper.hide();
+            state.root.find(SELECTORS.search).val('');
+        }
     };
 
     var createDraftNote = function() {
@@ -255,6 +264,8 @@ define([
     var renderNotes = function() {
         var $list = getList();
 
+        updateSearchVisibility();
+
         if (!state.notes.length) {
             renderEmptyState();
             return;
@@ -295,7 +306,11 @@ define([
         state.highlightselectiontext = '';
 
         if (clearselection) {
-            window.getSelection().removeAllRanges();
+            try {
+                window.getSelection().removeAllRanges();
+            } catch (e) {
+                // Ignore — selection API may not be available.
+            }
         }
     };
 
@@ -321,41 +336,48 @@ define([
         state.highlightbutton.removeAttr('hidden');
     };
 
-    var getValidSelection = function() {
-        var selection = window.getSelection();
+    var getValidSelection = function(targetWindow) {
+        var selection;
         var text;
         var range;
         var container;
+        var win = targetWindow || window;
 
-        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        try {
+            selection = win.getSelection();
+
+            if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+                return null;
+            }
+
+            text = normaliseSelectionText(selection.toString());
+
+            if (text.length <= MIN_SELECTION_LENGTH) {
+                return null;
+            }
+
+            range = selection.getRangeAt(0);
+            container = range.commonAncestorContainer;
+
+            if (container && container.nodeType === Node.TEXT_NODE) {
+                container = container.parentNode;
+            }
+
+            if (!container || $(container).closest(SELECTORS.root).length) {
+                return null;
+            }
+
+            if ($(container).closest('input, textarea, button').length) {
+                return null;
+            }
+
+            return {
+                text: text,
+                rect: range.getBoundingClientRect()
+            };
+        } catch (e) {
             return null;
         }
-
-        text = normaliseSelectionText(selection.toString());
-
-        if (text.length <= MIN_SELECTION_LENGTH) {
-            return null;
-        }
-
-        range = selection.getRangeAt(0);
-        container = range.commonAncestorContainer;
-
-        if (container && container.nodeType === Node.TEXT_NODE) {
-            container = container.parentNode;
-        }
-
-        if (!container || $(container).closest(SELECTORS.root).length) {
-            return null;
-        }
-
-        if ($(container).closest('input, textarea, button').length) {
-            return null;
-        }
-
-        return {
-            text: text,
-            rect: range.getBoundingClientRect()
-        };
     };
 
     var prependNote = function(note) {
@@ -396,7 +418,6 @@ define([
             var savednote = normaliseNote(response);
             var $currentnote = getNoteElementByKey(note.clientid);
 
-            // Insures compatibility keys before any rendering/visual update.
             savednote.hasquote = !!(savednote.quote && savednote.quote.trim() !== '');
             savednote.quotetext = savednote.quote;
 
@@ -487,6 +508,7 @@ define([
             if (!state.notes.length) {
                 renderEmptyState();
             }
+            updateSearchVisibility();
         }).fail(function(error) {
             Notification.exception(error);
         });
@@ -505,6 +527,13 @@ define([
 
         prependNote(note);
         openSidebar();
+
+        var $note = getNoteElementByKey(note.clientid);
+        var $textarea = $note.find(SELECTORS.textarea);
+        if ($textarea.length) {
+            $textarea.trigger('focus');
+        }
+
         saveNote(note);
     };
 
@@ -523,6 +552,20 @@ define([
             }
 
             createHighlightNote(text);
+        });
+
+        // Handle text selection highlight on mouseup.
+        // Synchronous handler — no setTimeout(0) — avoids event queue interference.
+        $(document).on('mouseup.local_quicknote', function(e) {
+            if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
+                return;
+            }
+            var result = getValidSelection();
+            if (result && result.rect && result.rect.width) {
+                showHighlightButton(result.rect, result.text);
+            } else {
+                hideHighlightButton(false);
+            }
         });
 
         state.root.on('click', SELECTORS.toggle, function() {
@@ -589,6 +632,7 @@ define([
                 } else {
                     applyFilter();
                 }
+                updateSearchVisibility();
                 return;
             }
 
@@ -607,7 +651,6 @@ define([
                     }
                 );
             }).fail(Notification.exception);
-
         });
 
         state.root.on('click', SELECTORS.quotelink, function(e) {
@@ -654,36 +697,13 @@ define([
             }
         });
 
-        $(document).on('mouseup.local_quicknote', function(e) {
-            if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
-                return;
-            }
-
-            window.setTimeout(function() {
-                var selection = getValidSelection();
-
-                if (!selection || !selection.rect || !selection.rect.width) {
-                    hideHighlightButton(false);
-                    return;
+        // Listen for highlight messages triggered inside iframes.
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.app === 'quicknote' && event.data.action === 'iframe_highlight') {
+                var text = event.data.text;
+                if (text && text.length > MIN_SELECTION_LENGTH) {
+                    createHighlightNote(text);
                 }
-
-                showHighlightButton(selection.rect, selection.text);
-            }, 0);
-        });
-
-        $(document).on('mousedown.local_quicknote', function(e) {
-            if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
-                return;
-            }
-
-            hideHighlightButton(false);
-        });
-
-        $(document).on('selectionchange.local_quicknote', function() {
-            var selection = window.getSelection();
-
-            if (!selection || selection.isCollapsed) {
-                hideHighlightButton(false);
             }
         });
     };
@@ -720,6 +740,92 @@ define([
 
             bindEvents();
             loadNotes();
+        },
+
+        initIframe: function(config) {
+            state = {
+                highlightselectiontext: '',
+                timers: {},
+                strings: {
+                    highlightlabel: config.highlightlabel || '+'
+                }
+            };
+
+            state.highlightbutton = createHighlightButton();
+
+            // Central handler for mouseup events across contexts.
+            var handleMouseUp = function(e, win) {
+                if ($(e.target).closest('.' + HIGHLIGHT_BUTTON_CLASS).length) {
+                    return;
+                }
+
+                window.setTimeout(function() {
+                    var result = getValidSelection(win);
+
+                    if (result && result.rect && result.rect.width) {
+                        showHighlightButton(result.rect, result.text);
+                    } else {
+                        hideHighlightButton(false);
+                    }
+                }, 10);
+            };
+
+            // Listen on the current iframe context (e.g., embed.php).
+            document.addEventListener('mouseup', function(e) {
+                handleMouseUp(e, window);
+            }, true);
+
+            // Attempt to locate an inner iframe (e.g., H5P) and attach the listener.
+            var attachToInnerIframe = function(attempts) {
+                if (attempts <= 0) {
+                    return;
+                }
+
+                var h5pIframe = document.querySelector('.h5p-iframe');
+                if (h5pIframe) {
+                    var bindInner = function() {
+                        try {
+                            var innerWin = h5pIframe.contentWindow;
+                            var innerDoc = h5pIframe.contentDocument;
+
+                            innerDoc.addEventListener('mouseup', function(e) {
+                                handleMouseUp(e, innerWin);
+                            }, true);
+                        } catch (err) {
+                            // Cross-origin boundaries may prevent attachment.
+                        }
+                    };
+
+                    if (h5pIframe.contentDocument && h5pIframe.contentDocument.readyState === 'complete') {
+                        bindInner();
+                    } else {
+                        h5pIframe.addEventListener('load', bindInner);
+                    }
+                } else {
+                    setTimeout(function() {
+                        attachToInnerIframe(attempts - 1);
+                    }, 500);
+                }
+            };
+
+            // Retry for up to 5 seconds (10 attempts * 500ms).
+            attachToInnerIframe(10);
+
+            state.highlightbutton.on('mousedown', function(e) {
+                e.preventDefault();
+            });
+            state.highlightbutton.on('click', function() {
+                var text = state.highlightselectiontext;
+                hideHighlightButton(true);
+
+                if (text) {
+                    window.parent.postMessage({
+                        app: 'quicknote',
+                        action: 'iframe_highlight',
+                        text: text
+                    }, '*');
+                }
+            });
         }
     };
 });
