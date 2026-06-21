@@ -1,5 +1,12 @@
 # Moodle plugin: local_quicknote
 
+## 0.7.0 (2026-06-21)
+- **Mobile Support**: Implemented visualization and management of notes in the official Moodle mobile app.
+- **Export to Markdown**: Added a new option in the Notes Center to export notes to `.md` format with proper text block formatting and decoded HTML entities.
+- **UI Improvements**: 
+  - Preserved whitespace and line breaks in both the quoted text and the note content within the Notes Center.
+  - Added a "View in text" link to notes even when they do not have a specific text quote attached.
+
 ## 0.6.0 (2026-06-15)
 - **Pagination**: Implemented pagination in the Notes Center to limit the number of notes fetched and displayed at once.
 - **Admin Configuration**: Added a new global setting (`perpage`) to customize the number of notes displayed per page (options: 12, 24, 48, or no pagination).
