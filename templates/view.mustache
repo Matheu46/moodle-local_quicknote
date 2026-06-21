@@ -105,7 +105,7 @@
                 <div class="card-body">
                     {{#quote}}
                     <blockquote class="blockquote border-left border-primary pl-3 mb-3" style="border-width: 3px !important; border-color: #0f6cbf !important;">
-                        <p class="mb-1 font-italic text-muted" style="font-size: 0.95rem;">{{quote}}</p>
+                        <p class="mb-1 font-italic text-muted" style="font-size: 0.95rem; white-space: pre-wrap;">{{quote}}</p>
                         {{#quoteurl}}
                         <footer class="blockquote-footer mt-1">
                             <a href="{{quoteurl}}" target="_blank" class="small">{{#str}} note:viewintext, local_quicknote {{/str}}</a>
@@ -113,7 +113,14 @@
                         {{/quoteurl}}
                     </blockquote>
                     {{/quote}}
-                    <p class="card-text">{{content}}</p>
+                    {{^quote}}
+                        {{#url}}
+                        <div class="mb-3">
+                            <a href="{{url}}" target="_blank" class="small text-muted"><i class="fa fa-external-link mr-1"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
+                        </div>
+                        {{/url}}
+                    {{/quote}}
+                    <p class="card-text" style="white-space: pre-wrap;">{{content}}</p>
                 </div>
                 <div class="card-footer bg-white border-top-0 text-muted small pb-3">
                     <i class="fa fa-clock-o mr-1"></i>{{timeupdated}}

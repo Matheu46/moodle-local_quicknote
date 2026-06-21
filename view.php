@@ -99,7 +99,7 @@ $sqlorder = " ORDER BY qn.timemodified DESC";
 $sqlcount = "SELECT COUNT(qn.id) " . $sqlfrom;
 $totalcount = $DB->count_records_sql($sqlcount, $params);
 
-$sql = "SELECT qn.id, qn.content, qn.quote, qn.quoteurl, qn.timemodified, c.fullname as coursefullname, c.id as courseid
+$sql = "SELECT qn.id, qn.content, qn.url, qn.quote, qn.quoteurl, qn.timemodified, c.fullname as coursefullname, c.id as courseid
         " . $sqlfrom . $sqlorder;
 
 // Execute query.
@@ -165,6 +165,14 @@ if ($export === 'pdf') {
                         . '</a></small>';
                 }
                 $html .= '</blockquote><br>';
+            } else {
+                if (!empty($record->url)) {
+                    $html .= '<p style="margin-bottom: 4px;"><small><a href="'
+                        . $record->url
+                        . '" style="color: #6c757d; text-decoration: none;">'
+                        . get_string('note:viewintext', 'local_quicknote')
+                        . '</a></small></p>';
+                }
             }
             $html .= '<p>' . nl2br($content) . '</p>';
             $html .= '<hr style="color: #f8f9fa;">';
@@ -216,7 +224,11 @@ if ($export === 'md') {
                 }
                 $md .= "\n";
             } else {
-                $md .= "\n";
+                if (!empty($record->url)) {
+                    $md .= "[_" . get_string('note:viewintext', 'local_quicknote') . "_](" . $record->url . ")\n\n";
+                } else {
+                    $md .= "\n";
+                }
             }
             $md .= $content . "\n\n";
             $md .= "---\n\n";
@@ -247,6 +259,7 @@ foreach ($noterecords as $record) {
         ),
         'content' => $record->content,
         'timeupdated' => userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig')),
+        'url' => !empty($record->url) ? (new moodle_url($record->url))->out(false) : null,
         'quote' => !empty($record->quote) ? $record->quote : null,
         'quoteurl' => !empty($record->quoteurl) ? (new moodle_url($record->quoteurl))->out(false) : null,
     ];
