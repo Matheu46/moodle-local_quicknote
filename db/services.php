@@ -32,6 +32,7 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'loginrequired' => true,
+        'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
     'local_quicknote_get_notes' => [
         'classname' => 'local_quicknote\\external\\get_notes',
@@ -40,6 +41,7 @@ $functions = [
         'type' => 'read',
         'ajax' => true,
         'loginrequired' => true,
+        'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
     'local_quicknote_delete_note' => [
         'classname' => 'local_quicknote\\external\\delete_note',
@@ -48,6 +50,7 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'loginrequired' => true,
+        'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
 ];
 

@@ -1,0 +1,66 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+    @template local_quicknote/mobile_view
+    @copyright 2026 Matheus Mathias
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    Mobile view template for local_quicknote.
+
+    Example context (json):
+    {
+        "courseid": 2
+    }
+}}
+{{=<% %>=}}
+<ion-list>
+    <ion-item>
+        <ion-textarea [(ngModel)]="newNoteContent" rows="4" placeholder="<%#str%> note:placeholder, local_quicknote <%/str%>"></ion-textarea>
+    </ion-item>
+    <div class="ion-padding">
+        <ion-button expand="block" (click)="saveNote()" [disabled]="!newNoteContent || newNoteContent.trim() === ''">
+            <%#str%> save, core <%/str%>
+        </ion-button>
+    </div>
+</ion-list>
+
+<ion-list>
+    <ion-item-divider>
+        <ion-label><%#str%> pluginname, local_quicknote <%/str%></ion-label>
+    </ion-item-divider>
+
+    <!-- Iteração sobre a lista de anotações usando Angular -->
+    <ion-item *ngFor="let note of notes">
+        <ion-label class="ion-text-wrap">
+            <p>{{ note.content }}</p>
+            <p>
+                <small>{{ note.timecreated * 1000 | date:'short' }}</small>
+            </p>
+        </ion-label>
+        <!-- Ícone/Botão de lixeira -->
+        <ion-button fill="clear" color="danger" slot="end" (click)="deleteNote(note.id)">
+            <ion-icon name="fas-trash" slot="icon-only"></ion-icon>
+        </ion-button>
+    </ion-item>
+
+    <!-- Estado vazio -->
+    <ion-item *ngIf="notes && notes.length === 0">
+        <ion-label class="ion-text-center">
+            <p><%#str%> note:empty, local_quicknote <%/str%></p>
+        </ion-label>
+    </ion-item>
+</ion-list>
+<%={{ }}=%>
