@@ -1,72 +1,42 @@
 <?php
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
 namespace local_quicknote\output;
 
-defined('MOODLE_INTERNAL') || die();
-
+/**
+ * QuickNote Mobile output class
+ *
+ * @package     local_quicknote
+ * @copyright   2026 Matheus Mathias
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class mobile {
-
+    /**
+     * Returns the template, javascript and data for the mobile course view.
+     *
+     * @param array $args Arguments passed by the mobile app.
+     * @return array Data for the mobile app view.
+     */
     public static function mobile_course_view($args) {
         global $OUTPUT;
-        
+
         $courseid = $args['courseid'] ?? 0;
 
-        $js = "
-            var that = this;
-            this.notes = [];
-            this.newNoteContent = '';
-            
-            var courseId = this.courseid || this.courseId || " . $courseid . ";
-
-            // Captura os serviços internos do Moodle App (Funciona no App v3 e v4)
-            var SitesService = this.CoreSites || this.CoreSitesProvider;
-            var DomUtils = this.CoreDomUtils || this.CoreDomUtilsProvider;
-
-            this.loadNotes = function() {
-                SitesService.getCurrentSite().read('local_quicknote_get_notes', { courseid: courseId })
-                    .then(function(result) {
-                        that.notes = result.notes !== undefined ? result.notes : result;
-                    }).catch(function(error) {
-                        DomUtils.showErrorModal(error);
-                    });
-            };
-
-            this.saveNote = function() {
-                if (!that.newNoteContent || that.newNoteContent.trim() === '') {
-                    return;
-                }
-                
-                SitesService.getCurrentSite().write('local_quicknote_save_note', {
-                    id: 0,
-                    courseid: courseId,
-                    content: that.newNoteContent,
-                    url: '',
-                    quote: '',
-                    quoteurl: ''
-                }).then(function() {
-                    that.newNoteContent = '';
-                    that.loadNotes();
-                }).catch(function(error) {
-                    DomUtils.showErrorModal(error);
-                });
-            };
-
-            this.deleteNote = function(noteId) {
-                DomUtils.showConfirm('Tem certeza que deseja excluir esta anotação?')
-                    .then(function() {
-                        SitesService.getCurrentSite().write('local_quicknote_delete_note', { noteid: noteId })
-                            .then(function() {
-                                that.loadNotes();
-                            }).catch(function(error) {
-                                DomUtils.showErrorModal(error);
-                            });
-                    }).catch(function() {
-                        // Usuário cancelou
-                    });
-            };
-
-            // Inicia a busca das notas
-            this.loadNotes();
-        ";
+        $js = file_get_contents(__DIR__ . '/mobile.js');
+        $js = str_replace('%%DELETE_CONFIRM%%', get_string('note:delete_confirm', 'local_quicknote'), $js);
 
         return [
             'templates' => [
