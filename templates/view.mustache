@@ -113,6 +113,13 @@
                         {{/quoteurl}}
                     </blockquote>
                     {{/quote}}
+                    {{^quote}}
+                        {{#url}}
+                        <div class="mb-3">
+                            <a href="{{url}}" target="_blank" class="small text-muted"><i class="fa fa-external-link mr-1"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
+                        </div>
+                        {{/url}}
+                    {{/quote}}
                     <p class="card-text" style="white-space: pre-wrap;">{{content}}</p>
                 </div>
                 <div class="card-footer bg-white border-top-0 text-muted small pb-3">
