@@ -637,8 +637,11 @@ define([
                     $icon.removeClass('fa-solid fa-check').addClass('fa-regular fa-copy');
                     $button.css('color', '#6c757d');
                 }, 2000);
+
+                return true;
             }).catch(function() {
                 // Ignore gracefully
+                return false;
             });
         });
 
