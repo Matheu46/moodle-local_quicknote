@@ -133,11 +133,16 @@
                 <div class="local-quicknote__meta" data-region="note-location"></div>
 
                 <label class="sr-only" for="">{{placeholder}}</label>
-                <textarea
-                    class="local-quicknote__textarea"
-                    data-note-key=""
-                    placeholder="{{placeholder}}"
-                ></textarea>
+                <div style="position: relative;">
+                    <textarea
+                        class="local-quicknote__textarea"
+                        data-note-key=""
+                        placeholder="{{placeholder}}"
+                    ></textarea>
+                    <button type="button" class="btn btn-sm btn-link local-quicknote__copy-btn" data-action="copy-note" style="position: absolute; right: 5px; bottom: 5px; color: #6c757d; z-index: 10; display: none;" title="{{#str}} copy, core {{/str}}">
+                        <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                    </button>
+                </div>
 
             </article>
         </template>

@@ -199,6 +199,12 @@ define([
         if ($textarea.val() !== currentcontent) {
             $textarea.val(currentcontent);
         }
+
+        if (currentcontent.trim().length > 0) {
+            $note.find('[data-action="copy-note"]').show();
+        } else {
+            $note.find('[data-action="copy-note"]').hide();
+        }
     };
 
     var createNoteElement = function(note) {
@@ -602,8 +608,38 @@ define([
             note.url = window.location.href;
             note.timemodified = Math.floor(Date.now() / 1000);
 
+            if (note.content.trim().length > 0) {
+                $textarea.siblings('[data-action="copy-note"]').show();
+            } else {
+                $textarea.siblings('[data-action="copy-note"]').hide();
+            }
+
             scheduleSave(note);
             applyFilter();
+        });
+
+        state.root.on('click', '[data-action="copy-note"]', function(e) {
+            e.preventDefault();
+            var $button = $(this);
+            var $icon = $button.find('i');
+            var $textarea = $button.siblings(SELECTORS.textarea);
+            var textToCopy = $textarea.val();
+
+            if (!textToCopy) {
+                return;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(function() {
+                $icon.removeClass('fa-regular fa-copy').addClass('fa-solid fa-check');
+                $button.css('color', '#28a745');
+
+                setTimeout(function() {
+                    $icon.removeClass('fa-solid fa-check').addClass('fa-regular fa-copy');
+                    $button.css('color', '#6c757d');
+                }, 2000);
+            }).catch(function() {
+                // Ignore gracefully
+            });
         });
 
         state.root.on('click', SELECTORS.deletebutton, function(e) {
