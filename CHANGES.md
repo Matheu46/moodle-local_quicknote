@@ -1,5 +1,9 @@
 # Moodle plugin: local_quicknote
 
+## 0.8.0 (2026-06-28)
+- **Copy Note to Clipboard**: Added a copy button inside the note's textarea in the sidebar, visible only when the note has content.
+- **Visual Feedback**: Implemented visual feedback that changes the copy icon to a checkmark and colors it green for 2 seconds when clicked.
+
 ## 0.7.0 (2026-06-21)
 - **Mobile Support**: Implemented visualization and management of notes in the official Moodle mobile app.
 - **Export to Markdown**: Added a new option in the Notes Center to export notes to `.md` format with proper text block formatting and decoded HTML entities.
