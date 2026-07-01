@@ -60,7 +60,7 @@
             <div class="form-group row align-items-center mb-0">
                 <label for="coursefilter" class="col-sm-3 col-md-2 col-form-label font-weight-bold">{{filterbycourse}}</label>
                 <div class="col-sm-9 col-md-4 col-lg-4 mb-2 mb-md-0">
-                    <select name="coursefilter" id="coursefilter" class="custom-select form-select" onchange="this.form.submit()">
+                    <select name="coursefilter" id="coursefilter" class="custom-select form-select">
                         <option value="0">{{allcourses}}</option>
                         {{#courses}}
                             <option value="{{id}}" {{#selected}}selected{{/selected}}>{{fullname}}</option>
@@ -148,3 +148,9 @@
     </div>
     {{/pagingbar}}
 </div>
+
+{{#js}}
+require(['local_quicknote/view'], function(view) {
+    view.init();
+});
+{{/js}}
