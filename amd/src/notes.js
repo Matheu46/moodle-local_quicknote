@@ -398,6 +398,12 @@ define([
         state.root.toggleClass('is-open', isopen);
         $panel.attr('aria-hidden', isopen ? 'false' : 'true');
         $toggle.attr('aria-expanded', isopen ? 'true' : 'false');
+
+        if (isopen) {
+            $panel.find(SELECTORS.close).trigger('focus');
+        } else {
+            $toggle.trigger('focus');
+        }
     };
 
     var saveNote = function(note) {
@@ -515,6 +521,9 @@ define([
                 renderEmptyState();
             }
             updateSearchVisibility();
+
+            // Return focus to a logical element to prevent focus loss
+            state.root.find(SELECTORS.add).trigger('focus');
         }).fail(function(error) {
             Notification.exception(error);
         });
@@ -571,6 +580,12 @@ define([
                 showHighlightButton(result.rect, result.text);
             } else {
                 hideHighlightButton(false);
+            }
+        });
+
+        $(document).on('keyup.local_quicknote_esc', function(e) {
+            if (e.key === 'Escape' && state.root.hasClass('is-open')) {
+                setOpenState(false);
             }
         });
 
@@ -672,6 +687,9 @@ define([
                     applyFilter();
                 }
                 updateSearchVisibility();
+
+                // Return focus to a logical element to prevent focus loss
+                state.root.find(SELECTORS.add).trigger('focus');
                 return;
             }
 
