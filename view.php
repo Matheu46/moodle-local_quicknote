@@ -54,15 +54,23 @@ $PAGE->set_title(get_string('notescenter', 'local_quicknote'));
 $PAGE->set_heading(get_string('notescenter', 'local_quicknote'));
 $PAGE->set_pagelayout('standard');
 
-// Get courses the user is enrolled in.
-$usercourses = enrol_get_users_courses($USER->id, true);
+// Get only courses where the user has notes.
+$sqlcourses = "SELECT DISTINCT c.id, c.fullname
+               FROM {course} c
+               JOIN {local_quicknote_notes} qn ON qn.courseid = c.id
+               WHERE qn.userid = :userid
+               ORDER BY c.fullname ASC";
+$usercourses = $DB->get_records_sql($sqlcourses, ['userid' => $USER->id]);
+
 $courses = [];
-foreach ($usercourses as $c) {
-    $courses[] = [
-        'id' => $c->id,
-        'fullname' => format_string($c->fullname, true, ['context' => context_course::instance($c->id)]),
-        'selected' => ($c->id == $coursefilter),
-    ];
+if ($usercourses) {
+    foreach ($usercourses as $c) {
+        $courses[] = [
+            'id' => $c->id,
+            'fullname' => format_string($c->fullname, true, ['context' => context_course::instance($c->id)]),
+            'selected' => ($c->id == $coursefilter),
+        ];
+    }
 }
 
 // Check if user has notes to show the search bar.

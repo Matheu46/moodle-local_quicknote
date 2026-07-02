@@ -1,5 +1,13 @@
 # Moodle plugin: local_quicknote
 
+## 0.8.1 (2026-07-01)
+- **Accessibility Improvements (A11y)**: 
+  - Added support to close the sidebar using the `Esc` key.
+  - Implemented logical focus management in the sidebar (focus moves into the panel when opened, and returns to the toggle button or action elements when closed/deleted).
+  - Fixed an issue in the Notes Center where the course filter dropdown would automatically submit for keyboard users navigating with arrow keys.
+- **UX & Architecture Enhancements**: 
+  - The course filter dropdown in the Notes Center now lists only courses where the user has created at least one note, rather than all enrolled courses.
+
 ## 0.8.0 (2026-06-28)
 - **Copy Note to Clipboard**: Added a copy button inside the note's textarea in the sidebar, visible only when the note has content.
 - **Visual Feedback**: Implemented visual feedback that changes the copy icon to a checkmark and colors it green for 2 seconds when clicked.
