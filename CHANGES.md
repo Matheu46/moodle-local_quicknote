@@ -1,5 +1,8 @@
 # Moodle plugin: local_quicknote
 
+## 0.8.2 (2026-07-07)
+- **Style Fix**: Updated primary color CSS variables to use `--bs-primary` with a fallback to `--primary` for compatibility with Moodle 5.x, where `--primary` is no longer supported.
+
 ## 0.8.1 (2026-07-01)
 - **Accessibility Improvements (A11y)**: 
   - Added support to close the sidebar using the `Esc` key.
