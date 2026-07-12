@@ -94,22 +94,34 @@ class hooks {
      * @param \core\hook\output\before_standard_top_of_body_html_generation $hook The hook object.
      */
     public static function before_standard_top_of_body_html_generation(before_standard_top_of_body_html_generation $hook) {
+        $html = self::get_top_of_body_html();
+        if ($html !== '') {
+            $hook->add_html($html);
+        }
+    }
+
+    /**
+     * Generates the QuickNote UI HTML.
+     *
+     * @return string
+     */
+    public static function get_top_of_body_html(): string {
         global $OUTPUT, $PAGE, $USER;
 
         if (during_initial_install() || (defined('CLI_SCRIPT') && CLI_SCRIPT)) {
-            return;
+            return '';
         }
 
         if (!isloggedin() || isguestuser()) {
-            return;
+            return '';
         }
 
         if (empty($PAGE->course->id) || $PAGE->course->id === SITEID) {
-            return;
+            return '';
         }
 
         if (empty($PAGE->context->contextlevel) || !in_array($PAGE->context->contextlevel, [CONTEXT_COURSE, CONTEXT_MODULE])) {
-            return;
+            return '';
         }
 
         $course = get_course($PAGE->course->id);
@@ -119,26 +131,26 @@ class hooks {
             $PAGE->requires->js_call_amd('local_quicknote/notes', 'initIframe', [[
                 'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
             ]]);
-            return;
+            return '';
         }
 
         $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print'];
         if (in_array($PAGE->pagelayout, $excludedlayouts)) {
-            return;
+            return '';
         }
 
         $context = \context_course::instance($course->id, IGNORE_MISSING);
 
         if (!$context) {
-            return;
+            return '';
         }
 
         if (!is_enrolled($context) && !has_capability('moodle/course:view', $context)) {
-            return;
+            return '';
         }
 
         if (!self::is_enabled_for_course($course)) {
-            return;
+            return '';
         }
 
         // Check per-module override.
@@ -153,7 +165,7 @@ class hooks {
                 if (isset($modulesettings[$PAGE->cm->id])) {
                     $modulevalue = $modulesettings[$PAGE->cm->id];
                     if ($modulevalue === 0) {
-                        return;
+                        return '';
                     }
                     // If explicitly enabled, skip site-wide pattern check.
                     $skipatterncheck = true;
@@ -173,7 +185,7 @@ class hooks {
                         continue;
                     }
                     if (fnmatch($pattern, $pagetype)) {
-                        return;
+                        return '';
                     }
                 }
             }
@@ -210,7 +222,7 @@ class hooks {
             'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
         ]);
 
-        $hook->add_html($html);
+        return $html;
     }
 
     /**

@@ -209,7 +209,7 @@ define([
 
     var createNoteElement = function(note) {
         var template = state.root.find(SELECTORS.noteTemplate).get(0);
-        var element = template.content.firstElementChild.cloneNode(true);
+        var element = document.importNode(template.content.firstElementChild, true);
         var $note = $(element);
 
         updateNoteElement(note, $note, false);

@@ -76,3 +76,19 @@ function local_quicknote_coursemodule_edit_post_actions($data, $course) {
 
     return $data;
 }
+
+/**
+ * Legacy callback to inject the QuickNote UI in Moodle < 4.4.
+ * In Moodle 4.4+, this is handled by the Hooks API (db/hooks.php).
+ *
+ * @return string HTML to inject.
+ */
+function local_quicknote_before_standard_top_of_body_html() {
+    // If the new Hook class exists, Moodle 4.4+ Hooks API will handle it.
+    if (class_exists(\core\hook\output\before_standard_top_of_body_html_generation::class)) {
+        return '';
+    }
+    
+    // Otherwise, generate and return the HTML for older Moodle versions.
+    return \local_quicknote\hooks::get_top_of_body_html();
+}

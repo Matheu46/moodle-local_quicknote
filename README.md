@@ -20,7 +20,7 @@ Instead of forcing learners to copy text into external apps, QuickNote keeps the
 
 ## ✅ Prerequisites
 
-- Moodle `4.4+`
+- Moodle `4.4+` (Compatible with Moodle < 4.4 down to `4.1` with limitations, see below)
 - Boost theme
 - Boost child themes are also supported
 
@@ -48,6 +48,9 @@ Teachers can control QuickNote per course:
 2. Go to the course settings form.
 3. Find the `QuickNote` section.
 4. Enable or disable QuickNote for that course.
+
+> [!NOTE]
+> **Moodle < 4.4 Compatibility**: The course-level toggle within the course settings form is only supported on Moodle 4.4+. In Moodle versions older than 4.4, the plugin will run based on the default site-wide policy defined by the administrator, as older Moodle core versions do not support local plugin settings injection on the course edit form.
 
 This makes it easy to align the tool with the pedagogical design of each course.
 
