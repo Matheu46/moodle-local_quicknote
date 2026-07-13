@@ -88,7 +88,7 @@ function local_quicknote_before_standard_top_of_body_html() {
     if (class_exists(\core\hook\output\before_standard_top_of_body_html_generation::class)) {
         return '';
     }
-    
+
     // Otherwise, generate and return the HTML for older Moodle versions.
     return \local_quicknote\hooks::get_top_of_body_html();
 }

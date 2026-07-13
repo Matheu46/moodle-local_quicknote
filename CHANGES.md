@@ -1,5 +1,10 @@
 # Moodle plugin: local_quicknote
 
+## 0.8.3 (2026-07-13)
+- **Backward Compatibility (Moodle < 4.4)**:
+  - Re-introduced the legacy callback `before_standard_top_of_body_html` in `lib.php` to render the QuickNote toggle/sidebar on older Moodle versions that do not support the Hooks API.
+  - Replaced `cloneNode` with `document.importNode` in `notes.js` when cloning template content, preventing a jQuery 3.6.x TypeError (`Cannot read properties of null (reading 'contains')`) on older Moodle versions.
+
 ## 0.8.2 (2026-07-07)
 - **Style Fix**: Updated primary color CSS variables to use `--bs-primary` with a fallback to `--primary` for compatibility with Moodle 5.x, where `--primary` is no longer supported.
 
