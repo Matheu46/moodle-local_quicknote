@@ -53,6 +53,7 @@
         data-action="toggle"
         aria-controls="local-quicknote-panel"
         aria-expanded="false"
+        title="{{togglelabel}}"
         aria-label="{{togglelabel}}"
     >
         <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--edit">
@@ -61,7 +62,6 @@
         <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--close">
             {{#pix}} e/cancel, core {{/pix}}
         </span>
-        <span class="sr-only">{{togglelabel}}</span>
     </button>
 
     <aside
@@ -76,10 +76,10 @@
                 type="button"
                 class="local-quicknote__close"
                 data-action="close"
+                title="{{closelabel}}"
                 aria-label="{{closelabel}}"
             >
                 {{#pix}} e/cancel, core {{/pix}}
-                <span class="sr-only">{{closelabel}}</span>
             </button>
         </div>
 
@@ -112,9 +112,10 @@
                         class="btn btn-link btn-sm local-quicknote__delete"
                         data-action="delete-note"
                         data-noteid=""
+                        title="{{#str}} note:delete, local_quicknote {{/str}}"
+                        aria-label="{{#str}} note:delete, local_quicknote {{/str}}"
                     >
                         {{#pix}} i/delete, core {{/pix}}
-                        <span class="sr-only">{{#str}} note:delete, local_quicknote {{/str}}</span>
                     </button>
                 </div>
 
@@ -132,12 +133,12 @@
 
                 <div class="local-quicknote__meta" data-region="note-location"></div>
 
-                <label class="sr-only" for="">{{placeholder}}</label>
                 <div style="position: relative;">
                     <textarea
                         class="local-quicknote__textarea"
                         data-note-key=""
                         placeholder="{{placeholder}}"
+                        aria-label="{{placeholder}}"
                     ></textarea>
                     <button type="button" class="btn btn-sm btn-link local-quicknote__copy-btn" data-action="copy-note" style="position: absolute; right: 5px; bottom: 5px; color: #6c757d; z-index: 10; display: none;" title="{{#str}} copy, core {{/str}}">
                         <i class="fa-regular fa-copy" aria-hidden="true"></i>
