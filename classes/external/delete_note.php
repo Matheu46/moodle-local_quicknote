@@ -70,6 +70,7 @@ class delete_note extends \core_external\external_api {
 
         $context = context_course::instance($course->id);
         self::validate_context($context);
+        require_capability('local/quicknote:use', $context);
 
         if (!\local_quicknote\hooks::is_enabled_for_course($course)) {
             throw new \moodle_exception('disabledforcourse', 'local_quicknote');

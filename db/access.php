@@ -15,17 +15,28 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Capabilities for QuickNote.
  *
- * @package     local_quicknote
- * @copyright   2026 Matheus Mathias
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * Originally contributed by Andreas Giesen in the 108design fork.
+ * Adapted for course-level scope by Matheus Mathias.
+ *
+ * @package    local_quicknote
+ * @copyright  2026 Matheus Mathias, Andreas Giesen
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_quicknote';
-$plugin->release = '0.9.2';
-$plugin->version = 2026081501;
-$plugin->requires = 2023042400; // Moodle 4.2.
-$plugin->maturity = MATURITY_BETA;
+$capabilities = [
+    'local/quicknote:use' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'riskbitmask' => RISK_PERSONAL,
+        'archetypes' => [
+            'student' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+];
