@@ -125,6 +125,15 @@ class hooks {
             return '';
         }
 
+        if (moodle_needs_upgrading()) {
+            return '';
+        }
+
+        $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print'];
+        if (isset($PAGE->pagelayout) && in_array($PAGE->pagelayout, $excludedlayouts)) {
+            return '';
+        }
+
         if (!isloggedin() || isguestuser()) {
             return '';
         }
@@ -144,11 +153,6 @@ class hooks {
             $PAGE->requires->js_call_amd('local_quicknote/notes', 'initIframe', [[
                 'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
             ]]);
-            return '';
-        }
-
-        $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print'];
-        if (in_array($PAGE->pagelayout, $excludedlayouts)) {
             return '';
         }
 
