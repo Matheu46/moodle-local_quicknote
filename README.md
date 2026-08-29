@@ -50,6 +50,13 @@ Teachers can control QuickNote per course:
 3. Find the `QuickNote` section.
 4. Enable or disable QuickNote for that course.
 
+### Advanced Permissions (Capabilities)
+
+QuickNote integrates natively with Moodle's Role and Permission system through the `local/quicknote:use` capability. This provides administrators and teachers with powerful granular control over **who** can use the tool:
+
+- **Role-based Access:** By default, Students, Teachers, and Managers have permission to use QuickNote. You can easily remove this capability from specific roles (like Guests or custom Auditor roles) at the system or course level.
+- **Individual Student Restrictions:** If a specific student is misusing the tool, you don't need to disable QuickNote for the entire class. An administrator can create a custom role (e.g., "QuickNote Restricted") with the `local/quicknote:use` capability set to **Prohibit**. A teacher can then assign this role to that specific student in the course, instantly hiding the tool only for them, while the rest of the class continues using it normally.
+
 > [!NOTE]
 > **Moodle < 4.4 Compatibility**: The course-level toggle within the course settings form is only supported on Moodle 4.4+. In Moodle versions older than 4.4, the plugin will run based on the default site-wide policy defined by the administrator, as older Moodle core versions do not support local plugin settings injection on the course edit form.
 

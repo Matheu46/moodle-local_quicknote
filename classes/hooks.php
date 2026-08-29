@@ -158,7 +158,7 @@ class hooks {
             return '';
         }
 
-        if (!is_enrolled($context) && !has_capability('moodle/course:view', $context)) {
+        if (!has_capability('local/quicknote:use', $context)) {
             return '';
         }
 
