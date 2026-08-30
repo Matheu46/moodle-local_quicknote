@@ -78,6 +78,13 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
 
                 center.setAttribute('aria-busy', 'true');
 
+                var cleanupRequest = function() {
+                    if (activeRequest === request) {
+                        center.removeAttribute('aria-busy');
+                        activeRequest = null;
+                    }
+                };
+
                 fetch(url.toString(), {
                     credentials: 'same-origin',
                     headers: {'X-Requested-With': 'XMLHttpRequest'},
@@ -96,6 +103,8 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
 
                     // Accessibility Announcement
                     var noteCount = document.querySelectorAll('[data-region="quicknote-results"] .card').length;
+
+                    // eslint-disable-next-line promise/catch-or-return, promise/no-nesting
                     Str.get_string('search:results', 'local_quicknote', noteCount).then(function(announcement) {
                         var announcer = document.getElementById('quicknote-a11y-announcer');
                         if (announcer) {
@@ -106,17 +115,14 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                         return null;
                     });
 
+                    cleanupRequest();
                     return null;
                 }).catch(function(error) {
                     if (error.name !== 'AbortError') {
                         // Fallback to normal page load if fetch fails
                         window.location.assign(url.toString());
                     }
-                }).finally(function() {
-                    if (activeRequest === request) {
-                        center.removeAttribute('aria-busy');
-                        activeRequest = null;
-                    }
+                    cleanupRequest();
                 });
             };
 
