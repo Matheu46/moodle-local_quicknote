@@ -55,6 +55,7 @@
 }}
 
 <div class="local-quicknote-center">
+    <div id="quicknote-a11y-announcer" class="sr-only" aria-live="polite"></div>
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <form method="GET" action="{{config.wwwroot}}/local/quicknote/view.php" class="flex-grow-1">
             <div class="form-group row align-items-center mb-0">
@@ -128,7 +129,11 @@
                     <p class="card-text local-quicknote-center__content">{{content}}</p>
                 </div>
                 <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center pb-3">
-                    <span class="text-muted small"><i class="fa fa-clock-o mr-1"></i>{{timeupdated}}</span>
+                    <span class="text-muted small">
+                        <i class="fa fa-clock-o mr-1" aria-hidden="true"></i>
+                        <span class="sr-only">{{#str}} lastmodified, core {{/str}}:</span>
+                        {{timeupdated}}
+                    </span>
                     <button type="button" class="btn btn-sm btn-link text-danger local-quicknote-delete-btn" data-action="delete" data-id="{{id}}" title="{{#str}} note:delete, local_quicknote {{/str}}">
                         <i class="fa fa-trash-o" aria-hidden="true"></i>
                     </button>

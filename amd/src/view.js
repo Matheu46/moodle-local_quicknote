@@ -93,6 +93,15 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                     replaceRegion(nextDocument, '[data-region="quicknote-pagination"]');
                     replaceRegion(nextDocument, '[data-region="quicknote-exports"]');
                     window.history.replaceState({}, '', url.toString());
+
+                    // Accessibility Announcement
+                    var noteCount = document.querySelectorAll('[data-region="quicknote-results"] .card').length;
+                    Str.get_string('search:results', 'local_quicknote', noteCount).done(function(announcement) {
+                        var announcer = document.getElementById('quicknote-a11y-announcer');
+                        if (announcer) {
+                            announcer.textContent = announcement;
+                        }
+                    });
                 }).catch(function(error) {
                     if (error.name !== 'AbortError') {
                         // Fallback to normal page load if fetch fails
