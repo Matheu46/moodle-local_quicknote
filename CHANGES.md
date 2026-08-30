@@ -1,5 +1,21 @@
 # Moodle plugin: local_quicknote
 
+## 0.10.0 (2026-08-30)
+*Major contributions and features in this release were ported from a downstream fork by Andreas Giesen (@108design).*
+
+- **Permissions & Security**:
+  - Implemented the `local/quicknote:use` system capability for granular access control, replacing hardcoded enrollment checks.
+- **UI/UX & Accessibility**:
+  - Implemented SPA-like asynchronous live search with debounce in the Notes Center for a faster, smoother experience.
+  - Added auto-growing textareas in the sidebar that dynamically adjust their height based on content.
+  - Redesigned Notes Center cards by replacing title badges with Bootstrap card headers and footers for clearer visual separation.
+  - Enabled direct note deletion from within the Notes Center.
+  - Significantly improved screen reader accessibility (A11y) with reliable `aria-live` announcements for live search results and native CSS visibility handling for the sidebar drawer.
+- **Core & Architecture**:
+  - Extracted AJAX operations into a dedicated `repository.js` pattern for improved JS maintainability.
+  - Refactored PDF and Markdown export functionality into a dedicated `exporter` class with improved memory efficiency using `get_recordset_sql`.
+  - Added comprehensive unit tests for the new exporter class.
+
 ## 0.9.2 (2026-08-15)
 - **UI/UX**:
   - Implemented a "clear search" button in the search input (Sidebar and Notes Center).
