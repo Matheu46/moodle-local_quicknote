@@ -266,10 +266,6 @@
     margin-bottom: 0.5rem;
 }
 
-.local-quicknote__delete i {
-    margin-right: 0;
-}
-
 .local-quicknote__meta,
 .local-quicknote__status {
     font-size: 0.8rem;
@@ -292,9 +288,12 @@
 .local-quicknote__textarea {
     width: 100%;
     min-height: 7rem;
-    resize: vertical;
+    max-height: 40vh;
+    overflow-y: hidden;
+    resize: none;
     border: 1px solid #c7d0dd;
     border-radius: 0.5rem;
+    transition: height 0.1s ease-out;
     padding: 0.75rem;
     background: #fffef0;
 }
@@ -309,10 +308,11 @@
 }
 
 /* QuickNote Center View Styles */
-.local-quicknote-center__badge {
-    max-width: 100%;
-    text-align: left;
+.local-quicknote-center__card-body {
+    max-height: 500px;
+    overflow-y: auto;
 }
+
 
 .local-quicknote-center__quote {
     border-width: 3px;

@@ -147,6 +147,7 @@ foreach ($noterecords as $record) {
 
     // Prepare variables for the template. Mustache escapes standard tags {{ }} automatically.
     $notes[] = [
+        'id' => $record->id,
         'coursefullname' => format_string(
             $record->coursefullname,
             true,

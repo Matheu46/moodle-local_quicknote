@@ -20,11 +20,11 @@
  */
 
 define([
-    'core/ajax',
+    'local_quicknote/repository',
     'core/notification',
     'core/str',
     'core/user_date'
-], function(Ajax, Notification, Str, UserDate) {
+], function(Repository, Notification, Str, UserDate) {
     var SELECTORS = {
         root: '#local-quicknote-root',
         panel: '[data-region="panel"]',
@@ -113,6 +113,36 @@ define([
         normalisednote.quotetext = normalisednote.quote;
 
         return normalisednote;
+    };
+
+    var autogrowTextarea = function(textarea) {
+        if (!textarea) {
+            return;
+        }
+        var configuredMaxHeight = parseFloat(window.getComputedStyle(textarea).maxHeight);
+        var maxHeight = Number.isFinite(configuredMaxHeight) && configuredMaxHeight > 0
+            ? configuredMaxHeight
+            : Math.floor(window.innerHeight * 0.45); // Fallback to 45% of viewport
+
+        // Reset height to recalculate scrollHeight properly
+        textarea.style.height = 'auto';
+
+        var borderHeight = Math.max(0, textarea.offsetHeight - textarea.clientHeight);
+        var contentHeight = textarea.scrollHeight + borderHeight;
+
+        textarea.style.height = Math.min(contentHeight, maxHeight) + 'px';
+        textarea.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
+    };
+
+    var autogrowAllTextareas = function() {
+        if (!state.root) {
+            return;
+        }
+        window.requestAnimationFrame(function() {
+            state.root.querySelectorAll(SELECTORS.textarea).forEach(function(textarea) {
+                autogrowTextarea(textarea);
+            });
+        });
     };
 
     var getRoot = function() {
@@ -343,6 +373,7 @@ define([
         });
 
         applyFilter();
+        autogrowAllTextareas();
     };
 
     var openSidebar = function() {
@@ -464,6 +495,8 @@ define([
         }
 
         if (isopen) {
+            autogrowAllTextareas();
+
             var closeBtn = panel ? panel.querySelector(SELECTORS.close) : null;
             if (closeBtn) {
                 closeBtn.focus();
@@ -483,17 +516,14 @@ define([
             setNoteStatus(noteEl, state.strings.savingtext, note.timemodified);
         }
 
-        request = Ajax.call([{
-            methodname: 'local_quicknote_save_note',
-            args: {
-                id: note.id || 0,
-                courseid: state.courseid,
-                content: note.content,
-                url: note.url || window.location.href,
-                quote: note.quote || '',
-                quoteurl: note.quoteurl || ''
-            }
-        }])[0];
+        request = Repository.saveNote({
+            id: note.id || 0,
+            courseid: state.courseid,
+            content: note.content,
+            url: note.url || window.location.href,
+            quote: note.quote || '',
+            quoteurl: note.quoteurl || ''
+        });
 
         request.then(function(response) {
             var savednote = normaliseNote(response);
@@ -550,12 +580,7 @@ define([
     };
 
     var loadNotes = function() {
-        var request = Ajax.call([{
-            methodname: 'local_quicknote_get_notes',
-            args: {
-                courseid: state.courseid
-            }
-        }])[0];
+        var request = Repository.getNotes(state.courseid);
 
         request.then(function(response) {
             state.notes = response.map(function(note) {
@@ -570,12 +595,7 @@ define([
     };
 
     var deleteNote = function(note, noteEl) {
-        var request = Ajax.call([{
-            methodname: 'local_quicknote_delete_note',
-            args: {
-                noteid: note.id
-            }
-        }])[0];
+        var request = Repository.deleteNote(note.id);
 
         request.then(function(response) {
             if (!response.deleted) {
@@ -867,6 +887,8 @@ define([
         state.root.addEventListener('input', function(e) {
             var textarea = e.target.closest(SELECTORS.textarea);
             if (textarea) {
+                autogrowTextarea(textarea);
+
                 var note = getNoteByKey(textarea.getAttribute('data-note-key'));
                 if (!note) {
                     return;
