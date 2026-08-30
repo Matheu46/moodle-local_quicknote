@@ -22,42 +22,115 @@
 define(['local_quicknote/repository', 'core/notification', 'core/str'], function(Repository, Notification, Str) {
     return {
         init: function() {
-            var select = document.getElementById('coursefilter');
-            var isKeyboardNav = false;
-
-            if (!select) {
-                return;
-            }
-
-            select.addEventListener('keydown', function(e) {
-                // Up, Down, Left, Right arrows
-                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) !== -1) {
-                    isKeyboardNav = true;
-                }
-                // Enter key
-                if (e.key === 'Enter') {
-                    if (this.form) {
-                        this.form.submit();
-                    }
-                }
-            });
-
-            select.addEventListener('mousedown', function() {
-                isKeyboardNav = false;
-            });
-
-            select.addEventListener('change', function() {
-                if (!isKeyboardNav) {
-                    if (this.form) {
-                        this.form.submit();
-                    }
-                }
-                isKeyboardNav = false; // Reset for next interaction
-            });
-
             var searchInput = document.getElementById('searchterm');
             var clearSearchBtn = document.getElementById('clearsearch');
+            var select = document.getElementById('coursefilter');
+            var searchTimer = null;
+            var activeRequest = null;
+            var searchForm = searchInput ? searchInput.form : null;
+            var center = document.querySelector('.local-quicknote-center');
+            var submittedSearch = searchInput ? searchInput.value.trim() : '';
 
+            var replaceRegion = function(nextDocument, selector) {
+                var currentRegion = document.querySelector(selector);
+                var nextRegion = nextDocument.querySelector(selector);
+                if (currentRegion && nextRegion) {
+                    currentRegion.innerHTML = nextRegion.innerHTML;
+                    if (nextRegion.hasAttribute('hidden')) {
+                        currentRegion.setAttribute('hidden', 'hidden');
+                    } else {
+                        currentRegion.removeAttribute('hidden');
+                    }
+                }
+            };
+
+            var submitSearch = function(force) {
+                if (!searchForm || !center || !searchInput) {
+                    return;
+                }
+                var nextSearch = searchInput.value.trim();
+
+                // If not forced and search hasn't changed, don't submit.
+                // However, we want to allow forced submits (like when dropdown changes).
+                if (!force && nextSearch === submittedSearch) {
+                    return;
+                }
+
+                submittedSearch = nextSearch;
+
+                if (activeRequest) {
+                    activeRequest.abort();
+                }
+                var request = new AbortController();
+                activeRequest = request;
+
+                var url = new URL(searchForm.action, window.location.href);
+                new FormData(searchForm).forEach(function(value, name) {
+                    if (name === 'searchterm') {
+                        value = nextSearch;
+                    }
+                    if (String(value).length > 0 && String(value) !== '0') {
+                        url.searchParams.set(name, value);
+                    } else {
+                        url.searchParams.delete(name);
+                    }
+                });
+
+                center.setAttribute('aria-busy', 'true');
+
+                fetch(url.toString(), {
+                    credentials: 'same-origin',
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                    signal: request.signal
+                }).then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('QuickNote search request failed.');
+                    }
+                    return response.text();
+                }).then(function(html) {
+                    var nextDocument = new DOMParser().parseFromString(html, 'text/html');
+                    replaceRegion(nextDocument, '[data-region="quicknote-results"]');
+                    replaceRegion(nextDocument, '[data-region="quicknote-pagination"]');
+                    replaceRegion(nextDocument, '[data-region="quicknote-exports"]');
+                    window.history.replaceState({}, '', url.toString());
+                }).catch(function(error) {
+                    if (error.name !== 'AbortError') {
+                        // Fallback to normal page load if fetch fails
+                        window.location.assign(url.toString());
+                    }
+                }).finally(function() {
+                    if (activeRequest === request) {
+                        center.removeAttribute('aria-busy');
+                        activeRequest = null;
+                    }
+                });
+            };
+
+            // Bind filter dropdown
+            if (select) {
+                var isKeyboardNav = false;
+                select.addEventListener('keydown', function(e) {
+                    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) !== -1) {
+                        isKeyboardNav = true;
+                    }
+                    if (e.key === 'Enter') {
+                        submitSearch(true);
+                    }
+                });
+
+                select.addEventListener('mousedown', function() {
+                    isKeyboardNav = false;
+                });
+
+                select.addEventListener('change', function() {
+                    if (!isKeyboardNav) {
+                        submitSearch(true);
+                    }
+                    isKeyboardNav = false;
+                });
+            }
+
+            // Bind search input and clear button
             if (searchInput && clearSearchBtn) {
                 searchInput.addEventListener('input', function() {
                     if (this.value.trim().length > 0) {
@@ -65,14 +138,25 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                     } else {
                         clearSearchBtn.setAttribute('hidden', 'hidden');
                     }
+
+                    window.clearTimeout(searchTimer);
+                    searchTimer = window.setTimeout(function() {
+                        submitSearch(false);
+                    }, 400); // Debounce delay
                 });
 
                 clearSearchBtn.addEventListener('click', function() {
+                    window.clearTimeout(searchTimer);
                     searchInput.value = '';
                     clearSearchBtn.setAttribute('hidden', 'hidden');
-                    if (searchInput.form) {
-                        searchInput.form.submit();
-                    }
+                    submitSearch(true);
+                    searchInput.focus();
+                });
+
+                searchForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    window.clearTimeout(searchTimer);
+                    submitSearch(true);
                 });
             }
 
@@ -95,14 +179,9 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                             strings[2], // no
                             function() {
                                 Repository.deleteNote(noteId).done(function() {
-                                    var cardCol = deleteBtn.closest('.col-12.col-md-6.col-xl-4');
-                                    if (cardCol) {
-                                        cardCol.remove();
-                                        // If no cards left, reload to show empty state.
-                                        if (document.querySelectorAll('.local-quicknote-delete-btn').length === 0) {
-                                            window.location.reload();
-                                        }
-                                    }
+                                    // Refresh the entire grid silently to handle pagination
+                                    // (e.g. pulling a note from the next page to fill the gap).
+                                    submitSearch(true);
                                 }).fail(Notification.exception);
                             }
                         );
