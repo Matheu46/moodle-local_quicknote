@@ -168,15 +168,16 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                     var noteId = deleteBtn.getAttribute('data-id');
 
                     Str.get_strings([
+                        {key: 'confirm', component: 'core'},
                         {key: 'note:delete_confirm', component: 'local_quicknote'},
                         {key: 'delete', component: 'core'},
                         {key: 'cancel', component: 'core'}
                     ]).done(function(strings) {
                         Notification.confirm(
-                            strings[1], // title
-                            strings[0], // message
-                            strings[1], // yes
-                            strings[2], // no
+                            strings[0],
+                            strings[1],
+                            strings[2],
+                            strings[3],
                             function() {
                                 Repository.deleteNote(noteId).done(function() {
                                     // Refresh the entire grid silently to handle pagination

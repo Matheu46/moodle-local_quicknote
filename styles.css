@@ -309,6 +309,11 @@
 }
 
 /* QuickNote Center View Styles */
+.local-quicknote-center__card-body {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
 .local-quicknote-center__badge {
     max-width: 100%;
     text-align: left;
