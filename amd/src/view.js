@@ -104,7 +104,7 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                     // Accessibility Announcement
                     var noteCount = document.querySelectorAll('[data-region="quicknote-results"] .card').length;
 
-                    // eslint-disable-next-line promise/catch-or-return, promise/no-nesting
+                    // eslint-disable-next-line promise/no-nesting
                     Str.get_string('search:results', 'local_quicknote', noteCount).then(function(announcement) {
                         var announcer = document.getElementById('quicknote-a11y-announcer');
                         if (announcer) {
