@@ -266,10 +266,6 @@
     margin-bottom: 0.5rem;
 }
 
-.local-quicknote__delete i {
-    margin-right: 0;
-}
-
 .local-quicknote__meta,
 .local-quicknote__status {
     font-size: 0.8rem;

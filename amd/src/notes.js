@@ -20,11 +20,11 @@
  */
 
 define([
-    'core/ajax',
+    'local_quicknote/repository',
     'core/notification',
     'core/str',
     'core/user_date'
-], function(Ajax, Notification, Str, UserDate) {
+], function(Repository, Notification, Str, UserDate) {
     var SELECTORS = {
         root: '#local-quicknote-root',
         panel: '[data-region="panel"]',
@@ -483,17 +483,14 @@ define([
             setNoteStatus(noteEl, state.strings.savingtext, note.timemodified);
         }
 
-        request = Ajax.call([{
-            methodname: 'local_quicknote_save_note',
-            args: {
-                id: note.id || 0,
-                courseid: state.courseid,
-                content: note.content,
-                url: note.url || window.location.href,
-                quote: note.quote || '',
-                quoteurl: note.quoteurl || ''
-            }
-        }])[0];
+        request = Repository.saveNote({
+            id: note.id || 0,
+            courseid: state.courseid,
+            content: note.content,
+            url: note.url || window.location.href,
+            quote: note.quote || '',
+            quoteurl: note.quoteurl || ''
+        });
 
         request.then(function(response) {
             var savednote = normaliseNote(response);
@@ -550,12 +547,7 @@ define([
     };
 
     var loadNotes = function() {
-        var request = Ajax.call([{
-            methodname: 'local_quicknote_get_notes',
-            args: {
-                courseid: state.courseid
-            }
-        }])[0];
+        var request = Repository.getNotes(state.courseid);
 
         request.then(function(response) {
             state.notes = response.map(function(note) {
@@ -570,12 +562,7 @@ define([
     };
 
     var deleteNote = function(note, noteEl) {
-        var request = Ajax.call([{
-            methodname: 'local_quicknote_delete_note',
-            args: {
-                noteid: note.id
-            }
-        }])[0];
+        var request = Repository.deleteNote(note.id);
 
         request.then(function(response) {
             if (!response.deleted) {

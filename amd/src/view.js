@@ -19,7 +19,7 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define([], function() {
+define(['local_quicknote/repository', 'core/notification', 'core/str'], function(Repository, Notification, Str) {
     return {
         init: function() {
             var select = document.getElementById('coursefilter');
@@ -75,6 +75,40 @@ define([], function() {
                     }
                 });
             }
+
+            // Handle delete buttons.
+            document.addEventListener('click', function(e) {
+                var deleteBtn = e.target.closest('.local-quicknote-delete-btn');
+                if (deleteBtn) {
+                    e.preventDefault();
+                    var noteId = deleteBtn.getAttribute('data-id');
+
+                    Str.get_strings([
+                        {key: 'note:delete_confirm', component: 'local_quicknote'},
+                        {key: 'delete', component: 'core'},
+                        {key: 'cancel', component: 'core'}
+                    ]).done(function(strings) {
+                        Notification.confirm(
+                            strings[1], // title
+                            strings[0], // message
+                            strings[1], // yes
+                            strings[2], // no
+                            function() {
+                                Repository.deleteNote(noteId).done(function() {
+                                    var cardCol = deleteBtn.closest('.col-12.col-md-6.col-xl-4');
+                                    if (cardCol) {
+                                        cardCol.remove();
+                                        // If no cards left, reload to show empty state.
+                                        if (document.querySelectorAll('.local-quicknote-delete-btn').length === 0) {
+                                            window.location.reload();
+                                        }
+                                    }
+                                }).fail(Notification.exception);
+                            }
+                        );
+                    }).fail(Notification.exception);
+                }
+            });
         }
     };
 });

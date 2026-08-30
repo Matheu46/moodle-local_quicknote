@@ -127,8 +127,11 @@
                     {{/quote}}
                     <p class="card-text local-quicknote-center__content">{{content}}</p>
                 </div>
-                <div class="card-footer bg-white border-top-0 text-muted small pb-3">
-                    <i class="fa fa-clock-o mr-1"></i>{{timeupdated}}
+                <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center pb-3">
+                    <span class="text-muted small"><i class="fa fa-clock-o mr-1"></i>{{timeupdated}}</span>
+                    <button type="button" class="btn btn-sm btn-link text-danger local-quicknote-delete-btn" data-action="delete" data-id="{{id}}" title="{{#str}} note:delete, local_quicknote {{/str}}">
+                        <i class="fa fa-trash-o" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </div>
