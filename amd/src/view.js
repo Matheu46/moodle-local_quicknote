@@ -96,11 +96,14 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
 
                     // Accessibility Announcement
                     var noteCount = document.querySelectorAll('[data-region="quicknote-results"] .card').length;
-                    Str.get_string('search:results', 'local_quicknote', noteCount).done(function(announcement) {
+                    Str.get_string('search:results', 'local_quicknote', noteCount).then(function(announcement) {
                         var announcer = document.getElementById('quicknote-a11y-announcer');
                         if (announcer) {
                             announcer.textContent = announcement;
                         }
+                        return null;
+                    }).catch(function() {
+                        return null;
                     });
 
                     return null;
