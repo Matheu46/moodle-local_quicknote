@@ -313,10 +313,6 @@
     overflow-y: auto;
 }
 
-.local-quicknote-center__badge {
-    max-width: 100%;
-    text-align: left;
-}
 
 .local-quicknote-center__quote {
     border-width: 3px;

@@ -102,6 +102,8 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                             announcer.textContent = announcement;
                         }
                     });
+
+                    return null;
                 }).catch(function(error) {
                     if (error.name !== 'AbortError') {
                         // Fallback to normal page load if fetch fails

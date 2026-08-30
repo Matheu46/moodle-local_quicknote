@@ -105,8 +105,8 @@
         {{#notes}}
         <div class="col-12 col-md-6 col-xl-4 mb-4">
             <div class="card h-100 shadow-sm">
-                <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
-                    <span class="badge badge-primary bg-primary text-white text-truncate d-inline-block w-100 p-1 mw-100 text-left text-start local-quicknote-center__badge" title="{{coursefullname}}">{{coursefullname}}</span>
+                <div class="card-header bg-light border-bottom-0 text-truncate font-weight-bold" title="{{coursefullname}}">
+                    {{coursefullname}}
                 </div>
                 <div class="card-body local-quicknote-center__card-body">
                     {{#quote}}
@@ -128,7 +128,7 @@
                     {{/quote}}
                     <p class="card-text local-quicknote-center__content">{{content}}</p>
                 </div>
-                <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center pb-3">
+                <div class="card-footer bg-light border-top-0 d-flex justify-content-between align-items-center">
                     <span class="text-muted small">
                         <i class="fa fa-clock-o mr-1" aria-hidden="true"></i>
                         <span class="sr-only">{{#str}} lastmodified, core {{/str}}:</span>
