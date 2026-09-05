@@ -46,6 +46,8 @@
     data-highlightlabel="{{highlightlabel}}"
     data-deleteconfirm="{{deleteconfirm}}"
     data-noresultstext="{{noresultstext}}"
+    data-deleteimagelabel="{{#str}} screenshot:delete, local_quicknote {{/str}}"
+    data-uploadingtext="{{#str}} screenshot:uploading, local_quicknote {{/str}}"
 >
     <button
         type="button"
@@ -155,6 +157,8 @@
                     </button>
                 </div>
 
+                <div class="local-quicknote__screenshots" data-region="screenshots"></div>
+                <p class="local-quicknote__paste-hint">{{#str}} screenshot:pastehint, local_quicknote {{/str}}</p>
             </article>
         </template>
 

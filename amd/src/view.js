@@ -182,6 +182,36 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
 
             // Handle delete buttons.
             document.addEventListener('click', function(e) {
+                var deleteScreenshotBtn = e.target.closest('[data-action="delete-screenshot"]');
+                if (deleteScreenshotBtn) {
+                    e.preventDefault();
+                    var fileId = deleteScreenshotBtn.getAttribute('data-fileid');
+                    var noteCard = deleteScreenshotBtn.closest('.card');
+                    var noteDeleteBtn = noteCard ? noteCard.querySelector('.local-quicknote-delete-btn') : null;
+                    var noteId = noteDeleteBtn ? noteDeleteBtn.getAttribute('data-id') : null;
+
+                    if (noteId && fileId) {
+                        Str.get_strings([
+                            {key: 'confirm', component: 'core'},
+                            {key: 'screenshot:delete', component: 'local_quicknote'},
+                            {key: 'delete', component: 'core'},
+                            {key: 'cancel', component: 'core'}
+                        ]).done(function(strings) {
+                            Notification.confirm(
+                                strings[0],
+                                strings[1],
+                                strings[2],
+                                strings[3],
+                                function() {
+                                    Repository.deleteScreenshot(Number(noteId), Number(fileId)).done(function() {
+                                        submitSearch(true);
+                                    }).fail(Notification.exception);
+                                }
+                            );
+                        }).fail(Notification.exception);
+                    }
+                    return;
+                }
                 var deleteBtn = e.target.closest('.local-quicknote-delete-btn');
                 if (deleteBtn) {
                     e.preventDefault();

@@ -88,20 +88,6 @@ class get_notes extends \core_external\external_api {
      * @return \core_external\external_multiple_structure
      */
     public static function execute_returns(): \core_external\external_multiple_structure {
-        return new \core_external\external_multiple_structure(
-            new \core_external\external_single_structure([
-                'id' => new \core_external\external_value(PARAM_INT, 'Note id.'),
-                'userid' => new \core_external\external_value(PARAM_INT, 'Owner user id.'),
-                'courseid' => new \core_external\external_value(PARAM_INT, 'Course id.'),
-                'content' => new \core_external\external_value(PARAM_RAW, 'Note content.'),
-                'quote' => new \core_external\external_value(PARAM_RAW, 'Selected quote text.'),
-                'hasquote' => new \core_external\external_value(PARAM_BOOL, 'Whether the note contains a quote.'),
-                'quotetext' => new \core_external\external_value(PARAM_RAW, 'Quote text safe for template rendering.'),
-                'quoteurl' => new \core_external\external_value(PARAM_URL, 'URL pointing to the selected quote.'),
-                'url' => new \core_external\external_value(PARAM_URL, 'Last saved page URL.'),
-                'timecreated' => new \core_external\external_value(PARAM_INT, 'Creation timestamp.'),
-                'timemodified' => new \core_external\external_value(PARAM_INT, 'Last modification timestamp.'),
-            ])
-        );
+        return new \core_external\external_multiple_structure(save_note::note_structure());
     }
 }

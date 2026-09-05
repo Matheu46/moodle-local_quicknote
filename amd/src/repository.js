@@ -62,6 +62,36 @@ define(['core/ajax'], function(Ajax) {
                     courseid: courseId
                 }
             }])[0];
+        },
+
+        /**
+         * Upload a screenshot attached to a note.
+         *
+         * @param {Object} args {noteid, filename, mimetype, data}
+         * @return {Promise}
+         */
+        uploadScreenshot: function(args) {
+            return Ajax.call([{
+                methodname: 'local_quicknote_upload_screenshot',
+                args: args
+            }])[0];
+        },
+
+        /**
+         * Delete a screenshot from a note.
+         *
+         * @param {Number} noteid The ID of the note.
+         * @param {Number} fileid The ID of the screenshot file.
+         * @return {Promise}
+         */
+        deleteScreenshot: function(noteid, fileid) {
+            return Ajax.call([{
+                methodname: 'local_quicknote_delete_screenshot',
+                args: {
+                    noteid: noteid,
+                    fileid: fileid
+                }
+            }])[0];
         }
     };
 });

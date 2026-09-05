@@ -52,6 +52,22 @@ $functions = [
         'loginrequired' => true,
         'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_quicknote_upload_screenshot' => [
+        'classname' => 'local_quicknote\\external\\upload_screenshot',
+        'methodname' => 'execute',
+        'description' => 'Attach a pasted screenshot to a private quick note.',
+        'type' => 'write',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
+    'local_quicknote_delete_screenshot' => [
+        'classname' => 'local_quicknote\\external\\delete_screenshot',
+        'methodname' => 'execute',
+        'description' => 'Delete a screenshot from a private quick note.',
+        'type' => 'write',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
 ];
 
 $services = [
@@ -60,6 +76,8 @@ $services = [
             'local_quicknote_save_note',
             'local_quicknote_get_notes',
             'local_quicknote_delete_note',
+            'local_quicknote_upload_screenshot',
+            'local_quicknote_delete_screenshot',
         ],
         'restrictedusers' => 0,
         'enabled' => 1,

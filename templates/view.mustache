@@ -127,6 +127,19 @@
                         {{/url}}
                     {{/quote}}
                     <p class="card-text local-quicknote-center__content">{{content}}</p>
+
+                    {{#screenshots.0}}
+                    <div class="local-quicknote__screenshots mt-3" data-region="screenshots">
+                        {{#screenshots}}
+                            <figure class="local-quicknote__screenshot">
+                                <a href="{{url}}" target="_blank" rel="noopener">
+                                    <img src="{{url}}" alt="{{filename}}" loading="lazy">
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger local-quicknote__screenshot-delete" data-action="delete-screenshot" data-fileid="{{id}}" title="{{#str}} screenshot:delete, local_quicknote {{/str}}" aria-label="{{#str}} screenshot:delete, local_quicknote {{/str}}">&times;</button>
+                            </figure>
+                        {{/screenshots}}
+                    </div>
+                    {{/screenshots.0}}
                 </div>
                 <div class="card-footer bg-light border-top-0 d-flex justify-content-between align-items-center">
                     <span class="text-muted small">

@@ -27,6 +27,7 @@ namespace local_quicknote\external;
 use context_course;
 use core_text;
 use invalid_parameter_exception;
+use local_quicknote\local\screenshot_manager;
 
 /**
  * Save a quick note.
@@ -158,6 +159,15 @@ class save_note extends \core_external\external_api {
      * @return \core_external\external_single_structure
      */
     public static function execute_returns(): \core_external\external_single_structure {
+        return self::note_structure();
+    }
+
+    /**
+     * External structure for a single note.
+     *
+     * @return \core_external\external_single_structure
+     */
+    public static function note_structure(): \core_external\external_single_structure {
         return new \core_external\external_single_structure([
             'id' => new \core_external\external_value(PARAM_INT, 'Note id.'),
             'userid' => new \core_external\external_value(PARAM_INT, 'Owner user id.'),
@@ -168,6 +178,9 @@ class save_note extends \core_external\external_api {
             'quotetext' => new \core_external\external_value(PARAM_RAW, 'Quote text safe for template rendering.'),
             'quoteurl' => new \core_external\external_value(PARAM_URL, 'URL pointing to the selected quote.'),
             'url' => new \core_external\external_value(PARAM_URL, 'Last saved page URL.'),
+            'screenshots' => new \core_external\external_multiple_structure(
+                screenshot_manager::external_structure()
+            ),
             'timecreated' => new \core_external\external_value(PARAM_INT, 'Creation timestamp.'),
             'timemodified' => new \core_external\external_value(PARAM_INT, 'Last modification timestamp.'),
         ]);
@@ -192,6 +205,7 @@ class save_note extends \core_external\external_api {
             'quotetext' => $quote,
             'quoteurl' => clean_param((string) ($note->quoteurl ?? ''), PARAM_URL),
             'url' => clean_param((string) $note->url, PARAM_URL),
+            'screenshots' => screenshot_manager::get_for_note((int) $note->id),
             'timecreated' => (int) $note->timecreated,
             'timemodified' => (int) $note->timemodified,
         ];
