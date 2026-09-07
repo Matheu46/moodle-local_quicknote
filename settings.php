@@ -35,6 +35,14 @@ if ($hassiteconfig) {
         1
     ));
 
+    // Enable/disable screenshots functionality.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_screenshots',
+        get_string('enable_screenshots', 'local_quicknote'),
+        get_string('enable_screenshots_desc', 'local_quicknote'),
+        0
+    ));
+
     // Adds position option.
     $settings->add(new admin_setting_configselect(
         'local_quicknote/position',

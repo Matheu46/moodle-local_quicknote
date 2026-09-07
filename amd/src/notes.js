@@ -1034,6 +1034,9 @@ define([
         });
 
         state.root.addEventListener('paste', function(e) {
+            if (!state.enable_screenshots) {
+                return;
+            }
             var textarea = e.target.closest(SELECTORS.textarea);
             if (!textarea || !e.clipboardData || !e.clipboardData.items) {
                 return;
@@ -1127,6 +1130,7 @@ define([
             state = {
                 root: rootEl,
                 courseid: Number(config.courseid || rootEl.getAttribute('data-courseid')),
+                enable_screenshots: config.hasOwnProperty('enable_screenshots') ? Boolean(config.enable_screenshots) : false,
                 notes: [],
                 timers: {},
                 strings: {

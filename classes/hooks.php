@@ -212,6 +212,7 @@ class hooks {
 
         $PAGE->requires->js_call_amd('local_quicknote/notes', 'init', [[
             'courseid' => (int) $course->id,
+            'enable_screenshots' => (bool) get_config('local_quicknote', 'enable_screenshots'),
         ]]);
 
         $position = get_config('local_quicknote', 'position');
@@ -239,6 +240,7 @@ class hooks {
             'deleteconfirm' => get_string('note:delete_confirm', 'local_quicknote'),
             'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
             'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
+            'enablescreenshots' => (bool) get_config('local_quicknote', 'enable_screenshots'),
         ]);
 
         return $html;

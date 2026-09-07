@@ -158,7 +158,9 @@
                 </div>
 
                 <div class="local-quicknote__screenshots" data-region="screenshots"></div>
+                {{#enablescreenshots}}
                 <p class="local-quicknote__paste-hint">{{#str}} screenshot:pastehint, local_quicknote {{/str}}</p>
+                {{/enablescreenshots}}
             </article>
         </template>
 

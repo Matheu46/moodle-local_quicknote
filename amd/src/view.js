@@ -188,9 +188,9 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                     var fileId = deleteScreenshotBtn.getAttribute('data-fileid');
                     var noteCard = deleteScreenshotBtn.closest('.card');
                     var noteDeleteBtn = noteCard ? noteCard.querySelector('.local-quicknote-delete-btn') : null;
-                    var noteId = noteDeleteBtn ? noteDeleteBtn.getAttribute('data-id') : null;
+                    var screenshotNoteId = noteDeleteBtn ? noteDeleteBtn.getAttribute('data-id') : null;
 
-                    if (noteId && fileId) {
+                    if (screenshotNoteId && fileId) {
                         Str.get_strings([
                             {key: 'confirm', component: 'core'},
                             {key: 'screenshot:delete', component: 'local_quicknote'},
@@ -203,7 +203,7 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                                 strings[2],
                                 strings[3],
                                 function() {
-                                    Repository.deleteScreenshot(Number(noteId), Number(fileId)).done(function() {
+                                    Repository.deleteScreenshot(Number(screenshotNoteId), Number(fileId)).done(function() {
                                         submitSearch(true);
                                     }).fail(Notification.exception);
                                 }
@@ -215,7 +215,7 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                 var deleteBtn = e.target.closest('.local-quicknote-delete-btn');
                 if (deleteBtn) {
                     e.preventDefault();
-                    var noteId = deleteBtn.getAttribute('data-id');
+                    var deleteNoteId = deleteBtn.getAttribute('data-id');
 
                     Str.get_strings([
                         {key: 'confirm', component: 'core'},
@@ -229,7 +229,7 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                             strings[2],
                             strings[3],
                             function() {
-                                Repository.deleteNote(noteId).done(function() {
+                                Repository.deleteNote(deleteNoteId).done(function() {
                                     // Refresh the entire grid silently to handle pagination
                                     // (e.g. pulling a note from the next page to fill the gap).
                                     submitSearch(true);

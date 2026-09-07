@@ -63,6 +63,11 @@ class upload_screenshot extends \core_external\external_api {
         $context = context_system::instance();
         self::validate_context($context);
         require_capability('local/quicknote:use', $context);
+
+        if (!get_config('local_quicknote', 'enable_screenshots')) {
+            throw new \moodle_exception('screenshot:disabled', 'local_quicknote');
+        }
+
         $note = $DB->get_record('local_quicknote_notes', [
             'id' => $params['noteid'],
             'userid' => $USER->id,
