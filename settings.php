@@ -43,6 +43,35 @@ if ($hassiteconfig) {
         0
     ));
 
+    // Maximum screenshot file size.
+    $settings->add(new admin_setting_configselect(
+        'local_quicknote/max_bytes',
+        get_string('max_bytes', 'local_quicknote'),
+        get_string('max_bytes_desc', 'local_quicknote'),
+        2097152, // 2MB default
+        [
+            524288  => '512 KB',
+            1048576 => '1 MB',
+            2097152 => '2 MB',
+            5242880 => '5 MB',
+        ]
+    ));
+
+    // Maximum screenshots per note.
+    $settings->add(new admin_setting_configselect(
+        'local_quicknote/max_files_per_note',
+        get_string('max_files_per_note', 'local_quicknote'),
+        get_string('max_files_per_note_desc', 'local_quicknote'),
+        3,
+        [
+            1 => '1',
+            2 => '2',
+            3 => '3',
+            4 => '4',
+            5 => '5',
+        ]
+    ));
+
     // Adds position option.
     $settings->add(new admin_setting_configselect(
         'local_quicknote/position',

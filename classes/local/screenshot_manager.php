@@ -30,11 +30,11 @@ final class screenshot_manager {
     /** @var string File area for note screenshots. */
     public const FILEAREA = 'screenshot';
 
-    /** @var int Maximum file size in bytes (5 MB). */
-    public const MAX_BYTES = 5242880;
+    /** @var int Default maximum file size in bytes (2 MB). */
+    public const DEFAULT_MAX_BYTES = 2097152;
 
-    /** @var int Maximum number of screenshots allowed per note. */
-    public const MAX_FILES_PER_NOTE = 10;
+    /** @var int Default maximum number of screenshots allowed per note. */
+    public const DEFAULT_MAX_FILES_PER_NOTE = 3;
 
     /** @var array<string, string> Supported MIME types and extensions. */
     private const TYPES = [
@@ -63,8 +63,14 @@ final class screenshot_manager {
         if ($content === false || $content === '') {
             throw new invalid_parameter_exception('The screenshot data is invalid.');
         }
-        if (strlen($content) > self::MAX_BYTES) {
-            throw new invalid_parameter_exception('The screenshot exceeds the 5 MB limit.');
+
+        $maxbytes = get_config('local_quicknote', 'max_bytes');
+        if ($maxbytes === false) {
+            $maxbytes = self::DEFAULT_MAX_BYTES;
+        }
+        if (strlen($content) > $maxbytes) {
+            $mb = round($maxbytes / 1048576, 2);
+            throw new invalid_parameter_exception("The screenshot exceeds the {$mb} MB limit.");
         }
 
         $imageinfo = @getimagesizefromstring($content);
@@ -82,8 +88,13 @@ final class screenshot_manager {
         $fs = get_file_storage();
         $contextid = context_system::instance()->id;
         $files = $fs->get_area_files($contextid, 'local_quicknote', self::FILEAREA, $note->id, 'id', false);
-        if (count($files) >= self::MAX_FILES_PER_NOTE) {
-            throw new invalid_parameter_exception('A note can contain at most 10 screenshots.');
+        
+        $maxfiles = get_config('local_quicknote', 'max_files_per_note');
+        if ($maxfiles === false) {
+            $maxfiles = self::DEFAULT_MAX_FILES_PER_NOTE;
+        }
+        if (count($files) >= $maxfiles) {
+            throw new invalid_parameter_exception("A note can contain at most {$maxfiles} screenshots.");
         }
 
         $basename = clean_param(pathinfo($filename, PATHINFO_FILENAME), PARAM_FILE);
