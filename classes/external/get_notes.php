@@ -74,9 +74,12 @@ class get_notes extends \core_external\external_api {
             'courseid' => $course->id,
         ], 'timemodified DESC, id DESC');
 
+        $noteids = array_keys($records);
+        $screenshots = \local_quicknote\local\screenshot_manager::get_for_notes($noteids);
+
         $notes = [];
         foreach ($records as $record) {
-            $notes[] = save_note::export_note($record);
+            $notes[] = save_note::export_note($record, $screenshots[$record->id] ?? []);
         }
 
         return $notes;

@@ -125,6 +125,52 @@ final class screenshot_manager {
     }
 
     /**
+     * List screenshots for multiple notes grouped by note id.
+     *
+     * @param int[] $noteids Note ids.
+     * @return array<int, array> Map of noteid => array of exported screenshots.
+     */
+    public static function get_for_notes(array $noteids): array {
+        global $DB;
+        $result = [];
+        foreach ($noteids as $id) {
+            $result[(int) $id] = [];
+        }
+
+        if (empty($noteids)) {
+            return $result;
+        }
+
+        [$insql, $inparams] = $DB->get_in_or_equal($noteids, SQL_PARAMS_NAMED);
+
+        $params = [
+            'contextid' => context_system::instance()->id,
+            'component' => 'local_quicknote',
+            'filearea' => self::FILEAREA,
+        ] + $inparams;
+
+        $sql = "SELECT *
+                  FROM {files}
+                 WHERE contextid = :contextid
+                   AND component = :component
+                   AND filearea = :filearea
+                   AND itemid $insql
+                   AND filename != '.'
+              ORDER BY itemid ASC, timecreated ASC, id ASC";
+
+        $filerecords = $DB->get_records_sql($sql, $params);
+        $fs = get_file_storage();
+
+        foreach ($filerecords as $record) {
+            $file = $fs->get_file_instance($record);
+            $itemid = (int) $file->get_itemid();
+            $result[$itemid][] = self::export_file($file);
+        }
+
+        return $result;
+    }
+
+    /**
      * Delete one owned screenshot.
      *
      * @param int $fileid Stored file id.

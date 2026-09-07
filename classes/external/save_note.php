@@ -190,9 +190,10 @@ class save_note extends \core_external\external_api {
      * Convert a DB record into an external structure.
      *
      * @param \stdClass $note
+     * @param array|null $screenshots Pre-loaded screenshots. If null, they will be fetched.
      * @return array
      */
-    public static function export_note(\stdClass $note): array {
+    public static function export_note(\stdClass $note, ?array $screenshots = null): array {
         $quote = (string) ($note->quote ?? '');
 
         return [
@@ -205,7 +206,7 @@ class save_note extends \core_external\external_api {
             'quotetext' => $quote,
             'quoteurl' => clean_param((string) ($note->quoteurl ?? ''), PARAM_URL),
             'url' => clean_param((string) $note->url, PARAM_URL),
-            'screenshots' => screenshot_manager::get_for_note((int) $note->id),
+            'screenshots' => $screenshots ?? screenshot_manager::get_for_note((int) $note->id),
             'timecreated' => (int) $note->timecreated,
             'timemodified' => (int) $note->timemodified,
         ];
