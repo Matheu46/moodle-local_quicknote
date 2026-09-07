@@ -76,6 +76,8 @@ class delete_note extends \core_external\external_api {
             throw new \moodle_exception('disabledforcourse', 'local_quicknote');
         }
 
+        \local_quicknote\local\screenshot_manager::delete_for_note((int) $note->id);
+
         $DB->delete_records('local_quicknote_notes', ['id' => $note->id]);
 
         return [

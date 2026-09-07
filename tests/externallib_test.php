@@ -136,6 +136,7 @@ final class externallib_test extends advanced_testcase {
     }
 
     public function test_delete_note(): void {
+        global $DB;
         $this->resetAfterTest();
 
         $generator = $this->getDataGenerator();
@@ -150,13 +151,29 @@ final class externallib_test extends advanced_testcase {
         $result = save_note::execute(0, $course->id, 'Note to delete', 'https://example.com');
         $noteid = $result['id'];
 
+        // Add a screenshot to the note to test if it gets deleted.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        $note = $DB->get_record('local_quicknote_notes', ['id' => $noteid]);
+        \local_quicknote\local\screenshot_manager::create($note, 'teste.gif', 'image/gif', $gif);
+
+        // Verify the file was stored in the database.
+        $filescount = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $noteid,
+        ]);
+        $this->assertGreaterThan(0, $filescount);
+
         // User 2 tries to delete User 1's note (should fail).
         $this->setUser($user2);
         try {
             delete_note::execute($noteid);
             $this->fail('User 2 should not be able to delete User 1 note');
         } catch (\invalid_parameter_exception $e) {
-            $this->assertStringContainsString('Note not found or you do not have permission to delete it.', $e->getMessage());
+            $this->assertStringContainsString(
+                'Note not found or you do not have permission to delete it.',
+                $e->getMessage()
+            );
         }
 
         // User 1 deletes their own note (should succeed).
@@ -168,6 +185,14 @@ final class externallib_test extends advanced_testcase {
         $notesresult = get_notes::execute($course->id);
         $notesresult = \core_external\external_api::clean_returnvalue(get_notes::execute_returns(), $notesresult);
         $this->assertCount(0, $notesresult);
+
+        // Verify the file was deleted from the database.
+        $filescountafter = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $noteid,
+        ]);
+        $this->assertEquals(0, $filescountafter);
     }
 
     public function test_disabled_course(): void {

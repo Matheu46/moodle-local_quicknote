@@ -161,6 +161,23 @@ final class screenshot_manager {
     }
 
     /**
+     * Delete every screenshot for notes matching a select condition.
+     *
+     * @param string $select SQL select condition.
+     * @param array $params Query parameters.
+     * @return void
+     */
+    public static function delete_for_select(string $select, array $params = []): void {
+        global $DB;
+        $noteids = $DB->get_fieldset_select('local_quicknote_notes', 'id', $select, $params);
+        if ($noteids) {
+            foreach ($noteids as $noteid) {
+                self::delete_for_note((int) $noteid);
+            }
+        }
+    }
+
+    /**
      * Convert a stored file into the AJAX structure.
      *
      * @param \stored_file $file Stored file instance.

@@ -70,6 +70,12 @@ class observers {
         global $DB;
         $courseid = $event->objectid;
 
+        // Delete screenshots before deleting notes.
+        \local_quicknote\local\screenshot_manager::delete_for_select(
+            'courseid = :courseid',
+            ['courseid' => $courseid]
+        );
+
         // Remove any notes still attached to this course (covers non-enrolled authors).
         $DB->delete_records('local_quicknote_notes', ['courseid' => $courseid]);
 
@@ -88,6 +94,11 @@ class observers {
         $userid = $event->relateduserid;
         $courseid = $event->courseid;
 
+        \local_quicknote\local\screenshot_manager::delete_for_select(
+            'userid = :userid AND courseid = :courseid',
+            ['userid' => $userid, 'courseid' => $courseid]
+        );
+
         $DB->delete_records('local_quicknote_notes', [
             'userid' => $userid,
             'courseid' => $courseid,
@@ -103,6 +114,11 @@ class observers {
         global $DB;
 
         $userid = $event->objectid;
+
+        \local_quicknote\local\screenshot_manager::delete_for_select(
+            'userid = :userid',
+            ['userid' => $userid]
+        );
 
         $DB->delete_records('local_quicknote_notes', [
             'userid' => $userid,

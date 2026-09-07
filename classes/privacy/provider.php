@@ -142,8 +142,13 @@ class provider implements
         global $DB;
 
         if ($context->contextlevel == CONTEXT_COURSE) {
+            \local_quicknote\local\screenshot_manager::delete_for_select(
+                'courseid = :courseid',
+                ['courseid' => $context->instanceid]
+            );
             $DB->delete_records('local_quicknote_notes', ['courseid' => $context->instanceid]);
         } else if ($context->id == context_system::instance()->id) {
+            \local_quicknote\local\screenshot_manager::delete_for_select('courseid = 0');
             $DB->delete_records('local_quicknote_notes', ['courseid' => 0]);
         }
     }
@@ -177,10 +182,15 @@ class provider implements
             [$insql, $inparams] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
             $params = ['userid' => $userid] + $inparams;
             $select = "userid = :userid AND courseid $insql";
+            \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
         }
 
         if ($deletesystem) {
+            \local_quicknote\local\screenshot_manager::delete_for_select(
+                'userid = :userid AND courseid = 0',
+                ['userid' => $userid]
+            );
             $DB->delete_records('local_quicknote_notes', ['userid' => $userid, 'courseid' => 0]);
         }
     }
@@ -227,10 +237,12 @@ class provider implements
         if ($context->contextlevel == CONTEXT_COURSE) {
             $params = ['courseid' => $context->instanceid] + $userparams;
             $select = "courseid = :courseid AND userid $usersql";
+            \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
         } else if ($context->id == context_system::instance()->id) {
             $params = ['courseid' => 0] + $userparams;
             $select = "courseid = :courseid AND userid $usersql";
+            \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
         }
     }
