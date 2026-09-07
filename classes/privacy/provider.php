@@ -56,6 +56,8 @@ class provider implements
             'timemodified' => 'privacy:metadata:local_quicknote_notes:timemodified',
         ], 'privacy:metadata:local_quicknote_notes');
 
+        $collection->link_subsystem('core_files', 'privacy:metadata:core_files');
+
         return $collection;
     }
 
@@ -113,6 +115,8 @@ class provider implements
         $params['systemcontextid'] = context_system::instance()->id;
 
         $notes = $DB->get_recordset_sql($sql, $params);
+        $fs = get_file_storage();
+        $syscontextid = context_system::instance()->id;
 
         foreach ($notes as $note) {
             $context = context::instance_by_id($note->contextid);
@@ -125,10 +129,22 @@ class provider implements
                 'timemodified' => transform::datetime($note->timemodified),
             ];
 
-            writer::with_context($context)->export_data(
-                [get_string('pluginname', 'local_quicknote'), $note->id],
-                $data
+            $subcontext = [get_string('pluginname', 'local_quicknote'), $note->id];
+            $writer = writer::with_context($context);
+            $writer->export_data($subcontext, $data);
+
+            $files = $fs->get_area_files(
+                $syscontextid,
+                'local_quicknote',
+                \local_quicknote\local\screenshot_manager::FILEAREA,
+                $note->id,
+                'id ASC',
+                false
             );
+
+            foreach ($files as $file) {
+                $writer->export_file($subcontext, $file);
+            }
         }
         $notes->close();
     }

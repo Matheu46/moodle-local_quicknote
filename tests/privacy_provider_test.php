@@ -40,8 +40,9 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
         $collection = new collection('local_quicknote');
         $newcollection = provider::get_metadata($collection);
         $items = $newcollection->get_collection();
-        $this->assertCount(1, $items);
+        $this->assertCount(2, $items);
         $this->assertEquals('local_quicknote_notes', $items[0]->get_name());
+        $this->assertEquals('core_files', $items[1]->get_name());
     }
 
     /**
@@ -65,12 +66,12 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
             'timemodified' => time(),
         ];
         global $DB;
-        $DB->insert_record('local_quicknote_notes', $record);
+        $record->id = $DB->insert_record('local_quicknote_notes', $record);
 
         $contextlist = provider::get_contexts_for_userid($user->id);
-        $contexts = $contextlist->get_contexts();
-        $this->assertCount(1, $contexts);
-        $this->assertEquals(\context_course::instance($course->id)->id, $contexts[0]->id);
+        $this->assertCount(1, $contextlist);
+        $coursecontext = \context_course::instance($course->id);
+        $this->assertEquals($coursecontext->id, $contextlist->current()->id);
     }
 
     /**
@@ -96,6 +97,10 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
         ];
         $record->id = $DB->insert_record('local_quicknote_notes', $record);
 
+        // Add screenshot to the note.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record, 'teste.gif', 'image/gif', $gif);
+
         $contextlist = provider::get_contexts_for_userid($user->id);
         $approvedcontextlist = new approved_contextlist($user, 'local_quicknote', $contextlist->get_contextids());
 
@@ -104,9 +109,16 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
 
         provider::export_user_data($approvedcontextlist);
 
-        $data = $writer->get_data([get_string('pluginname', 'local_quicknote'), $record->id]);
+        $subcontext = [get_string('pluginname', 'local_quicknote'), $record->id];
+        $data = $writer->get_data($subcontext);
         $this->assertNotNull($data);
         $this->assertEquals('Test export note', $data->content);
+
+        $files = $writer->get_files($subcontext);
+        $this->assertCount(1, $files);
+        $filename = array_key_first($files);
+        $this->assertStringStartsWith('teste-', $filename);
+        $this->assertStringEndsWith('.gif', $filename);
     }
 
     /**
