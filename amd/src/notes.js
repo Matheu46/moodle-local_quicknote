@@ -304,6 +304,74 @@ define([
         });
     };
 
+    var compressImage = function(file) {
+        return new Promise(function(resolve, reject) {
+            var img = new Image();
+            var objectUrl = URL.createObjectURL(file);
+
+            img.onload = function() {
+                URL.revokeObjectURL(objectUrl);
+
+                var maxWidth = 1920;
+                var maxHeight = 1080;
+                var width = img.width;
+                var height = img.height;
+
+                if (width > maxWidth || height > maxHeight) {
+                    var ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = width * ratio;
+                    height = height * ratio;
+                }
+
+                var canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                var ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+
+                var mimeType = 'image/webp';
+                var dataUrl = canvas.toDataURL(mimeType, 0.8);
+
+                if (dataUrl.indexOf('data:image/webp') !== 0) {
+                    mimeType = 'image/jpeg';
+                    dataUrl = canvas.toDataURL(mimeType, 0.85);
+                }
+
+                var separator = dataUrl.indexOf(',');
+                var base64 = separator === -1 ? dataUrl : dataUrl.substring(separator + 1);
+
+                var originalName = file.name || 'screenshot';
+                var baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+                if (!baseName) {
+                    baseName = originalName;
+                }
+                var newName = baseName + (mimeType === 'image/webp' ? '.webp' : '.jpg');
+
+                resolve({
+                    data: base64,
+                    mimetype: mimeType,
+                    name: newName
+                });
+            };
+
+            img.onerror = function() {
+                URL.revokeObjectURL(objectUrl);
+                fileToBase64(file).then(function(data) {
+                    resolve({
+                        data: data,
+                        mimetype: file.type,
+                        name: file.name || 'screenshot.png'
+                    });
+                }).catch(reject);
+            };
+
+            img.src = objectUrl;
+        });
+    };
+
     var uploadScreenshot = function(note, file) {
         var noteEl = getNoteElementByKey(note.clientid);
         if (state.timers[note.clientid]) {
@@ -316,13 +384,13 @@ define([
             if (noteEl) {
                 setNoteStatus(noteEl, state.strings.uploadingtext, note.timemodified);
             }
-            return fileToBase64(file);
-        }).then(function(data) {
+            return compressImage(file);
+        }).then(function(compressed) {
             return Repository.uploadScreenshot({
                 noteid: note.id,
-                filename: file.name || 'screenshot.png',
-                mimetype: file.type,
-                data: data
+                filename: compressed.name,
+                mimetype: compressed.mimetype,
+                data: compressed.data
             });
         }).then(function(screenshot) {
             note.screenshots = note.screenshots || [];

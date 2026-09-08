@@ -88,7 +88,7 @@ final class screenshot_manager {
         $fs = get_file_storage();
         $contextid = context_system::instance()->id;
         $files = $fs->get_area_files($contextid, 'local_quicknote', self::FILEAREA, $note->id, 'id', false);
-        
+
         $maxfiles = get_config('local_quicknote', 'max_files_per_note');
         if ($maxfiles === false) {
             $maxfiles = self::DEFAULT_MAX_FILES_PER_NOTE;
