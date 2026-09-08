@@ -1007,8 +1007,16 @@ define([
             var screenshotLink = e.target.closest('.local-quicknote__screenshot a');
             if (screenshotLink) {
                 e.preventDefault();
-                var img = screenshotLink.querySelector('img');
-                Lightbox.show(screenshotLink.href, img ? img.alt : '');
+                var container = screenshotLink.closest('[data-region="screenshots"]');
+                var allLinks = container ?
+                    Array.prototype.slice.call(container.querySelectorAll('.local-quicknote__screenshot a')) :
+                    [screenshotLink];
+                var gallery = allLinks.map(function(link) {
+                    var img = link.querySelector('img');
+                    return { src: link.href, alt: img ? img.alt : '' };
+                });
+                var currentIndex = allLinks.indexOf(screenshotLink);
+                Lightbox.show(gallery, Math.max(0, currentIndex));
                 return;
             }
 
