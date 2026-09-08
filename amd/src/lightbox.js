@@ -18,10 +18,17 @@
  * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define([], function() {
+define(['core/str'], function(Str) {
     var lightbox = null;
     var currentGallery = [];
     var currentIndex = 0;
+    var stringsCache = {
+        download: 'Download',
+        close: 'Close',
+        previous: 'Previous',
+        next: 'Next',
+        screenshot: 'Screenshot'
+    };
 
     var updateImage = function() {
         if (!lightbox || currentGallery.length === 0) {
@@ -63,6 +70,19 @@ define([], function() {
         }
     };
 
+    var downloadImage = function() {
+        if (!lightbox || currentGallery.length === 0) {
+            return;
+        }
+        var item = currentGallery[currentIndex];
+        var link = document.createElement('a');
+        link.href = item.src;
+        link.download = item.alt || stringsCache.screenshot;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     var closeLightbox = function() {
         if (lightbox) {
             lightbox.classList.remove('is-open');
@@ -80,47 +100,82 @@ define([], function() {
             currentIndex = startIndex || 0;
 
             if (!lightbox) {
-                lightbox = document.createElement('div');
-                lightbox.className = 'local-quicknote__lightbox';
-                lightbox.innerHTML = '<div class="local-quicknote__lightbox-content">' +
-                    '<button type="button" class="local-quicknote__lightbox-close" aria-label="Close">&times;</button>' +
-                    '<button type="button" class="local-quicknote__lightbox-prev" aria-label="Previous">' +
-                        '<i class="fa fa-chevron-left" aria-hidden="true"></i>' +
-                    '</button>' +
-                    '<button type="button" class="local-quicknote__lightbox-next" aria-label="Next">' +
-                        '<i class="fa fa-chevron-right" aria-hidden="true"></i>' +
-                    '</button>' +
-                    '<img class="local-quicknote__lightbox-img" src="" alt="">' +
-                    '</div>';
-                document.body.appendChild(lightbox);
+                Str.get_strings([
+                    {key: 'download', component: 'core'},
+                    {key: 'closebuttontitle', component: 'core'},
+                    {key: 'previous', component: 'core'},
+                    {key: 'next', component: 'core'},
+                    {key: 'screenshot:attachment', component: 'local_quicknote'}
+                ]).done(function(strings) {
+                    stringsCache.download = strings[0];
+                    stringsCache.close = strings[1];
+                    stringsCache.previous = strings[2];
+                    stringsCache.next = strings[3];
+                    stringsCache.screenshot = strings[4];
 
-                lightbox.addEventListener('click', function(e) {
-                    if (e.target === lightbox || e.target.closest('.local-quicknote__lightbox-close')) {
-                        closeLightbox();
-                    } else if (e.target.closest('.local-quicknote__lightbox-prev')) {
-                        navigate(-1);
-                    } else if (e.target.closest('.local-quicknote__lightbox-next')) {
-                        navigate(1);
-                    }
-                });
+                    lightbox = document.createElement('div');
+                    lightbox.className = 'local-quicknote__lightbox';
+                    lightbox.innerHTML = '<div class="local-quicknote__lightbox-content">' +
+                        '<div class="local-quicknote__lightbox-actions">' +
+                            '<button type="button" class="local-quicknote__lightbox-download" aria-label="' +
+                                stringsCache.download + '" title="' + stringsCache.download + '">' +
+                                '<i class="fa fa-download" aria-hidden="true"></i>' +
+                            '</button>' +
+                            '<button type="button" class="local-quicknote__lightbox-close" aria-label="' +
+                                stringsCache.close + '" title="' + stringsCache.close + '">' +
+                                '<i class="fa-solid fa-xmark" aria-hidden="true"></i>' +
+                            '</button>' +
+                        '</div>' +
+                        '<button type="button" class="local-quicknote__lightbox-prev" aria-label="' +
+                            stringsCache.previous + '">' +
+                            '<i class="fa fa-chevron-left" aria-hidden="true"></i>' +
+                        '</button>' +
+                        '<button type="button" class="local-quicknote__lightbox-next" aria-label="' +
+                            stringsCache.next + '">' +
+                            '<i class="fa fa-chevron-right" aria-hidden="true"></i>' +
+                        '</button>' +
+                        '<img class="local-quicknote__lightbox-img" src="" alt="">' +
+                        '</div>';
+                    document.body.appendChild(lightbox);
 
-                document.addEventListener('keydown', function(e) {
-                    if (!lightbox.classList.contains('is-open')) {
-                        return;
-                    }
-                    if (e.key === 'Escape') {
-                        closeLightbox();
-                    } else if (e.key === 'ArrowLeft') {
-                        navigate(-1);
-                    } else if (e.key === 'ArrowRight') {
-                        navigate(1);
-                    }
+                    lightbox.addEventListener('click', function(e) {
+                        if (e.target.closest('.local-quicknote__lightbox-close')) {
+                            closeLightbox();
+                        } else if (e.target.closest('.local-quicknote__lightbox-download')) {
+                            downloadImage();
+                        } else if (e.target.closest('.local-quicknote__lightbox-prev')) {
+                            navigate(-1);
+                        } else if (e.target.closest('.local-quicknote__lightbox-next')) {
+                            navigate(1);
+                        } else if (e.target === lightbox) {
+                            closeLightbox();
+                        }
+                    });
+
+                    document.addEventListener('keydown', function(e) {
+                        if (!lightbox.classList.contains('is-open')) {
+                            return;
+                        }
+                        if (e.key === 'Escape') {
+                            closeLightbox();
+                        } else if (e.key === 'ArrowLeft') {
+                            navigate(-1);
+                        } else if (e.key === 'ArrowRight') {
+                            navigate(1);
+                        }
+                    });
+
+                    updateImage();
+                    void lightbox.offsetWidth; // Force reflow
+                    lightbox.classList.add('is-open');
+                }).fail(function() {
+                    // Fallback to default strings if Moodle Str fails
                 });
+            } else {
+                updateImage();
+                void lightbox.offsetWidth; // Force reflow
+                lightbox.classList.add('is-open');
             }
-
-            updateImage();
-            void lightbox.offsetWidth; // Force reflow
-            lightbox.classList.add('is-open');
         }
     };
 });

@@ -460,28 +460,49 @@
     border-radius: 4px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
-.local-quicknote__lightbox-close {
+
+/* Actions Menu */
+.local-quicknote__lightbox-actions {
+    width: 100%;
     position: absolute;
-    top: -40px;
-    right: -40px;
+    top: -50px;
+    right: 0px;
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    justify-content: space-between;
+}
+.local-quicknote__lightbox-actions button {
     background: transparent;
     border: none;
     color: white;
-    font-size: 2rem;
+    font-size: 1.5rem;
     cursor: pointer;
     line-height: 1;
     opacity: 0.8;
+    padding: 10px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.local-quicknote__lightbox-close:hover {
+.local-quicknote__lightbox-actions button:hover {
     opacity: 1;
 }
+.local-quicknote__lightbox-close {
+    font-size: 2rem !important;
+}
+
 @media (max-width: 768px) {
-    .local-quicknote__lightbox-close {
-        top: -35px;
+    .local-quicknote__lightbox-actions {
+        top: -45px;
         right: 0;
+        gap: 30px;
     }
 }
 
+/* Nav arrows */
 .local-quicknote__lightbox-prev,
 .local-quicknote__lightbox-next {
     position: absolute;
