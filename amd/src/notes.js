@@ -23,8 +23,9 @@ define([
     'local_quicknote/repository',
     'core/notification',
     'core/str',
-    'core/user_date'
-], function(Repository, Notification, Str, UserDate) {
+    'core/user_date',
+    'local_quicknote/lightbox'
+], function(Repository, Notification, Str, UserDate, Lightbox) {
     var SELECTORS = {
         root: '#local-quicknote-root',
         panel: '[data-region="panel"]',
@@ -1003,6 +1004,14 @@ define([
         };
 
         state.root.addEventListener('click', function(e) {
+            var screenshotLink = e.target.closest('.local-quicknote__screenshot a');
+            if (screenshotLink) {
+                e.preventDefault();
+                var img = screenshotLink.querySelector('img');
+                Lightbox.show(screenshotLink.href, img ? img.alt : '');
+                return;
+            }
+
             var deleteScreenshotBtn = e.target.closest(SELECTORS.deletescreenshot);
             if (deleteScreenshotBtn) {
                 var screenshotNoteEl = deleteScreenshotBtn.closest(SELECTORS.note);

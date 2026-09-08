@@ -19,7 +19,12 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['local_quicknote/repository', 'core/notification', 'core/str'], function(Repository, Notification, Str) {
+define([
+    'local_quicknote/repository',
+    'core/notification',
+    'core/str',
+    'local_quicknote/lightbox'
+], function(Repository, Notification, Str, Lightbox) {
     return {
         init: function() {
             var searchInput = document.getElementById('searchterm');
@@ -180,8 +185,16 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                 });
             }
 
-            // Handle delete buttons.
+            // Handle delete buttons and lightbox.
             document.addEventListener('click', function(e) {
+                var screenshotLink = e.target.closest('.local-quicknote__screenshot a');
+                if (screenshotLink) {
+                    e.preventDefault();
+                    var img = screenshotLink.querySelector('img');
+                    Lightbox.show(screenshotLink.href, img ? img.alt : '');
+                    return;
+                }
+
                 var deleteScreenshotBtn = e.target.closest('[data-action="delete-screenshot"]');
                 if (deleteScreenshotBtn) {
                     e.preventDefault();
