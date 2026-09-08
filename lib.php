@@ -127,11 +127,15 @@ function local_quicknote_pluginfile($course, $cm, $context, $filearea, $args, $f
     }
 
     require_login();
-    require_capability('local/quicknote:use', $context);
+
     $noteid = (int) array_shift($args);
-    if (!$DB->record_exists('local_quicknote_notes', ['id' => $noteid, 'userid' => $USER->id])) {
+    $note = $DB->get_record('local_quicknote_notes', ['id' => $noteid, 'userid' => $USER->id], 'id, courseid');
+    if (!$note) {
         return false;
     }
+
+    $coursecontext = \context_course::instance($note->courseid);
+    require_capability('local/quicknote:use', $coursecontext);
 
     $filename = array_pop($args);
     $filepath = '/' . ($args ? implode('/', $args) . '/' : '');

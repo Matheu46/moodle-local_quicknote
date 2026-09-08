@@ -73,6 +73,7 @@ $string['privacy:metadata:local_quicknote_notes:timemodified'] = 'The time when 
 $string['privacy:metadata:local_quicknote_notes:url'] = 'The page URL where the note was created.';
 $string['privacy:metadata:local_quicknote_notes:userid'] = 'The user who created the note.';
 $string['quicknote:use'] = 'Use private QuickNote notes';
+$string['quicknote:uploadscreenshot'] = 'Upload screenshots to notes';
 $string['screenshot:attachment'] = 'Screenshot';
 $string['screenshot:delete'] = 'Delete screenshot';
 $string['screenshot:disabled'] = 'Screenshot uploads are disabled on this site.';

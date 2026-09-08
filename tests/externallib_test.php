@@ -218,4 +218,49 @@ final class externallib_test extends advanced_testcase {
 
         save_note::execute(0, $course->id, 'This should fail', 'https://example.com');
     }
+
+    public function test_upload_screenshot(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        $result = save_note::execute(0, $course->id, 'Note to attach screenshot', 'https://example.com');
+        $noteid = $result['id'];
+
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+
+        // Ensure screenshots are enabled globally.
+        set_config('enable_screenshots', 1, 'local_quicknote');
+
+        $uploadresult = \local_quicknote\external\upload_screenshot::execute($noteid, 'test.gif', 'image/gif', $gif);
+        $uploadresult = \core_external\external_api::clean_returnvalue(
+            \local_quicknote\external\upload_screenshot::execute_returns(),
+            $uploadresult
+        );
+
+        $this->assertNotEmpty($uploadresult['id']);
+        $this->assertNotEmpty($uploadresult['url']);
+
+        // Verify the file was stored in the database.
+        $filescount = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $noteid,
+        ]);
+        $this->assertGreaterThan(0, $filescount);
+
+        // Revoke capability for student.
+        $roleid = $DB->get_field('role', 'id', ['shortname' => 'student']);
+        assign_capability('local/quicknote:uploadscreenshot', CAP_PROHIBIT, $roleid, \context_course::instance($course->id)->id);
+        accesslib_clear_all_caches_for_unit_testing();
+
+        $this->expectException(\required_capability_exception::class);
+        \local_quicknote\external\upload_screenshot::execute($noteid, 'test2.gif', 'image/gif', $gif);
+    }
 }
