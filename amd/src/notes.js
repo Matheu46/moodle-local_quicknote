@@ -366,6 +366,7 @@ define([
                         mimetype: file.type,
                         name: file.name || 'screenshot.png'
                     });
+                    return null;
                 }).catch(reject);
             };
 
@@ -1013,7 +1014,7 @@ define([
                     [screenshotLink];
                 var gallery = allLinks.map(function(link) {
                     var img = link.querySelector('img');
-                    return { src: link.href, alt: img ? img.alt : '' };
+                    return {src: link.href, alt: img ? img.alt : ''};
                 });
                 var currentIndex = allLinks.indexOf(screenshotLink);
                 Lightbox.show(gallery, Math.max(0, currentIndex));
@@ -1119,7 +1120,7 @@ define([
         });
 
         state.root.addEventListener('paste', function(e) {
-            if (!state.enable_screenshots) {
+            if (!state.enableScreenshots) {
                 return;
             }
             var textarea = e.target.closest(SELECTORS.textarea);
@@ -1215,7 +1216,8 @@ define([
             state = {
                 root: rootEl,
                 courseid: Number(config.courseid || rootEl.getAttribute('data-courseid')),
-                enable_screenshots: config.hasOwnProperty('enable_screenshots') ? Boolean(config.enable_screenshots) : false,
+                enableScreenshots: config.hasOwnProperty('enable_screenshots') ?
+                    Boolean(config.enable_screenshots) : false,
                 notes: [],
                 timers: {},
                 strings: {

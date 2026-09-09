@@ -196,7 +196,7 @@ define([
                         [screenshotLink];
                     var gallery = allLinks.map(function(link) {
                         var img = link.querySelector('img');
-                        return { src: link.href, alt: img ? img.alt : '' };
+                        return {src: link.href, alt: img ? img.alt : ''};
                     });
                     var currentIndex = allLinks.indexOf(screenshotLink);
                     Lightbox.show(gallery, Math.max(0, currentIndex));
