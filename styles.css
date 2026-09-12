@@ -209,14 +209,6 @@
     font-size: 1.1rem;
 }
 
-.local-quicknote__close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    background: transparent;
-}
-
 .local-quicknote__notes {
     flex: 1 1 auto;
     margin-top: 1rem;
