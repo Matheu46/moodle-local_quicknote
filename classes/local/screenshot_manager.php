@@ -56,12 +56,12 @@ final class screenshot_manager {
     public static function create(\stdClass $note, string $filename, string $mimetype, string $base64): array {
         $mimetype = strtolower(trim($mimetype));
         if (!isset(self::TYPES[$mimetype])) {
-            throw new invalid_parameter_exception('Only PNG, JPEG, WebP and GIF screenshots are supported.');
+            throw new \moodle_exception('error:invalidmimetype', 'local_quicknote');
         }
 
         $content = base64_decode($base64, true);
         if ($content === false || $content === '') {
-            throw new invalid_parameter_exception('The screenshot data is invalid.');
+            throw new \moodle_exception('error:invaliddata', 'local_quicknote');
         }
 
         $maxbytes = get_config('local_quicknote', 'max_bytes');
@@ -69,20 +69,20 @@ final class screenshot_manager {
             $maxbytes = self::DEFAULT_MAX_BYTES;
         }
         if (strlen($content) > $maxbytes) {
-            $mb = round($maxbytes / 1048576, 2);
-            throw new invalid_parameter_exception("The screenshot exceeds the {$mb} MB limit.");
+            $mb = round($maxbytes / 1048576, 2) . ' MB';
+            throw new \moodle_exception('error:maxbytes', 'local_quicknote', '', $mb);
         }
 
         $imageinfo = @getimagesizefromstring($content);
         $detectedtype = is_array($imageinfo) ? strtolower((string) ($imageinfo['mime'] ?? '')) : '';
         if (!isset(self::TYPES[$detectedtype]) || $detectedtype !== $mimetype) {
-            throw new invalid_parameter_exception('The uploaded data is not a supported image of the declared type.');
+            throw new \moodle_exception('error:invalidtype', 'local_quicknote');
         }
         if (
             (int) $imageinfo[0] <= 0 || (int) $imageinfo[1] <= 0
                 || ((int) $imageinfo[0] * (int) $imageinfo[1]) > 40000000
         ) {
-            throw new invalid_parameter_exception('The screenshot dimensions are invalid or too large.');
+            throw new \moodle_exception('error:invaliddimensions', 'local_quicknote');
         }
 
         $fs = get_file_storage();
@@ -94,7 +94,7 @@ final class screenshot_manager {
             $maxfiles = self::DEFAULT_MAX_FILES_PER_NOTE;
         }
         if (count($files) >= $maxfiles) {
-            throw new invalid_parameter_exception("A note can contain at most {$maxfiles} screenshots.");
+            throw new \moodle_exception('error:maxfiles', 'local_quicknote');
         }
 
         $basename = clean_param(pathinfo($filename, PATHINFO_FILENAME), PARAM_FILE);
@@ -197,7 +197,7 @@ final class screenshot_manager {
                 || (int) $file->get_itemid() !== $noteid
                 || $file->is_directory()
         ) {
-            throw new invalid_parameter_exception('Screenshot not found.');
+            throw new \moodle_exception('error:filenotfound', 'local_quicknote');
         }
         return $file->delete();
     }

@@ -200,6 +200,52 @@ define([
         }
     };
 
+    var showNoteError = function(noteEl, msg) {
+        var existing = noteEl.querySelector('.local-quicknote__error');
+        if (existing) {
+            existing.remove();
+        }
+
+        var alertNode = document.createElement('div');
+        alertNode.className = 'alert alert-danger local-quicknote__error mt-2 mb-0 p-2 position-relative';
+        alertNode.style.fontSize = '0.8rem';
+        alertNode.setAttribute('role', 'alert');
+
+        var msgNode = document.createElement('span');
+        msgNode.textContent = msg;
+        alertNode.appendChild(msgNode);
+
+        var closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'close p-1';
+        closeBtn.style.background = 'transparent';
+        closeBtn.style.border = 'none';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.right = '5px';
+        closeBtn.style.top = '5px';
+        closeBtn.style.fontSize = '1.2rem';
+        closeBtn.style.lineHeight = '1';
+        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.innerHTML = '<span aria-hidden="true">&times;</span>';
+        closeBtn.addEventListener('click', function() {
+            alertNode.remove();
+        });
+        alertNode.appendChild(closeBtn);
+
+        var screenshotsNode = noteEl.querySelector(SELECTORS.screenshots);
+        if (screenshotsNode) {
+            screenshotsNode.parentElement.insertBefore(alertNode, screenshotsNode);
+        } else {
+            noteEl.appendChild(alertNode);
+        }
+
+        window.setTimeout(function() {
+            if (alertNode.parentElement) {
+                alertNode.remove();
+            }
+        }, 6000);
+    };
+
     var setNoteLocation = function(noteEl, url, hasquote) {
         var locationEl = noteEl.querySelector(SELECTORS.location);
         if (!locationEl) {
@@ -405,8 +451,10 @@ define([
         }).catch(function(error) {
             if (noteEl) {
                 setNoteStatus(noteEl, state.strings.errortext, note.timemodified);
+                showNoteError(noteEl, error.message);
+            } else {
+                Notification.exception(error);
             }
-            Notification.exception(error);
         });
     };
 
@@ -1146,6 +1194,41 @@ define([
             if (!note) {
                 return;
             }
+
+            var noteEl = getNoteElementByKey(note.clientid);
+
+            var currentFileCount = note.screenshots ? note.screenshots.length : 0;
+            if (state.maxFiles > 0 && currentFileCount + images.length > state.maxFiles) {
+                Str.get_string('error:maxfiles', 'local_quicknote').then(function(msg) {
+                    if (noteEl) {
+                        showNoteError(noteEl, msg);
+                    }
+                    return null;
+                }).catch(Notification.exception);
+                return;
+            }
+
+            var tooLarge = false;
+            if (state.maxBytes > 0) {
+                for (var i = 0; i < images.length; i++) {
+                    if (images[i].size > state.maxBytes) {
+                        tooLarge = true;
+                        break;
+                    }
+                }
+            }
+
+            if (tooLarge) {
+                var sizeStr = (state.maxBytes / 1024 / 1024).toFixed(2) + ' MB';
+                Str.get_string('error:maxbytes', 'local_quicknote', sizeStr).then(function(msg) {
+                    if (noteEl) {
+                        showNoteError(noteEl, msg);
+                    }
+                    return null;
+                }).catch(Notification.exception);
+                return;
+            }
+
             images.reduce(function(chain, file) {
                 return chain.then(function() {
                     return uploadScreenshot(note, file);
@@ -1218,6 +1301,8 @@ define([
                 courseid: Number(config.courseid || rootEl.getAttribute('data-courseid')),
                 enableScreenshots: config.hasOwnProperty('enable_screenshots') ?
                     Boolean(config.enable_screenshots) : false,
+                maxFiles: config.hasOwnProperty('max_files_per_note') ? Number(config.max_files_per_note) : 0,
+                maxBytes: config.hasOwnProperty('max_bytes') ? Number(config.max_bytes) : 0,
                 notes: [],
                 timers: {},
                 strings: {

@@ -213,9 +213,14 @@ class hooks {
         $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
             has_capability('local/quicknote:uploadscreenshot', $context);
 
+        $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
+        $maxbytes = (int) get_config('local_quicknote', 'max_bytes');
+
         $PAGE->requires->js_call_amd('local_quicknote/notes', 'init', [[
             'courseid' => (int) $course->id,
             'enable_screenshots' => $canuploadscreenshots,
+            'max_files_per_note' => $maxfiles,
+            'max_bytes' => $maxbytes,
         ]]);
 
         $position = get_config('local_quicknote', 'position');
