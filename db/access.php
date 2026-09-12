@@ -39,4 +39,15 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
+    'local/quicknote:uploadscreenshot' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'riskbitmask' => RISK_SPAM,
+        'archetypes' => [
+            'student' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+    ],
 ];

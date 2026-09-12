@@ -40,8 +40,9 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
         $collection = new collection('local_quicknote');
         $newcollection = provider::get_metadata($collection);
         $items = $newcollection->get_collection();
-        $this->assertCount(1, $items);
+        $this->assertCount(2, $items);
         $this->assertEquals('local_quicknote_notes', $items[0]->get_name());
+        $this->assertEquals('core_files', $items[1]->get_name());
     }
 
     /**
@@ -65,12 +66,12 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
             'timemodified' => time(),
         ];
         global $DB;
-        $DB->insert_record('local_quicknote_notes', $record);
+        $record->id = $DB->insert_record('local_quicknote_notes', $record);
 
         $contextlist = provider::get_contexts_for_userid($user->id);
-        $contexts = $contextlist->get_contexts();
-        $this->assertCount(1, $contexts);
-        $this->assertEquals(\context_course::instance($course->id)->id, $contexts[0]->id);
+        $this->assertCount(1, $contextlist);
+        $coursecontext = \context_course::instance($course->id);
+        $this->assertEquals($coursecontext->id, $contextlist->current()->id);
     }
 
     /**
@@ -96,6 +97,10 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
         ];
         $record->id = $DB->insert_record('local_quicknote_notes', $record);
 
+        // Add screenshot to the note.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record, 'teste.gif', 'image/gif', $gif);
+
         $contextlist = provider::get_contexts_for_userid($user->id);
         $approvedcontextlist = new approved_contextlist($user, 'local_quicknote', $contextlist->get_contextids());
 
@@ -104,9 +109,16 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
 
         provider::export_user_data($approvedcontextlist);
 
-        $data = $writer->get_data([get_string('pluginname', 'local_quicknote'), $record->id]);
+        $subcontext = [get_string('pluginname', 'local_quicknote'), $record->id];
+        $data = $writer->get_data($subcontext);
         $this->assertNotNull($data);
         $this->assertEquals('Test export note', $data->content);
+
+        $files = $writer->get_files($subcontext);
+        $this->assertCount(1, $files);
+        $filename = array_key_first($files);
+        $this->assertStringStartsWith('teste-', $filename);
+        $this->assertStringEndsWith('.gif', $filename);
     }
 
     /**
@@ -130,11 +142,29 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
             'timecreated' => time(),
             'timemodified' => time(),
         ];
-        $DB->insert_record('local_quicknote_notes', $record);
+        $record->id = $DB->insert_record('local_quicknote_notes', $record);
 
         $this->assertEquals(1, $DB->count_records('local_quicknote_notes'));
+
+        // Add screenshot to the note.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record, 'teste.gif', 'image/gif', $gif);
+        $filescount = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record->id,
+        ]);
+        $this->assertGreaterThan(0, $filescount);
+
         provider::delete_data_for_all_users_in_context($coursecontext);
+
         $this->assertEquals(0, $DB->count_records('local_quicknote_notes'));
+        $filescountafter = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record->id,
+        ]);
+        $this->assertEquals(0, $filescountafter);
     }
 
     /**
@@ -159,7 +189,7 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
             'timecreated' => time(),
             'timemodified' => time(),
         ];
-        $DB->insert_record('local_quicknote_notes', $record1);
+        $record1->id = $DB->insert_record('local_quicknote_notes', $record1);
 
         $record2 = (object) [
             'userid' => $user2->id,
@@ -169,9 +199,19 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
             'timecreated' => time(),
             'timemodified' => time(),
         ];
-        $DB->insert_record('local_quicknote_notes', $record2);
+        $record2->id = $DB->insert_record('local_quicknote_notes', $record2);
 
         $this->assertEquals(2, $DB->count_records('local_quicknote_notes'));
+
+        // Add screenshot to user 1's note.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record1, 'teste.gif', 'image/gif', $gif);
+        $filescount = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record1->id,
+        ]);
+        $this->assertGreaterThan(0, $filescount);
 
         $contextlist = provider::get_contexts_for_userid($user1->id);
         $approvedcontextlist = new approved_contextlist($user1, 'local_quicknote', $contextlist->get_contextids());
@@ -180,6 +220,14 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
         // User 1 note should be gone, user 2 note should remain.
         $this->assertEquals(0, $DB->count_records('local_quicknote_notes', ['userid' => $user1->id]));
         $this->assertEquals(1, $DB->count_records('local_quicknote_notes', ['userid' => $user2->id]));
+
+        // Verify user 1 screenshot was deleted.
+        $filescountafter = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record1->id,
+        ]);
+        $this->assertEquals(0, $filescountafter);
     }
 
     /**
@@ -235,7 +283,7 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
             'timecreated' => time(),
             'timemodified' => time(),
         ];
-        $DB->insert_record('local_quicknote_notes', $record1);
+        $record1->id = $DB->insert_record('local_quicknote_notes', $record1);
 
         $record2 = (object) [
             'userid' => $user2->id,
@@ -245,9 +293,19 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
             'timecreated' => time(),
             'timemodified' => time(),
         ];
-        $DB->insert_record('local_quicknote_notes', $record2);
+        $record2->id = $DB->insert_record('local_quicknote_notes', $record2);
 
         $coursecontext = \context_course::instance($course->id);
+
+        // Add screenshot to user 1's note.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record1, 'teste.gif', 'image/gif', $gif);
+        $filescount = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record1->id,
+        ]);
+        $this->assertGreaterThan(0, $filescount);
 
         // Delete only user 1.
         $approveduserlist = new approved_userlist($coursecontext, 'local_quicknote', [$user1->id]);
@@ -255,5 +313,11 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
 
         $this->assertEquals(0, $DB->count_records('local_quicknote_notes', ['userid' => $user1->id]));
         $this->assertEquals(1, $DB->count_records('local_quicknote_notes', ['userid' => $user2->id]));
+        $filescountafter = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record1->id,
+        ]);
+        $this->assertEquals(0, $filescountafter);
     }
 }

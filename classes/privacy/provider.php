@@ -56,6 +56,8 @@ class provider implements
             'timemodified' => 'privacy:metadata:local_quicknote_notes:timemodified',
         ], 'privacy:metadata:local_quicknote_notes');
 
+        $collection->link_subsystem('core_files', 'privacy:metadata:core_files');
+
         return $collection;
     }
 
@@ -113,6 +115,8 @@ class provider implements
         $params['systemcontextid'] = context_system::instance()->id;
 
         $notes = $DB->get_recordset_sql($sql, $params);
+        $fs = get_file_storage();
+        $syscontextid = context_system::instance()->id;
 
         foreach ($notes as $note) {
             $context = context::instance_by_id($note->contextid);
@@ -125,10 +129,22 @@ class provider implements
                 'timemodified' => transform::datetime($note->timemodified),
             ];
 
-            writer::with_context($context)->export_data(
-                [get_string('pluginname', 'local_quicknote'), $note->id],
-                $data
+            $subcontext = [get_string('pluginname', 'local_quicknote'), $note->id];
+            $writer = writer::with_context($context);
+            $writer->export_data($subcontext, $data);
+
+            $files = $fs->get_area_files(
+                $syscontextid,
+                'local_quicknote',
+                \local_quicknote\local\screenshot_manager::FILEAREA,
+                $note->id,
+                'id ASC',
+                false
             );
+
+            foreach ($files as $file) {
+                $writer->export_file($subcontext, $file);
+            }
         }
         $notes->close();
     }
@@ -142,8 +158,13 @@ class provider implements
         global $DB;
 
         if ($context->contextlevel == CONTEXT_COURSE) {
+            \local_quicknote\local\screenshot_manager::delete_for_select(
+                'courseid = :courseid',
+                ['courseid' => $context->instanceid]
+            );
             $DB->delete_records('local_quicknote_notes', ['courseid' => $context->instanceid]);
         } else if ($context->id == context_system::instance()->id) {
+            \local_quicknote\local\screenshot_manager::delete_for_select('courseid = 0');
             $DB->delete_records('local_quicknote_notes', ['courseid' => 0]);
         }
     }
@@ -177,10 +198,15 @@ class provider implements
             [$insql, $inparams] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
             $params = ['userid' => $userid] + $inparams;
             $select = "userid = :userid AND courseid $insql";
+            \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
         }
 
         if ($deletesystem) {
+            \local_quicknote\local\screenshot_manager::delete_for_select(
+                'userid = :userid AND courseid = 0',
+                ['userid' => $userid]
+            );
             $DB->delete_records('local_quicknote_notes', ['userid' => $userid, 'courseid' => 0]);
         }
     }
@@ -227,10 +253,12 @@ class provider implements
         if ($context->contextlevel == CONTEXT_COURSE) {
             $params = ['courseid' => $context->instanceid] + $userparams;
             $select = "courseid = :courseid AND userid $usersql";
+            \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
         } else if ($context->id == context_system::instance()->id) {
             $params = ['courseid' => 0] + $userparams;
             $select = "courseid = :courseid AND userid $usersql";
+            \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
         }
     }

@@ -14,27 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-/**
- * Plugin version and other meta-data are defined here.
- *
- * @package     local_quicknote
- * @copyright   2026 Matheus Mathias
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 namespace local_quicknote\external;
 
-use context_course;
-use invalid_parameter_exception;
+use context_system;
+use local_quicknote\local\screenshot_manager;
 
 /**
- * Delete a quick note.
+ * Attach a pasted screenshot to an owned note.
  *
  * @package     local_quicknote
- * @copyright   2026 Matheus Mathias
+ * @copyright   2026 Andreas Giesen
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class delete_note extends \core_external\external_api {
+class upload_screenshot extends \core_external\external_api {
     /**
      * Define the parameters for execute().
      *
@@ -42,48 +34,53 @@ class delete_note extends \core_external\external_api {
      */
     public static function execute_parameters(): \core_external\external_function_parameters {
         return new \core_external\external_function_parameters([
-            'noteid' => new \core_external\external_value(PARAM_INT, 'Note id to delete.'),
+            'noteid' => new \core_external\external_value(PARAM_INT, 'Owning note id.'),
+            'filename' => new \core_external\external_value(PARAM_FILE, 'Original screenshot filename.'),
+            'mimetype' => new \core_external\external_value(PARAM_RAW_TRIMMED, 'Screenshot MIME type.'),
+            'data' => new \core_external\external_value(PARAM_RAW, 'Base64 screenshot content.'),
         ]);
     }
 
     /**
-     * Delete a note owned by the current user.
+     * Attach a pasted screenshot to an owned note.
      *
-     * @param int $noteid
+     * @param int $noteid Owning note id.
+     * @param string $filename Original screenshot filename.
+     * @param string $mimetype Screenshot MIME type.
+     * @param string $data Base64 screenshot content.
      * @return array
      */
-    public static function execute(int $noteid): array {
+    public static function execute(int $noteid, string $filename, string $mimetype, string $data): array {
         global $DB, $USER;
-
         $params = self::validate_parameters(self::execute_parameters(), [
             'noteid' => $noteid,
+            'filename' => $filename,
+            'mimetype' => $mimetype,
+            'data' => $data,
         ]);
 
-        $note = $DB->get_record('local_quicknote_notes', ['id' => $params['noteid']]);
+        require_login();
 
-        if (!$note || (int) $note->userid !== (int) $USER->id) {
-            throw new invalid_parameter_exception('Note not found or you do not have permission to delete it.');
-        }
+        $note = $DB->get_record('local_quicknote_notes', [
+            'id' => $params['noteid'],
+            'userid' => $USER->id,
+        ], '*', MUST_EXIST);
 
         $course = get_course($note->courseid);
-        require_login($course);
-
-        $context = context_course::instance($course->id);
+        $context = \context_course::instance($course->id);
         self::validate_context($context);
         require_capability('local/quicknote:use', $context);
+        require_capability('local/quicknote:uploadscreenshot', $context);
 
         if (!\local_quicknote\hooks::is_enabled_for_course($course)) {
             throw new \moodle_exception('disabledforcourse', 'local_quicknote');
         }
 
-        \local_quicknote\local\screenshot_manager::delete_for_note((int) $note->id);
+        if (!get_config('local_quicknote', 'enable_screenshots')) {
+            throw new \moodle_exception('screenshot:disabled', 'local_quicknote');
+        }
 
-        $DB->delete_records('local_quicknote_notes', ['id' => $note->id]);
-
-        return [
-            'noteid' => (int) $note->id,
-            'deleted' => true,
-        ];
+        return screenshot_manager::create($note, $params['filename'], $params['mimetype'], $params['data']);
     }
 
     /**
@@ -92,9 +89,6 @@ class delete_note extends \core_external\external_api {
      * @return \core_external\external_single_structure
      */
     public static function execute_returns(): \core_external\external_single_structure {
-        return new \core_external\external_single_structure([
-            'noteid' => new \core_external\external_value(PARAM_INT, 'Deleted note id.'),
-            'deleted' => new \core_external\external_value(PARAM_BOOL, 'Whether the note was deleted.'),
-        ]);
+        return screenshot_manager::external_structure();
     }
 }

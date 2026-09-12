@@ -160,6 +160,7 @@ foreach ($noterecords as $record) {
         'url' => !empty(clean_param($record->url, PARAM_URL)) ? (new moodle_url($record->url))->out(false) : null,
         'quote' => !empty($record->quote) ? $record->quote : null,
         'quoteurl' => !empty(clean_param($record->quoteurl, PARAM_URL)) ? (new moodle_url($record->quoteurl))->out(false) : null,
+        'screenshots' => \local_quicknote\local\screenshot_manager::get_for_note((int) $record->id),
     ];
 }
 

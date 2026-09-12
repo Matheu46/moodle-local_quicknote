@@ -23,8 +23,9 @@ define([
     'local_quicknote/repository',
     'core/notification',
     'core/str',
-    'core/user_date'
-], function(Repository, Notification, Str, UserDate) {
+    'core/user_date',
+    'local_quicknote/lightbox'
+], function(Repository, Notification, Str, UserDate, Lightbox) {
     var SELECTORS = {
         root: '#local-quicknote-root',
         panel: '[data-region="panel"]',
@@ -36,6 +37,8 @@ define([
         search: '[data-action="search"]',
         searchwrapper: '.local-quicknote__search',
         clearsearch: '[data-action="clear-search"]',
+        screenshots: '[data-region="screenshots"]',
+        deletescreenshot: '[data-action="delete-screenshot"]',
         deletebutton: '[data-action="delete-note"]',
         textarea: '.local-quicknote__textarea',
         note: '.local-quicknote__note',
@@ -197,6 +200,52 @@ define([
         }
     };
 
+    var showNoteError = function(noteEl, msg) {
+        var existing = noteEl.querySelector('.local-quicknote__error');
+        if (existing) {
+            existing.remove();
+        }
+
+        var alertNode = document.createElement('div');
+        alertNode.className = 'alert alert-danger local-quicknote__error mt-2 mb-0 p-2 position-relative';
+        alertNode.style.fontSize = '0.8rem';
+        alertNode.setAttribute('role', 'alert');
+
+        var msgNode = document.createElement('span');
+        msgNode.textContent = msg;
+        alertNode.appendChild(msgNode);
+
+        var closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'close p-1';
+        closeBtn.style.background = 'transparent';
+        closeBtn.style.border = 'none';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.right = '5px';
+        closeBtn.style.top = '5px';
+        closeBtn.style.fontSize = '1.2rem';
+        closeBtn.style.lineHeight = '1';
+        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.innerHTML = '<span aria-hidden="true">&times;</span>';
+        closeBtn.addEventListener('click', function() {
+            alertNode.remove();
+        });
+        alertNode.appendChild(closeBtn);
+
+        var screenshotsNode = noteEl.querySelector(SELECTORS.screenshots);
+        if (screenshotsNode) {
+            screenshotsNode.parentElement.insertBefore(alertNode, screenshotsNode);
+        } else {
+            noteEl.appendChild(alertNode);
+        }
+
+        window.setTimeout(function() {
+            if (alertNode.parentElement) {
+                alertNode.remove();
+            }
+        }, 6000);
+    };
+
     var setNoteLocation = function(noteEl, url, hasquote) {
         var locationEl = noteEl.querySelector(SELECTORS.location);
         if (!locationEl) {
@@ -254,6 +303,173 @@ define([
         }
     };
 
+    var renderScreenshots = function(noteEl, note) {
+        var container = noteEl.querySelector(SELECTORS.screenshots);
+        if (!container) {
+            return;
+        }
+        container.innerHTML = '';
+        (note.screenshots || []).forEach(function(screenshot) {
+            var figure = document.createElement('figure');
+            figure.className = 'local-quicknote__screenshot';
+
+            var link = document.createElement('a');
+            link.href = screenshot.url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            var image = document.createElement('img');
+            image.src = screenshot.url;
+            image.alt = screenshot.filename;
+            image.loading = 'lazy';
+            link.appendChild(image);
+
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'btn btn-sm btn-danger local-quicknote__screenshot-delete';
+            remove.setAttribute('data-action', 'delete-screenshot');
+            remove.setAttribute('data-fileid', screenshot.id);
+            remove.setAttribute('title', state.strings.deleteimagelabel);
+            remove.setAttribute('aria-label', state.strings.deleteimagelabel);
+            remove.innerHTML = '&times;';
+
+            figure.appendChild(link);
+            figure.appendChild(remove);
+            container.appendChild(figure);
+        });
+    };
+
+    var fileToBase64 = function(file) {
+        return new Promise(function(resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function() {
+                var result = String(reader.result || '');
+                var separator = result.indexOf(',');
+                resolve(separator === -1 ? result : result.substring(separator + 1));
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    var compressImage = function(file) {
+        return new Promise(function(resolve, reject) {
+            var img = new Image();
+            var objectUrl = URL.createObjectURL(file);
+
+            img.onload = function() {
+                URL.revokeObjectURL(objectUrl);
+
+                var maxWidth = 1920;
+                var maxHeight = 1080;
+                var width = img.width;
+                var height = img.height;
+
+                if (width > maxWidth || height > maxHeight) {
+                    var ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = width * ratio;
+                    height = height * ratio;
+                }
+
+                var canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                var ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+
+                var mimeType = 'image/webp';
+                var dataUrl = canvas.toDataURL(mimeType, 0.8);
+
+                if (dataUrl.indexOf('data:image/webp') !== 0) {
+                    mimeType = 'image/jpeg';
+                    dataUrl = canvas.toDataURL(mimeType, 0.85);
+                }
+
+                var separator = dataUrl.indexOf(',');
+                var base64 = separator === -1 ? dataUrl : dataUrl.substring(separator + 1);
+
+                var originalName = file.name || 'screenshot';
+                var baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+                if (!baseName) {
+                    baseName = originalName;
+                }
+                var newName = baseName + (mimeType === 'image/webp' ? '.webp' : '.jpg');
+
+                resolve({
+                    data: base64,
+                    mimetype: mimeType,
+                    name: newName
+                });
+            };
+
+            img.onerror = function() {
+                URL.revokeObjectURL(objectUrl);
+                fileToBase64(file).then(function(data) {
+                    resolve({
+                        data: data,
+                        mimetype: file.type,
+                        name: file.name || 'screenshot.png'
+                    });
+                    return null;
+                }).catch(reject);
+            };
+
+            img.src = objectUrl;
+        });
+    };
+
+    var uploadScreenshot = function(note, file) {
+        var noteEl = getNoteElementByKey(note.clientid);
+        if (state.timers[note.clientid]) {
+            window.clearTimeout(state.timers[note.clientid]);
+            delete state.timers[note.clientid];
+        }
+
+        var ensureSaved = note.id ? Promise.resolve() : saveNote(note);
+        return ensureSaved.then(function() {
+            if (noteEl) {
+                setNoteStatus(noteEl, state.strings.uploadingtext, note.timemodified);
+            }
+            return compressImage(file);
+        }).then(function(compressed) {
+            return Repository.uploadScreenshot({
+                noteid: note.id,
+                filename: compressed.name,
+                mimetype: compressed.mimetype,
+                data: compressed.data
+            });
+        }).then(function(screenshot) {
+            note.screenshots = note.screenshots || [];
+            note.screenshots.push(screenshot);
+            if (noteEl) {
+                renderScreenshots(noteEl, note);
+                setNoteStatus(noteEl, state.strings.savedtext, note.timemodified);
+            }
+            return screenshot;
+        }).catch(function(error) {
+            if (noteEl) {
+                setNoteStatus(noteEl, state.strings.errortext, note.timemodified);
+                showNoteError(noteEl, error.message);
+            } else {
+                Notification.exception(error);
+            }
+        });
+    };
+
+    var deleteScreenshot = function(note, fileid, noteEl) {
+        Repository.deleteScreenshot(note.id, fileid).then(function(response) {
+            if (response.deleted) {
+                note.screenshots = (note.screenshots || []).filter(function(screenshot) {
+                    return Number(screenshot.id) !== Number(fileid);
+                });
+                renderScreenshots(noteEl, note);
+            }
+            return response;
+        }).catch(Notification.exception);
+    };
+
     var updateNoteElement = function(note, noteEl, preservecontent) {
         var textarea = noteEl.querySelector(SELECTORS.textarea);
         var currentcontent = preservecontent && textarea ? textarea.value : note.content;
@@ -282,6 +498,7 @@ define([
         }
 
         setNoteStatus(noteEl, note.status, note.timemodified);
+        renderScreenshots(noteEl, note);
         setNoteQuote(noteEl, note);
         setNoteLocation(noteEl, note.url, note.hasquote);
 
@@ -525,7 +742,7 @@ define([
             quoteurl: note.quoteurl || ''
         });
 
-        request.then(function(response) {
+        return request.then(function(response) {
             var savednote = normaliseNote(response);
             var currentnoteEl = getNoteElementByKey(note.clientid);
 
@@ -836,6 +1053,36 @@ define([
         };
 
         state.root.addEventListener('click', function(e) {
+            var screenshotLink = e.target.closest('.local-quicknote__screenshot a');
+            if (screenshotLink) {
+                e.preventDefault();
+                var container = screenshotLink.closest('[data-region="screenshots"]');
+                var allLinks = container ?
+                    Array.prototype.slice.call(container.querySelectorAll('.local-quicknote__screenshot a')) :
+                    [screenshotLink];
+                var gallery = allLinks.map(function(link) {
+                    var img = link.querySelector('img');
+                    return {src: link.href, alt: img ? img.alt : ''};
+                });
+                var currentIndex = allLinks.indexOf(screenshotLink);
+                Lightbox.show(gallery, Math.max(0, currentIndex));
+                return;
+            }
+
+            var deleteScreenshotBtn = e.target.closest(SELECTORS.deletescreenshot);
+            if (deleteScreenshotBtn) {
+                var screenshotNoteEl = deleteScreenshotBtn.closest(SELECTORS.note);
+                var screenshotNote = screenshotNoteEl ?
+                    getNoteByKey(screenshotNoteEl.getAttribute('data-note-key')) : null;
+                if (screenshotNote && screenshotNote.id) {
+                    deleteScreenshot(
+                        screenshotNote,
+                        Number(deleteScreenshotBtn.getAttribute('data-fileid')),
+                        screenshotNoteEl
+                    );
+                }
+                return;
+            }
             var toggleBtn = e.target.closest(SELECTORS.toggle);
             if (toggleBtn) {
                 handleToggleClick();
@@ -920,6 +1167,74 @@ define([
             }
         });
 
+        state.root.addEventListener('paste', function(e) {
+            if (!state.enableScreenshots) {
+                return;
+            }
+            var textarea = e.target.closest(SELECTORS.textarea);
+            if (!textarea || !e.clipboardData || !e.clipboardData.items) {
+                return;
+            }
+
+            var images = [];
+            Array.prototype.forEach.call(e.clipboardData.items, function(item) {
+                if (item.kind === 'file' && /^image\/(png|jpeg|webp|gif)$/i.test(item.type)) {
+                    var file = item.getAsFile();
+                    if (file) {
+                        images.push(file);
+                    }
+                }
+            });
+            if (!images.length) {
+                return;
+            }
+
+            e.preventDefault();
+            var note = getNoteByKey(textarea.getAttribute('data-note-key'));
+            if (!note) {
+                return;
+            }
+
+            var noteEl = getNoteElementByKey(note.clientid);
+
+            var currentFileCount = note.screenshots ? note.screenshots.length : 0;
+            if (state.maxFiles > 0 && currentFileCount + images.length > state.maxFiles) {
+                Str.get_string('error:maxfiles', 'local_quicknote').then(function(msg) {
+                    if (noteEl) {
+                        showNoteError(noteEl, msg);
+                    }
+                    return null;
+                }).catch(Notification.exception);
+                return;
+            }
+
+            var tooLarge = false;
+            if (state.maxBytes > 0) {
+                for (var i = 0; i < images.length; i++) {
+                    if (images[i].size > state.maxBytes) {
+                        tooLarge = true;
+                        break;
+                    }
+                }
+            }
+
+            if (tooLarge) {
+                var sizeStr = (state.maxBytes / 1024 / 1024).toFixed(2) + ' MB';
+                Str.get_string('error:maxbytes', 'local_quicknote', sizeStr).then(function(msg) {
+                    if (noteEl) {
+                        showNoteError(noteEl, msg);
+                    }
+                    return null;
+                }).catch(Notification.exception);
+                return;
+            }
+
+            images.reduce(function(chain, file) {
+                return chain.then(function() {
+                    return uploadScreenshot(note, file);
+                });
+            }, Promise.resolve());
+        });
         state.root.addEventListener('keyup', function(e) {
             var search = e.target.closest(SELECTORS.search);
             if (search) {
@@ -984,6 +1299,10 @@ define([
             state = {
                 root: rootEl,
                 courseid: Number(config.courseid || rootEl.getAttribute('data-courseid')),
+                enableScreenshots: config.hasOwnProperty('enable_screenshots') ?
+                    Boolean(config.enable_screenshots) : false,
+                maxFiles: config.hasOwnProperty('max_files_per_note') ? Number(config.max_files_per_note) : 0,
+                maxBytes: config.hasOwnProperty('max_bytes') ? Number(config.max_bytes) : 0,
                 notes: [],
                 timers: {},
                 strings: {

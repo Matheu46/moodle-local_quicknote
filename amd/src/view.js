@@ -19,7 +19,12 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['local_quicknote/repository', 'core/notification', 'core/str'], function(Repository, Notification, Str) {
+define([
+    'local_quicknote/repository',
+    'core/notification',
+    'core/str',
+    'local_quicknote/lightbox'
+], function(Repository, Notification, Str, Lightbox) {
     return {
         init: function() {
             var searchInput = document.getElementById('searchterm');
@@ -180,12 +185,58 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                 });
             }
 
-            // Handle delete buttons.
+            // Handle delete buttons and lightbox.
             document.addEventListener('click', function(e) {
+                var screenshotLink = e.target.closest('.local-quicknote__screenshot a');
+                if (screenshotLink) {
+                    e.preventDefault();
+                    var container = screenshotLink.closest('[data-region="screenshots"]');
+                    var allLinks = container ?
+                        Array.prototype.slice.call(container.querySelectorAll('.local-quicknote__screenshot a')) :
+                        [screenshotLink];
+                    var gallery = allLinks.map(function(link) {
+                        var img = link.querySelector('img');
+                        return {src: link.href, alt: img ? img.alt : ''};
+                    });
+                    var currentIndex = allLinks.indexOf(screenshotLink);
+                    Lightbox.show(gallery, Math.max(0, currentIndex));
+                    return;
+                }
+
+                var deleteScreenshotBtn = e.target.closest('[data-action="delete-screenshot"]');
+                if (deleteScreenshotBtn) {
+                    e.preventDefault();
+                    var fileId = deleteScreenshotBtn.getAttribute('data-fileid');
+                    var noteCard = deleteScreenshotBtn.closest('.card');
+                    var noteDeleteBtn = noteCard ? noteCard.querySelector('.local-quicknote-delete-btn') : null;
+                    var screenshotNoteId = noteDeleteBtn ? noteDeleteBtn.getAttribute('data-id') : null;
+
+                    if (screenshotNoteId && fileId) {
+                        Str.get_strings([
+                            {key: 'confirm', component: 'core'},
+                            {key: 'screenshot:delete', component: 'local_quicknote'},
+                            {key: 'delete', component: 'core'},
+                            {key: 'cancel', component: 'core'}
+                        ]).done(function(strings) {
+                            Notification.confirm(
+                                strings[0],
+                                strings[1],
+                                strings[2],
+                                strings[3],
+                                function() {
+                                    Repository.deleteScreenshot(Number(screenshotNoteId), Number(fileId)).done(function() {
+                                        submitSearch(true);
+                                    }).fail(Notification.exception);
+                                }
+                            );
+                        }).fail(Notification.exception);
+                    }
+                    return;
+                }
                 var deleteBtn = e.target.closest('.local-quicknote-delete-btn');
                 if (deleteBtn) {
                     e.preventDefault();
-                    var noteId = deleteBtn.getAttribute('data-id');
+                    var deleteNoteId = deleteBtn.getAttribute('data-id');
 
                     Str.get_strings([
                         {key: 'confirm', component: 'core'},
@@ -199,7 +250,7 @@ define(['local_quicknote/repository', 'core/notification', 'core/str'], function
                             strings[2],
                             strings[3],
                             function() {
-                                Repository.deleteNote(noteId).done(function() {
+                                Repository.deleteNote(deleteNoteId).done(function() {
                                     // Refresh the entire grid silently to handle pagination
                                     // (e.g. pulling a note from the next page to fill the gap).
                                     submitSearch(true);
