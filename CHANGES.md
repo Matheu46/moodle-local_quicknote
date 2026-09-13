@@ -1,5 +1,22 @@
 # Moodle plugin: local_quicknote
 
+## 0.11.0 (2026-09-12)
+*Screenshot functionality co-authored and ported with contributions by Andreas Giesen (@108design).*
+
+- **Screenshots & Lightbox Gallery**:
+  - Added support for pasting screenshots directly into notes from the clipboard (`Ctrl+V` / `Cmd+V`).
+  - Implemented client-side automatic image compression (`compressImage`) to optimize file dimensions (up to 1920x1080) and convert to WebP (with JPEG fallback) prior to upload.
+  - Built an accessible Lightbox gallery module with previous/next navigation, keyboard arrow controls, image download, and mobile-friendly touch targets.
+  - Created external APIs (`upload_screenshot`, `delete_screenshot`) with private pluginfile serving and automatic file cleanup on note deletion.
+  - Added administrative settings to enable/disable screenshot attachments globally, configure maximum allowed upload size (`max_bytes`), and limit maximum screenshots per note (`max_files_per_note`).
+  - Added the `local/quicknote:uploadscreenshot` capability (`CONTEXT_COURSE`) for granular role-based access control.
+- **UI/UX & Accessibility**:
+  - Replaced custom sidebar close button with Bootstrap's native `btn-close` and added padding (`p-2`) to expand the touch and click target area for improved WCAG accessibility.
+  - Added a search icon inside the sidebar search input that dynamically toggles with the clear search button when typing.
+  - Simplified search button markup in the Notes Center (`view.mustache`), removing the legacy `input-group-append` wrapper and converting it to a concise icon-only button.
+- **Style & Modernization**:
+  - Replaced deprecated Bootstrap 4 utility classes in the Notes Center template (`view.mustache`) with standard Bootstrap 5 classes (`form-select`, `fw-bold`, `text-end`, `me-*`, `border-start`, `ps-*`, `fst-italic`).
+
 ## 0.10.0 (2026-08-30)
 *Major contributions and features in this release were ported from a downstream fork by Andreas Giesen (@108design).*
 

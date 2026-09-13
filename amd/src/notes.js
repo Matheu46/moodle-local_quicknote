@@ -36,6 +36,7 @@ define([
         add: '[data-action="add"]',
         search: '[data-action="search"]',
         searchwrapper: '.local-quicknote__search',
+        searchicon: '.local-quicknote__search-icon',
         clearsearch: '[data-action="clear-search"]',
         screenshots: '[data-region="screenshots"]',
         deletescreenshot: '[data-action="delete-screenshot"]',
@@ -1245,12 +1246,21 @@ define([
         var handleSearchInput = function() {
             var term = getSearchTerm();
             var clearBtn = state.root.querySelector(SELECTORS.clearsearch);
+            var searchIcon = state.root.querySelector(SELECTORS.searchicon);
 
             if (clearBtn) {
                 if (term) {
                     clearBtn.removeAttribute('hidden');
                 } else {
                     clearBtn.setAttribute('hidden', 'hidden');
+                }
+            }
+
+            if (searchIcon) {
+                if (term) {
+                    searchIcon.style.display = 'none';
+                } else {
+                    searchIcon.style.display = '';
                 }
             }
 
