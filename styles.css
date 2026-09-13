@@ -183,7 +183,12 @@
     padding-right: 2rem;
 }
 
-.local-quicknote__search-clear {
+.local-quicknote__search-icon {
+    pointer-events: none;
+}
+
+.local-quicknote__search-clear, 
+.local-quicknote__search-icon {
     position: absolute;
     right: 0.5rem;
     top: 50%;
