@@ -64,7 +64,11 @@
     color: #fff;
     font-size: 1.25rem;
     box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.2);
-    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, bottom 0.3s ease;
+}
+
+.hasstickyfooter .local-quicknote__toggle {
+    bottom: calc(.5rem + var(--sticky-footer-total-height, 4rem));
 }
 
 .local-quicknote__toggle[aria-expanded="true"] {
