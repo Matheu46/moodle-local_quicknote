@@ -1,9 +1,12 @@
-# Quick Note #
+# QuickNote #
 
 Designed for the native Boost experience in Moodle 4.4 and 4.5+, QuickNote helps students capture important excerpts while reading course materials, connect those excerpts to personal reflections, and return to the exact place where learning happened. For teachers and administrators, it provides simple controls to decide when and where the tool is available.
 
 Instead of forcing learners to copy text into external apps, QuickNote keeps the study workflow inside Moodle. Students can highlight a passage, save it instantly as a quote, add their own interpretation, and revisit the original context later through browser text-fragment navigation. The result is a cleaner, more focused note-taking experience that supports active reading, revision, and deeper engagement with course content.
 
+<div align="center">
+<a href="https://ateeducacion.github.io/moodle-playground/?blueprint-url=https://gist.githubusercontent.com/Matheu46/ab4a85fb82d52fee6c1b40c21203d5c5/raw/blueprint.json" target="_blank" rel="noopener"><img src=".github/assets/playground-preview-button.svg" alt="Preview in Moodle Playground" width="200"></a>
+</div>
 <img width="1155" height="949" alt="demo-quicknote" src="https://github.com/user-attachments/assets/07d02bb9-0a81-49fe-837e-10d1b4672b72" />
 
 ## ✨ Features
