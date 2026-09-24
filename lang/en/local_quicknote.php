@@ -86,7 +86,6 @@ $string['screenshot:delete'] = 'Delete screenshot';
 $string['screenshot:disabled'] = 'Screenshot uploads are disabled on this site.';
 $string['screenshot:pastehint'] = 'Paste a screenshot here with Ctrl+V.';
 $string['screenshot:uploading'] = 'Uploading screenshot...';
-$string['search'] = 'Search';
 $string['search:clear'] = 'Clear search';
 $string['search:noresultstext'] = 'No notes found matching your search.';
 $string['search:placeholder'] = 'Search in my notes...';
