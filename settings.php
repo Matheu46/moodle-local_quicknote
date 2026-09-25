@@ -35,6 +35,22 @@ if ($hassiteconfig) {
         1
     ));
 
+    // Enable in Dashboard.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_dashboard',
+        get_string('enable_dashboard', 'local_quicknote'),
+        get_string('enable_dashboard_desc', 'local_quicknote'),
+        1
+    ));
+
+    // Enable in Frontpage.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_frontpage',
+        get_string('enable_frontpage', 'local_quicknote'),
+        get_string('enable_frontpage_desc', 'local_quicknote'),
+        0
+    ));
+
     // Enable/disable screenshots functionality.
     $settings->add(new admin_setting_configcheckbox(
         'local_quicknote/enable_screenshots',

@@ -134,4 +134,40 @@ final class exporter_test extends advanced_testcase {
         $this->assertStringStartsWith('%PDF', $pdf);
         $this->assertGreaterThan(100, strlen($pdf));
     }
+
+    /**
+     * Test exporting global dashboard notes to Markdown.
+     */
+    public function test_export_to_md_dashboard_notes(): void {
+        $this->resetAfterTest();
+        global $DB;
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+
+        // Insert a dummy dashboard note (courseid = SITEID).
+        $note = new \stdClass();
+        $note->userid = $user->id;
+        $note->courseid = SITEID;
+        $note->content = 'Dashboard note content';
+        $note->quote = '';
+        $note->quoteurl = '';
+        $note->url = '';
+        $note->timecreated = time();
+        $note->timemodified = time();
+        $note->id = $DB->insert_record('local_quicknote_notes', $note);
+
+        $sql = "SELECT qn.id, qn.content, qn.url, qn.quote, qn.quoteurl, qn.timemodified,
+                       c.fullname as coursefullname, c.id as courseid
+                FROM {local_quicknote_notes} qn
+                JOIN {course} c ON c.id = qn.courseid
+                WHERE qn.userid = :userid";
+        $rs = $DB->get_recordset_sql($sql, ['userid' => $user->id]);
+
+        $md = \local_quicknote\output\exporter::export_to_md($rs);
+
+        $generalnotesstring = get_string('general_notes', 'local_quicknote');
+        $this->assertStringContainsString("## " . $generalnotesstring, $md);
+        $this->assertStringContainsString("Dashboard note content", $md);
+    }
 }
