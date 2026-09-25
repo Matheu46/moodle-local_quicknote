@@ -58,13 +58,17 @@ class exporter {
                 $html = '';
 
                 if ($currentcourseid !== $record->courseid) {
-                    $coursefullname = format_string(
-                        $record->coursefullname,
-                        true,
-                        [
-                            'context' => \context_course::instance($record->courseid),
-                        ]
-                    );
+                    if ($record->courseid == SITEID) {
+                        $coursefullname = get_string('general_notes', 'local_quicknote');
+                    } else {
+                        $coursefullname = format_string(
+                            $record->coursefullname,
+                            true,
+                            [
+                                'context' => \context_course::instance($record->courseid),
+                            ]
+                        );
+                    }
 
                     $html .= '<h3 style="color: #0056b3; margin-top: 25px; border-bottom: 1px solid #eee;">'
                         . $coursefullname
@@ -131,13 +135,17 @@ class exporter {
                 }
 
                 if ($currentcourseid !== $record->courseid) {
-                    $coursefullname = format_string(
-                        $record->coursefullname,
-                        true,
-                        [
-                            'context' => \context_course::instance($record->courseid),
-                        ]
-                    );
+                    if ($record->courseid == SITEID) {
+                        $coursefullname = get_string('general_notes', 'local_quicknote');
+                    } else {
+                        $coursefullname = format_string(
+                            $record->coursefullname,
+                            true,
+                            [
+                                'context' => \context_course::instance($record->courseid),
+                            ]
+                        );
+                    }
 
                     $md .= "## " . $coursefullname . "\n\n";
                     $currentcourseid = $record->courseid;

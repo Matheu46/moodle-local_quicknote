@@ -65,9 +65,15 @@ $usercourses = $DB->get_records_sql($sqlcourses, ['userid' => $USER->id]);
 $courses = [];
 if ($usercourses) {
     foreach ($usercourses as $c) {
+        if ($c->id == SITEID) {
+            $coursename = get_string('general_notes', 'local_quicknote');
+        } else {
+            $coursename = format_string($c->fullname, true, ['context' => context_course::instance($c->id)]);
+        }
+
         $courses[] = [
             'id' => $c->id,
-            'fullname' => format_string($c->fullname, true, ['context' => context_course::instance($c->id)]),
+            'fullname' => $coursename,
             'selected' => ($c->id == $coursefilter),
         ];
     }
@@ -145,16 +151,14 @@ foreach ($noterecords as $record) {
         continue;
     }
 
+    $coursefullname = ($record->courseid == SITEID) ?
+        get_string('general_notes', 'local_quicknote') :
+        format_string($record->coursefullname, true, ['context' => context_course::instance($record->courseid)]);
+
     // Prepare variables for the template. Mustache escapes standard tags {{ }} automatically.
     $notes[] = [
         'id' => $record->id,
-        'coursefullname' => format_string(
-            $record->coursefullname,
-            true,
-            [
-                'context' => context_course::instance($record->courseid),
-            ]
-        ),
+        'coursefullname' => $coursefullname,
         'content' => $record->content,
         'timeupdated' => userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig')),
         'url' => !empty(clean_param($record->url, PARAM_URL)) ? (new moodle_url($record->url))->out(false) : null,

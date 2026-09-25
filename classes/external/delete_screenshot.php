@@ -57,10 +57,7 @@ class delete_screenshot extends \core_external\external_api {
             'userid' => $USER->id,
         ], 'id, courseid', MUST_EXIST);
 
-        $course = get_course($note->courseid);
-        $context = \context_course::instance($course->id);
-        self::validate_context($context);
-        require_capability('local/quicknote:use', $context);
+        \local_quicknote\util::validate_note_access((int) $note->courseid);
 
         return ['fileid' => $params['fileid'], 'deleted' => screenshot_manager::delete_file($params['fileid'], $params['noteid'])];
     }
