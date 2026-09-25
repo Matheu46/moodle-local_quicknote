@@ -263,4 +263,50 @@ final class externallib_test extends advanced_testcase {
         $this->expectException(\required_capability_exception::class);
         \local_quicknote\external\upload_screenshot::execute($noteid, 'test2.gif', 'image/gif', $gif);
     }
+
+    public function test_dashboard_notes(): void {
+        global $DB;
+        $this->resetAfterTest();
+        
+        $generator = $this->getDataGenerator();
+        $user1 = $generator->create_user();
+        $user2 = $generator->create_user();
+        $course = $generator->create_course();
+
+        $this->setUser($user1);
+        
+        // Enable dashboard notes.
+        set_config('enable_dashboard', 1, 'local_quicknote');
+        
+        // 1. Create a note in the dashboard.
+        $result = save_note::execute(0, SITEID, 'Global note 1', '');
+        $result = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $result);
+        
+        $noteid = $result['id'];
+        $this->assertNotEmpty($noteid);
+        
+        // 2. Fetch notes from dashboard.
+        $notes = get_notes::execute(SITEID);
+        $notes = \core_external\external_api::clean_returnvalue(get_notes::execute_returns(), $notes);
+        $this->assertCount(1, $notes);
+        $this->assertEquals('Global note 1', $notes[0]['content']);
+        
+        // 3. User2 cannot see User1's global notes.
+        $this->setUser($user2);
+        $notes2 = get_notes::execute(SITEID);
+        $notes2 = \core_external\external_api::clean_returnvalue(get_notes::execute_returns(), $notes2);
+        $this->assertCount(0, $notes2);
+        
+        // 4. Global notes do not leak into regular courses.
+        $this->setUser($user1);
+        $generator->enrol_user($user1->id, $course->id, 'student');
+        $coursenotes = get_notes::execute($course->id);
+        $coursenotes = \core_external\external_api::clean_returnvalue(get_notes::execute_returns(), $coursenotes);
+        $this->assertCount(0, $coursenotes); // Should be empty in the course!
+        
+        // 5. Delete global note.
+        $deleteresult = delete_note::execute($noteid);
+        $deleteresult = \core_external\external_api::clean_returnvalue(delete_note::execute_returns(), $deleteresult);
+        $this->assertTrue($deleteresult['deleted']);
+    }
 }
