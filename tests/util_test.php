@@ -74,7 +74,7 @@ final class util_test extends advanced_testcase {
         $generator = $this->getDataGenerator();
         $course = $generator->create_course();
         $user = $generator->create_user();
-        
+
         $generator->enrol_user($user->id, $course->id, 'student');
         $this->setUser($user);
 
