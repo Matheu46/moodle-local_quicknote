@@ -220,6 +220,7 @@
     overflow-y: auto;
 }
 
+.local-quicknote__loading,
 .local-quicknote__empty {
     color: var(--bs-secondary-color, #5f6b7a);
 }
