@@ -138,56 +138,71 @@ class hooks {
             return '';
         }
 
-        if (empty($PAGE->course->id) || $PAGE->course->id === SITEID) {
-            return '';
-        }
+        $isdashboard = ($PAGE->pagetype === 'my-index' || $PAGE->pagelayout === 'mydashboard');
+        $isfrontpage = ($PAGE->pagetype === 'site-index' || $PAGE->pagelayout === 'frontpage');
 
-        if (empty($PAGE->context->contextlevel) || !in_array($PAGE->context->contextlevel, [CONTEXT_COURSE, CONTEXT_MODULE])) {
-            return '';
-        }
+        if ($isdashboard || $isfrontpage) {
+            if ($isdashboard && !get_config('local_quicknote', 'enable_dashboard')) {
+                return '';
+            }
+            if ($isfrontpage && !get_config('local_quicknote', 'enable_frontpage')) {
+                return '';
+            }
+            $course = get_site();
+            $context = \context_system::instance();
+            $skipatterncheck = true;
+        } else {
+            if (empty($PAGE->course->id) || $PAGE->course->id === SITEID) {
+                return '';
+            }
 
-        $course = get_course($PAGE->course->id);
+            if (empty($PAGE->context->contextlevel) || !in_array($PAGE->context->contextlevel, [CONTEXT_COURSE, CONTEXT_MODULE])) {
+                return '';
+            }
 
-        if ($PAGE->pagelayout === 'embedded') {
-            // In H5P Core, inserting JS worked, but it didn't in mod_hvp and SCORM.
-            $PAGE->requires->js_call_amd('local_quicknote/notes', 'initIframe', [[
-                'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
-            ]]);
-            return '';
-        }
+            $course = get_course($PAGE->course->id);
 
-        $context = \context_course::instance($course->id, IGNORE_MISSING);
+            if ($PAGE->pagelayout === 'embedded') {
+                // In H5P Core, inserting JS worked, but it didn't in mod_hvp and SCORM.
+                $PAGE->requires->js_call_amd('local_quicknote/notes', 'initIframe', [[
+                    'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
+                ]]);
+                return '';
+            }
 
-        if (!$context) {
-            return '';
-        }
+            $context = \context_course::instance($course->id, IGNORE_MISSING);
 
-        if (!has_capability('local/quicknote:use', $context)) {
-            return '';
-        }
+            if (!$context) {
+                return '';
+            }
 
-        if (!self::is_enabled_for_course($course)) {
-            return '';
-        }
+            if (!has_capability('local/quicknote:use', $context)) {
+                return '';
+            }
 
-        // Check per-module override.
-        $skipatterncheck = false;
-        if ($PAGE->cm) {
-            global $DB;
-            $record = $DB->get_record('local_quicknote_course', ['courseid' => $course->id], 'module_settings');
-            $modulesettings = $record ? $record->module_settings : null;
-            if ($modulesettings) {
-                $modulesettings = json_decode($modulesettings, true);
-                if (!is_array($modulesettings)) {
-                    $modulesettings = [];
-                }
-                if (isset($modulesettings[$PAGE->cm->id])) {
-                    $modulevalue = $modulesettings[$PAGE->cm->id];
-                    if ($modulevalue === 0) {
-                        return '';
+            if (!self::is_enabled_for_course($course)) {
+                return '';
+            }
+
+            // Check per-module override.
+            $skipatterncheck = false;
+            if ($PAGE->cm) {
+                global $DB;
+                $record = $DB->get_record('local_quicknote_course', ['courseid' => $course->id], 'module_settings');
+                $modulesettings = $record ? $record->module_settings : null;
+                if ($modulesettings) {
+                    $modulesettings = json_decode($modulesettings, true);
+                    if (!is_array($modulesettings)) {
+                        $modulesettings = [];
                     }
-                    // If explicitly enabled, skip site-wide pattern check.
-                    $skipatterncheck = true;
+                    if (isset($modulesettings[$PAGE->cm->id])) {
+                        $modulevalue = $modulesettings[$PAGE->cm->id];
+                        if ($modulevalue === 0) {
+                            return '';
+                        }
+                        // If explicitly enabled, skip site-wide pattern check.
+                        $skipatterncheck = true;
+                    }
                 }
             }
         }
@@ -210,8 +225,12 @@ class hooks {
             }
         }
 
-        $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
-            has_capability('local/quicknote:uploadscreenshot', $context);
+        if ($isdashboard || $isfrontpage) {
+            $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots');
+        } else {
+            $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
+                has_capability('local/quicknote:uploadscreenshot', $context);
+        }
 
         $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
         $maxbytes = (int) get_config('local_quicknote', 'max_bytes');

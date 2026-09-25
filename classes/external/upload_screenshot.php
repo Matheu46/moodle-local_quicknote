@@ -66,15 +66,7 @@ class upload_screenshot extends \core_external\external_api {
             'userid' => $USER->id,
         ], '*', MUST_EXIST);
 
-        $course = get_course($note->courseid);
-        $context = \context_course::instance($course->id);
-        self::validate_context($context);
-        require_capability('local/quicknote:use', $context);
-        require_capability('local/quicknote:uploadscreenshot', $context);
-
-        if (!\local_quicknote\hooks::is_enabled_for_course($course)) {
-            throw new \moodle_exception('disabledforcourse', 'local_quicknote');
-        }
+        \local_quicknote\util::validate_note_access((int) $note->courseid, true);
 
         if (!get_config('local_quicknote', 'enable_screenshots')) {
             throw new \moodle_exception('screenshot:disabled', 'local_quicknote');

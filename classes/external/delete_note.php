@@ -14,14 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-/**
- * Plugin version and other meta-data are defined here.
- *
- * @package     local_quicknote
- * @copyright   2026 Matheus Mathias
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 namespace local_quicknote\external;
 
 use context_course;
@@ -65,16 +57,7 @@ class delete_note extends \core_external\external_api {
             throw new invalid_parameter_exception('Note not found or you do not have permission to delete it.');
         }
 
-        $course = get_course($note->courseid);
-        require_login($course);
-
-        $context = context_course::instance($course->id);
-        self::validate_context($context);
-        require_capability('local/quicknote:use', $context);
-
-        if (!\local_quicknote\hooks::is_enabled_for_course($course)) {
-            throw new \moodle_exception('disabledforcourse', 'local_quicknote');
-        }
+        \local_quicknote\util::validate_note_access((int) $note->courseid);
 
         \local_quicknote\local\screenshot_manager::delete_for_note((int) $note->id);
 

@@ -134,8 +134,7 @@ function local_quicknote_pluginfile($course, $cm, $context, $filearea, $args, $f
         return false;
     }
 
-    $coursecontext = \context_course::instance($note->courseid);
-    require_capability('local/quicknote:use', $coursecontext);
+    \local_quicknote\util::validate_note_access((int) $note->courseid);
 
     $filename = array_pop($args);
     $filepath = '/' . ($args ? implode('/', $args) . '/' : '');

@@ -14,14 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-/**
- * Plugin version and other meta-data are defined here.
- *
- * @package     local_quicknote
- * @copyright   2026 Matheus Mathias
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 namespace local_quicknote\external;
 
 use context_course;
@@ -58,16 +50,7 @@ class get_notes extends \core_external\external_api {
             'courseid' => $courseid,
         ]);
 
-        $course = get_course($params['courseid']);
-        require_login($course);
-
-        $context = context_course::instance($course->id);
-        self::validate_context($context);
-        require_capability('local/quicknote:use', $context);
-
-        if (!\local_quicknote\hooks::is_enabled_for_course($course)) {
-            throw new \moodle_exception('disabledforcourse', 'local_quicknote');
-        }
+        $course = \local_quicknote\util::validate_note_access((int) $params['courseid']);
 
         $records = $DB->get_records('local_quicknote_notes', [
             'userid' => $USER->id,
