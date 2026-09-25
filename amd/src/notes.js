@@ -530,6 +530,13 @@ define([
         getList().innerHTML = '<p class="local-quicknote__empty">' + escapeHtml(state.strings.noresultstext) + '</p>';
     };
 
+    var renderLoadingState = function() {
+        var loadingText = state.strings.loadingtext || 'Loading...';
+        getList().innerHTML = '<div class="local-quicknote__loading text-center p-3 text-muted">' +
+            '<i class="fa fa-circle-o-notch fa-spin fa-fw mr-1" aria-hidden="true"></i> ' +
+            escapeHtml(loadingText) + '</div>';
+    };
+
     var noteMatchesSearch = function(note, term) {
         if (!term) {
             return true;
@@ -713,6 +720,10 @@ define([
         }
 
         if (isopen) {
+            if (!state.loaded && !state.loading) {
+                loadNotes();
+            }
+
             autogrowAllTextareas();
 
             var closeBtn = panel ? panel.querySelector(SELECTORS.close) : null;
@@ -798,16 +809,57 @@ define([
     };
 
     var loadNotes = function() {
+        if (state.loaded || state.loading) {
+            return;
+        }
+
+        state.loading = true;
+        renderLoadingState();
+
         var request = Repository.getNotes(state.courseid);
 
         request.then(function(response) {
-            state.notes = response.map(function(note) {
+            state.loaded = true;
+            state.loading = false;
+
+            // Preserve any draft notes created locally before fetch completes.
+            var draftNotes = state.notes.filter(function(item) {
+                return !item.id;
+            });
+
+            var fetchedNotes = response.map(function(note) {
                 return normaliseNote(note);
             });
 
+            state.notes = draftNotes.concat(fetchedNotes);
+
+            // Record focus before tearing down the DOM.
+            var activeElement = document.activeElement;
+            var activeNoteKey = null;
+            if (activeElement && activeElement.classList.contains('local-quicknote__textarea')) {
+                activeNoteKey = activeElement.getAttribute('data-note-key');
+            }
+
             renderNotes();
+
+            // Restore focus.
+            if (activeNoteKey) {
+                var newNoteEl = getNoteElementByKey(activeNoteKey);
+                if (newNoteEl) {
+                    var newTextarea = newNoteEl.querySelector(SELECTORS.textarea);
+                    if (newTextarea) {
+                        var val = newTextarea.value;
+                        newTextarea.focus();
+                        newTextarea.value = '';
+                        newTextarea.value = val;
+                    }
+                }
+            }
+
             return response;
         }).catch(function(error) {
+            state.loading = false;
+            renderEmptyState();
             Notification.exception(error);
         });
     };
@@ -850,6 +902,10 @@ define([
     };
 
     var createHighlightNote = function(text) {
+        if (!state.loaded && !state.loading) {
+            loadNotes();
+        }
+
         var note = createDraftNote();
         var quoteurl = window.location.href + '#:~:text=' + encodeURIComponent(text);
 
@@ -916,6 +972,10 @@ define([
         };
 
         var handleAddClick = function() {
+            if (!state.loaded && !state.loading) {
+                loadNotes();
+            }
+
             var note = createDraftNote();
             prependNote(note);
 
@@ -1313,6 +1373,8 @@ define([
                     Boolean(config.enable_screenshots) : false,
                 maxFiles: config.hasOwnProperty('max_files_per_note') ? Number(config.max_files_per_note) : 0,
                 maxBytes: config.hasOwnProperty('max_bytes') ? Number(config.max_bytes) : 0,
+                loaded: false,
+                loading: false,
                 notes: [],
                 timers: {},
                 strings: {
@@ -1325,7 +1387,8 @@ define([
                     locationlabel: rootEl.getAttribute('data-locationlabel'),
                     highlightlabel: rootEl.getAttribute('data-highlightlabel'),
                     deleteconfirm: rootEl.getAttribute('data-deleteconfirm'),
-                    noresultstext: rootEl.getAttribute('data-noresultstext')
+                    noresultstext: rootEl.getAttribute('data-noresultstext'),
+                    loadingtext: rootEl.getAttribute('data-loadingtext')
                 }
             };
 
@@ -1333,7 +1396,6 @@ define([
             state.highlightselectiontext = '';
 
             bindEvents();
-            loadNotes();
         },
 
         initIframe: function(config) {
