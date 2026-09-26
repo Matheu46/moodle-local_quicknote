@@ -60,4 +60,34 @@ class util {
 
         return $course;
     }
+
+    /**
+     * Sanitizes and validates a URL allowing complex fragments (e.g. H5P/Text fragments)
+     * while strictly blocking dangerous schemes like javascript:, data:, etc.
+     *
+     * @param string|null $url The raw URL to sanitize.
+     * @return string|null Clean URL or null if invalid/dangerous.
+     */
+    public static function clean_url(?string $url): ?string {
+        if ($url === null) {
+            return null;
+        }
+
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
+
+        // Only permit http, https, or relative fragment anchors.
+        if (!preg_match('/^(https?:\/\/|#)/i', $url)) {
+            return null;
+        }
+
+        // Reject control characters or newlines that could bypass protocol checks.
+        if (preg_match('/[\x00-\x1F\x7F]/', $url)) {
+            return null;
+        }
+
+        return $url;
+    }
 }
