@@ -161,9 +161,9 @@ foreach ($noterecords as $record) {
         'coursefullname' => $coursefullname,
         'content' => $record->content,
         'timeupdated' => userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig')),
-        'url' => !empty(clean_param($record->url, PARAM_URL)) ? (new moodle_url($record->url))->out(false) : null,
+        'url' => \local_quicknote\util::clean_url($record->url),
         'quote' => !empty($record->quote) ? $record->quote : null,
-        'quoteurl' => !empty(clean_param($record->quoteurl, PARAM_URL)) ? (new moodle_url($record->quoteurl))->out(false) : null,
+        'quoteurl' => \local_quicknote\util::clean_url($record->quoteurl),
         'screenshots' => \local_quicknote\local\screenshot_manager::get_for_note((int) $record->id),
     ];
 }
