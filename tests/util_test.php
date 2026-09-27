@@ -82,4 +82,29 @@ final class util_test extends advanced_testcase {
         $validatedcourse = \local_quicknote\util::validate_note_access($course->id);
         $this->assertEquals($course->id, $validatedcourse->id);
     }
+
+    public function test_clean_url(): void {
+        // Valid simple URLs.
+        $this->assertEquals('http://example.com', \local_quicknote\util::clean_url('http://example.com'));
+        $this->assertEquals('https://example.com/path', \local_quicknote\util::clean_url('https://example.com/path'));
+        $this->assertEquals('#section2', \local_quicknote\util::clean_url('#section2'));
+
+        // Complex fragment URLs (H5P style).
+        $complex = 'http://localhost:8000/mod/h5pactivity/view.php?id=10#h5pbookid=2&section=top#:~:text=teste';
+        $this->assertEquals($complex, \local_quicknote\util::clean_url($complex));
+
+        // Invalid or dangerous schemes should be blocked.
+        $this->assertNull(\local_quicknote\util::clean_url('javascript:alert(1)'));
+        $this->assertNull(\local_quicknote\util::clean_url('data:text/html,<script>alert(1)</script>'));
+        $this->assertNull(\local_quicknote\util::clean_url('vbscript:msgbox(1)'));
+
+        // Null and empty URLs.
+        $this->assertNull(\local_quicknote\util::clean_url(null));
+        $this->assertNull(\local_quicknote\util::clean_url('   '));
+        $this->assertNull(\local_quicknote\util::clean_url(''));
+
+        // Control characters injection should be blocked.
+        $this->assertNull(\local_quicknote\util::clean_url("https://example.com\r\njavascript:alert(1)"));
+        $this->assertNull(\local_quicknote\util::clean_url("javascript\x00:alert(1)"));
+    }
 }

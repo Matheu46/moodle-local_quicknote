@@ -260,7 +260,11 @@ define([
 
         locationEl.textContent = state.strings.locationlabel + ': ';
         var a = document.createElement('a');
-        a.setAttribute('href', url);
+        var safeHref = '#';
+        if (url && /^(https?:\/\/|#)/i.test(url)) {
+            safeHref = url;
+        }
+        a.setAttribute('href', safeHref);
         a.textContent = url;
         locationEl.appendChild(a);
     };

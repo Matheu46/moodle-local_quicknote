@@ -99,6 +99,91 @@ final class externallib_test extends advanced_testcase {
         save_note::execute($noteid, $course2->id, 'Update in wrong course', 'https://example.com');
     }
 
+    public function test_save_and_get_note_with_complex_fragment_url(): void {
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        // URL with multiple fragments (typical for H5P Interactive Book + Text Fragments).
+        $complexurl = 'http://example.com/mod/h5pactivity/view.php?id=10#h5pbookid=2&section=top';
+        $quoteurl = $complexurl . '&chapter=123#:~:text=trecho%20selecionado';
+        $quotetext = '"trecho selecionado"';
+
+        // 1. Save note with complex URL.
+        $result = save_note::execute(
+            0,
+            $course->id,
+            'Anotação sobre H5P',
+            $complexurl,
+            $quotetext,
+            $quoteurl
+        );
+        $result = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $result);
+
+        $this->assertEquals($quoteurl, $result['quoteurl']);
+        $this->assertEquals($complexurl, $result['url']);
+        $this->assertTrue($result['hasquote']);
+
+        // 2. Retrieve via get_notes and verify it is not purged.
+        $notes = get_notes::execute($course->id);
+        $notes = \core_external\external_api::clean_returnvalue(get_notes::execute_returns(), $notes);
+
+        $this->assertCount(1, $notes);
+        $this->assertEquals($quoteurl, $notes[0]['quoteurl']);
+        $this->assertEquals($complexurl, $notes[0]['url']);
+    }
+
+    public function test_save_and_get_note_rejects_javascript_url(): void {
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        // Attempting to save note with javascript scheme in URL should throw invalid parameter exception.
+        $this->expectException(\invalid_parameter_exception::class);
+        $this->expectExceptionMessage('Invalid URL scheme provided.');
+
+        save_note::execute(
+            0,
+            $course->id,
+            'Malicious note',
+            'javascript:alert(1)',
+            null,
+            null
+        );
+    }
+
+    public function test_save_and_get_note_rejects_javascript_quoteurl(): void {
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        // Attempting to save note with valid url but malicious quoteurl.
+        $result = save_note::execute(
+            0,
+            $course->id,
+            'Malicious quoteurl note',
+            'https://example.com',
+            'Some quote',
+            'javascript:alert(1)'
+        );
+        $result = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $result);
+
+        // The quoteurl should be nullified by the API rather than returning javascript:alert(1).
+        $this->assertEquals('', $result['quoteurl']);
+    }
+
     public function test_get_notes(): void {
         $this->resetAfterTest();
 
