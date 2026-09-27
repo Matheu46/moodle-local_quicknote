@@ -50,6 +50,21 @@ define(['core/ajax'], function(Ajax) {
         },
 
         /**
+         * Delete multiple notes.
+         *
+         * @param {Array} noteIds Array of note IDs to delete.
+         * @return {Promise}
+         */
+        deleteNotes: function(noteIds) {
+            return Ajax.call([{
+                methodname: 'local_quicknote_delete_notes',
+                args: {
+                    noteids: noteIds
+                }
+            }])[0];
+        },
+
+        /**
          * Get all notes for the current user in a specific course.
          *
          * @param {Number} courseId The course ID.

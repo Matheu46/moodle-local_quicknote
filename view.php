@@ -32,6 +32,7 @@ $context = context_system::instance();
 $coursefilter = optional_param('coursefilter', 0, PARAM_INT);
 $searchterm = optional_param('searchterm', '', PARAM_TEXT);
 $export = optional_param('export', '', PARAM_ALPHA);
+$noteids = optional_param_array('noteids', [], PARAM_INT);
 $page = optional_param('page', 0, PARAM_INT);
 $perpage = get_config('local_quicknote', 'perpage');
 if ($perpage === false) {
@@ -106,6 +107,12 @@ if ($searchterm !== '') {
 
     $params['searchcontent'] = '%' . $DB->sql_like_escape($searchterm) . '%';
     $params['searchquote'] = '%' . $DB->sql_like_escape($searchterm) . '%';
+}
+
+if (!empty($noteids)) {
+    [$insql, $inparams] = $DB->get_in_or_equal($noteids, SQL_PARAMS_NAMED, 'nid');
+    $sqlfrom .= " AND qn.id $insql";
+    $params = array_merge($params, $inparams);
 }
 
 $sqlorder = " ORDER BY qn.timemodified DESC";

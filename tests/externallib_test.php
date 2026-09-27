@@ -17,6 +17,7 @@
 namespace local_quicknote;
 
 use advanced_testcase;
+use local_quicknote\external\delete_notes;
 use local_quicknote\external\save_note;
 use local_quicknote\external\get_notes;
 use local_quicknote\external\delete_note;
@@ -278,6 +279,45 @@ final class externallib_test extends advanced_testcase {
             'itemid' => $noteid,
         ]);
         $this->assertEquals(0, $filescountafter);
+    }
+
+
+    public function test_delete_notes(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user1 = $generator->create_user();
+        $user2 = $generator->create_user();
+
+        $generator->enrol_user($user1->id, $course->id, 'student');
+        $generator->enrol_user($user2->id, $course->id, 'student');
+
+        $this->setUser($user1);
+        $res1 = save_note::execute(0, $course->id, 'Note 1', 'https://example.com/1', null, null);
+        $res2 = save_note::execute(0, $course->id, 'Note 2', 'https://example.com/2', null, null);
+        $res3 = save_note::execute(0, $course->id, 'Note 3', 'https://example.com/3', null, null);
+
+        $this->setUser($user2);
+        $res4 = save_note::execute(0, $course->id, 'Note 4', 'https://example.com/4', null, null);
+
+        $noteids = [$res1['id'], $res2['id'], $res4['id']];
+
+        $this->setUser($user1);
+        $deleteresult = delete_notes::execute($noteids);
+        $deleteresult = \core_external\external_api::clean_returnvalue(delete_notes::execute_returns(), $deleteresult);
+
+        $this->assertTrue($deleteresult['success']);
+        $this->assertCount(2, $deleteresult['deletedids']);
+        $this->assertContains($res1['id'], $deleteresult['deletedids']);
+        $this->assertContains($res2['id'], $deleteresult['deletedids']);
+        $this->assertNotContains($res4['id'], $deleteresult['deletedids']);
+
+        $this->assertFalse($DB->record_exists('local_quicknote_notes', ['id' => $res1['id']]));
+        $this->assertFalse($DB->record_exists('local_quicknote_notes', ['id' => $res2['id']]));
+        $this->assertTrue($DB->record_exists('local_quicknote_notes', ['id' => $res3['id']]));
+        $this->assertTrue($DB->record_exists('local_quicknote_notes', ['id' => $res4['id']]));
     }
 
     public function test_disabled_course(): void {

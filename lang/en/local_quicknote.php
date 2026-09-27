@@ -26,6 +26,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['allcourses'] = 'All courses';
+$string['bulkdelete_success'] = '{$a} notes deleted successfully.';
+$string['bulkdeleteconfirm'] = 'Are you sure you want to delete the {$a} selected notes? This action cannot be undone.';
+$string['closebulkactions'] = 'Close bulk actions';
 $string['config:active_course'] = 'Activate QuickNote in this course';
 $string['default_enabled'] = 'Enabled by default';
 $string['default_enabled_desc'] = 'Defines whether the notes icon will be active by default in courses that have not yet been manually configured.';
@@ -96,6 +99,7 @@ $string['search:noresultstext'] = 'No notes found matching your search.';
 $string['search:placeholder'] = 'Search in my notes...';
 $string['search:results'] = 'Search complete. {$a} notes found on this page.';
 $string['select:highlightlabel'] = 'Save selection as note';
+$string['selectnote'] = 'Select note';
 $string['setting:disabled_pagetypes'] = 'Disabled page types';
 $string['setting:disabled_pagetypes_desc'] = 'List of page type patterns where QuickNote is disabled by default. One pattern per line. Use * as wildcard (e.g. mod-quiz-*). Teachers can override per activity.';
 $string['sidebar:close'] = 'Close notes';
