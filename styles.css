@@ -547,9 +547,9 @@
 }
 
 /* Bulk actions */
-.local-quicknote-center__card--selected {
-    border-color: var(--bs-primary) !important;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25) !important;
+.card.local-quicknote-center__card--selected {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
 }
 
 .local-quicknote-bulk-bar {
@@ -558,7 +558,7 @@
     left: 0;
     right: 0;
     z-index: 1040;
-    background: var(--bs-body-bg, #ffffff);
+    background: var(--bs-body-bg, #fff);
     border-top: 1px solid var(--bs-border-color, #dee2e6);
     padding: 0.75rem 1.5rem;
     transition: transform 0.3s ease, opacity 0.3s ease;
