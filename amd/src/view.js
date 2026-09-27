@@ -94,7 +94,6 @@ define([
                 var count = selectedNoteIds.size;
                 var bulkCount = document.getElementById('quicknote-bulk-count');
                 if (bulkCount) {
-                    // eslint-disable-next-line promise/no-nesting
                     Str.get_string('bulkselection', 'core', count).then(function(str) {
                         bulkCount.textContent = str;
                         return null;
