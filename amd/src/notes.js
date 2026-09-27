@@ -537,7 +537,7 @@ define([
     var renderLoadingState = function() {
         var loadingText = state.strings.loadingtext || 'Loading...';
         getList().innerHTML = '<div class="local-quicknote__loading text-center p-3 text-muted">' +
-            '<i class="fa fa-circle-o-notch fa-spin fa-fw mr-1" aria-hidden="true"></i> ' +
+            '<i class="fa fa-circle-o-notch fa-spin fa-fw me-1" aria-hidden="true"></i> ' +
             escapeHtml(loadingText) + '</div>';
     };
 
