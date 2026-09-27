@@ -52,6 +52,15 @@ $functions = [
         'loginrequired' => true,
         'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_quicknote_delete_notes' => [
+        'classname' => 'local_quicknote\\external\\delete_notes',
+        'methodname' => 'execute',
+        'description' => 'Delete multiple private quick notes owned by the current user.',
+        'type' => 'write',
+        'ajax' => true,
+        'loginrequired' => true,
+        'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_quicknote_upload_screenshot' => [
         'classname' => 'local_quicknote\\external\\upload_screenshot',
         'methodname' => 'execute',

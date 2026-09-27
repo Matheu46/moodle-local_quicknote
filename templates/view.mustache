@@ -87,14 +87,19 @@
             </div>
         </form>
 
-        <div class="mt-3 text-end" data-region="quicknote-exports">
+        <div class="w-100 mt-3 d-flex flex-wrap justify-content-between align-items-center gap-2" data-region="quicknote-exports">
             {{#hasnotes}}
-            <a href="{{config.wwwroot}}/local/quicknote/view.php?export=md&amp;coursefilter={{coursefilter}}&amp;searchterm={{searchterm}}" class="btn btn-outline-secondary text-nowrap me-2">
-                <i class="fa fa-file-text-o me-1" aria-hidden="true"></i>{{exportmd}}
-            </a>
-            <a href="{{config.wwwroot}}/local/quicknote/view.php?export=pdf&amp;coursefilter={{coursefilter}}&amp;searchterm={{searchterm}}" class="btn btn-secondary text-nowrap">
-                <i class="fa fa-file-pdf-o me-1" aria-hidden="true"></i>{{exportpdf}}
-            </a>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{config.wwwroot}}/local/quicknote/view.php?export=md&amp;coursefilter={{coursefilter}}&amp;searchterm={{searchterm}}" class="btn btn-outline-secondary text-nowrap">
+                    <i class="fa fa-file-text-o me-1" aria-hidden="true"></i>{{exportmd}}
+                </a>
+                <a href="{{config.wwwroot}}/local/quicknote/view.php?export=pdf&amp;coursefilter={{coursefilter}}&amp;searchterm={{searchterm}}" class="btn btn-secondary text-nowrap">
+                    <i class="fa fa-file-pdf-o me-1" aria-hidden="true"></i>{{exportpdf}}
+                </a>
+            </div>
+            <button type="button" class="btn btn-link text-nowrap" id="toggle-bulk-actions">
+                <i class="fa fa-tasks me-1" aria-hidden="true"></i>{{#str}} bulkactions, core {{/str}}
+            </button>
             {{/hasnotes}}
         </div>
     </div>
@@ -103,8 +108,11 @@
         {{#notes}}
         <div class="col-12 col-md-6 col-xl-4 mb-4">
             <div class="card h-100 shadow-sm">
-                <div class="card-header bg-light border-bottom-0 text-truncate fw-bold" title="{{coursefullname}}">
-                    {{coursefullname}}
+                <div class="card-header bg-light border-bottom-0 d-flex align-items-center fw-bold">
+                    <div class="form-check local-quicknote-bulk-check me-2 d-none mb-0">
+                        <input type="checkbox" class="form-check-input local-quicknote-card-select" data-id="{{id}}" aria-label="{{#str}} selectnote, local_quicknote {{/str}}">
+                    </div>
+                    <span class="text-truncate" title="{{coursefullname}}">{{coursefullname}}</span>
                 </div>
                 <div class="card-body local-quicknote-center__card-body">
                     {{#quote}}
@@ -172,6 +180,32 @@
         {{#pagingbar}}
         {{{pagingbar}}}
         {{/pagingbar}}
+    </div>
+</div>
+
+<div class="local-quicknote-bulk-bar d-none shadow" id="quicknote-bulk-bar">
+    <div class="container-fluid d-flex flex-nowrap justify-content-between align-items-center">
+        <div class="d-flex align-items-center text-nowrap">
+            <div class="form-check me-md-3 mb-0">
+                <input type="checkbox" class="form-check-input" id="quicknote-bulk-select-all" aria-label="{{#str}} selectall, core {{/str}}">
+                <label class="form-check-label d-none d-md-inline" for="quicknote-bulk-select-all">{{#str}} selectall, core {{/str}}</label>
+            </div>
+            <span class="badge bg-primary fs-6" id="quicknote-bulk-count">0</span>
+        </div>
+        <div class="d-flex align-items-center flex-nowrap gap-2">
+            <button type="button" class="btn btn-outline-secondary text-nowrap" id="quicknote-bulk-export-md" disabled title="{{exportmd}}" aria-label="{{exportmd}}">
+                <i class="fa fa-file-text-o m-0 me-md-1" aria-hidden="true"></i><span class="d-none d-md-inline">{{exportmd}}</span>
+            </button>
+            <button type="button" class="btn btn-secondary text-nowrap" id="quicknote-bulk-export-pdf" disabled title="{{exportpdf}}" aria-label="{{exportpdf}}">
+                <i class="fa fa-file-pdf-o m-0 me-md-1" aria-hidden="true"></i><span class="d-none d-md-inline">{{exportpdf}}</span>
+            </button>
+            <button type="button" class="btn btn-danger text-nowrap" id="quicknote-bulk-delete" disabled title="{{#str}} deleteselected, core {{/str}}" aria-label="{{#str}} deleteselected, core {{/str}}">
+                <i class="fa fa-trash-o m-0 me-md-1" aria-hidden="true"></i><span class="d-none d-md-inline">{{#str}} deleteselected, core {{/str}}</span>
+            </button>
+            <button type="button" class="btn btn-link text-decoration-none text-secondary ms-1 ms-md-2 p-1" id="quicknote-bulk-close" aria-label="{{#str}} closebulkactions, local_quicknote {{/str}}" title="{{#str}} closebulkactions, local_quicknote {{/str}}">
+                <i class="fa fa-times fa-lg m-0" aria-hidden="true"></i>
+            </button>
+        </div>
     </div>
 </div>
 
