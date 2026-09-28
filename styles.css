@@ -30,7 +30,7 @@
     height: 2.5rem;
     border: 0;
     border-radius: 999px;
-    background-color: var(--bs-primary, var(--primary));
+    background-color: var(--bs-primary);
     color: #fff;
     font-size: 1.25rem;
     line-height: 1;
@@ -60,7 +60,7 @@
     height: 3.5rem;
     border: 0;
     border-radius: 999px;
-    background: var(--bs-primary, var(--primary));
+    background: var(--bs-primary);
     color: #fff;
     font-size: 1.25rem;
     box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.2);
@@ -245,7 +245,7 @@
 .local-quicknote__quote {
     margin: 0 0 0.5rem;
     padding: 0.75rem 0.875rem;
-    border-left: 4px solid var(--bs-primary, var(--primary));
+    border-left: 4px solid var(--bs-primary);
     border-radius: 0 0.5rem 0.5rem 0;
     background-color: var(--bs-secondary-bg, rgba(0, 0, 0, 0.04));
     color: var(--bs-body-color, #314254);
@@ -254,7 +254,7 @@
 
 .local-quicknote__quote-link {
     font-size: 0.8rem;
-    color: var(--bs-primary, var(--primary));
+    color: var(--bs-primary);
     text-decoration: underline;
 }
 
