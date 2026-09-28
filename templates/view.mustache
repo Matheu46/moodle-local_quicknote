@@ -55,7 +55,7 @@
 }}
 
 <div class="local-quicknote-center">
-    <div id="quicknote-a11y-announcer" class="sr-only" aria-live="polite"></div>
+    <div id="quicknote-a11y-announcer" class="visually-hidden" aria-live="polite"></div>
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <form method="GET" action="{{config.wwwroot}}/local/quicknote/view.php" class="flex-grow-1">
             <div class="row align-items-center mb-0">
@@ -71,7 +71,7 @@
                 {{#hasnotestosearch}}
                 <div class="col-sm-12 col-md-6 col-lg-6">
                     <div class="input-group">
-                        <label class="sr-only" for="searchterm">{{searchnotes}}</label>
+                        <label class="visually-hidden" for="searchterm">{{searchnotes}}</label>
                         <div class="local-quicknote-center__search-wrapper">
                             <input type="text" name="searchterm" id="searchterm" class="form-control local-quicknote-center__search-input" placeholder="{{searchnotes}}" value="{{searchterm}}">
                             <button type="button" class="btn btn-sm btn-link local-quicknote-center__search-clear" id="clearsearch" title="{{#str}} search:clear, local_quicknote {{/str}}" aria-label="{{#str}} search:clear, local_quicknote {{/str}}" {{^searchterm}}hidden{{/searchterm}}>
@@ -152,7 +152,7 @@
                 <div class="card-footer bg-light border-top-0 d-flex justify-content-between align-items-center">
                     <span class="text-muted small">
                         <i class="fa fa-clock-o me-1" aria-hidden="true"></i>
-                        <span class="sr-only">{{#str}} lastmodified, core {{/str}}:</span>
+                        <span class="visually-hidden">{{#str}} lastmodified, core {{/str}}:</span>
                         {{timeupdated}}
                     </span>
                     <button type="button" class="btn btn-sm btn-link text-danger local-quicknote-delete-btn" data-action="delete" data-id="{{id}}" title="{{#str}} note:delete, local_quicknote {{/str}}">

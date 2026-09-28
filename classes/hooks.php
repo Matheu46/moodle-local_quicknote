@@ -38,7 +38,7 @@ class hooks {
      * @param \core_course\hook\after_form_definition $hook The hook object.
      */
     public static function course_edit_form(\core_course\hook\after_form_definition $hook) {
-        $mform = method_exists($hook, 'get_mform') ? $hook->get_mform() : $hook->mform;
+        $mform = $hook->mform;
 
         $cmid = optional_param('update', 0, PARAM_INT);
 
