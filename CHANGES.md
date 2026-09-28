@@ -1,5 +1,38 @@
 # Moodle plugin: local_quicknote
 
+## v0.12.0 (2026-09-28)
+
+- **Bulk Actions in Notes Center**:
+  - Added multi-select capabilities with individual card checkboxes and "Select all" / "Deselect all" controls.
+  - Implemented an atomic bulk deletion external API (`delete_notes`) with a confirmation modal and automatic screenshot cleanup.
+  - Added support for bulk exporting selected notes to PDF and Markdown.
+  - Maintained selection state across AJAX pagination and searches using a JavaScript `Set`.
+  - Added a responsive bulk actions toolbar with selected items count and mobile-optimized layout.
+- **General Notes (Dashboard & Front Page)**:
+  - Added support for creating and viewing general notes on the Dashboard (`/my/`) and Front Page (`courseid = 0`).
+  - Added an administrative setting (`enable_dashboard` and `enable_frontpage`) to control QuickNote availability on the Dashboard and Front page.
+  - Refactored note access validation (`util::validate_note_access`) to handle system context and courses consistently.
+  - Added "General notes" option in Notes Center filters and export routines.
+- **UI/UX & Theming**:
+  - Dynamically adjusted the floating toggle button's vertical position when Moodle's sticky footer is active (`.hasstickyfooter`), preventing it from overlapping bottom action bars.
+  - Modernized sidebar and note component styles with standard Bootstrap 5 CSS variables (`--bs-body-bg`, `--bs-border-color`, `--bs-tertiary-bg`, etc.) for consistent theming and dark mode support.
+- **Performance & Lazy Loading**:
+  - Implemented lazy loading for the sidebar: user notes are now fetched via AJAX only when the drawer is first opened, speeding up initial page loads.
+  - Added loading indicator state with draft preservation and auto-focus restoration upon fetch completion.
+- **Text Highlighting in Same-Origin Iframes (H5P)**:
+  - Added support for detecting text selections and triggering highlight notes inside same-origin iframes, particularly for `mod_hvp` (H5P) activities.
+  - Implemented a `MutationObserver` to watch and attach listeners dynamically to newly injected iframes.
+  - Added smart button offset positioning relative to the iframe window and viewport.
+- **Security & URL Validation**:
+  - Introduced `util::clean_url()` to strictly sanitize and validate note URLs, blocking dangerous URI schemes (e.g. `javascript:`, `data:`).
+  - Improved handling for complex URLs with multiple hash fragments (common in interactive modules and SPAs).
+  - Applied URL sanitization across note saving (`save_note`), PDF/Markdown exports (`exporter`), and Notes Center rendering.
+- **Moodle 5.x Modernization & Code Cleanup**:
+  - Removed legacy callback `local_quicknote_before_standard_top_of_body_html` in favor of the Moodle 4.4+ / 5.x Hooks API (`before_standard_top_of_body_html_generation`).
+  - Removed deprecated `\core\event\course_updated` observer and simplified form hooks to use direct `$hook->mform` property access.
+  - Replaced legacy Bootstrap 4 accessibility class `sr-only` with Bootstrap 5 `visually-hidden`.
+  - Updated theme styles to use native `--bs-primary` CSS variables, removing obsolete Bootstrap 4 fallbacks.
+
 ## 0.11.0 (2026-09-12)
 *Screenshot functionality co-authored and ported with contributions by Andreas Giesen (@108design).*
 
