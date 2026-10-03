@@ -977,6 +977,19 @@ define([
             }
         });
 
+        document.addEventListener('keydown', function(e) {
+            if (e.target.closest('input, textarea, select, [contenteditable="true"]') || e.target.isContentEditable) {
+                return;
+            }
+            if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'q') {
+                e.preventDefault();
+                if (!state.root.classList.contains('is-open')) {
+                    setOpenState(true);
+                }
+                handleAddClick();
+            }
+        });
+
         var handleToggleClick = function() {
             setOpenState(!state.root.classList.contains('is-open'));
         };
