@@ -55,8 +55,9 @@
             type="button"
             class="local-quicknote__fab-add"
             data-action="add-and-open"
-            title="{{addlabel}}"
-            aria-label="{{addlabel}}"
+            title="{{addlabel}} (Alt + Q)"
+            aria-label="{{addlabel}} (Alt + Q)"
+            aria-keyshortcuts="Alt+Q"
         >
             <i class="fa fa-plus" aria-hidden="true"></i>
         </button>
@@ -173,7 +174,7 @@
         </template>
 
         <div class="local-quicknote__footer mt-auto p-3 pb-0 border-top d-flex flex-column align-items-center">
-            <button type="button" class="btn btn-primary mb-2" data-action="add">
+            <button type="button" class="btn btn-primary mb-2" data-action="add" title="{{addlabel}} (Alt + Q)" aria-keyshortcuts="Alt+Q">
                 {{addlabel}}
             </button>
             <a href="{{config.wwwroot}}/local/quicknote/view.php" class="btn btn-link">

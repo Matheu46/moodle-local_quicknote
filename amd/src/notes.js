@@ -1011,6 +1011,10 @@ define([
             if (textarea) {
                 textarea.focus();
             }
+            var list = state.root.querySelector(SELECTORS.list);
+            if (list) {
+                list.scrollTop = 0;
+            }
         };
 
         var handleCopyClick = function(e, copyBtn) {
