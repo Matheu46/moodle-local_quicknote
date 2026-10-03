@@ -1,5 +1,47 @@
 # Moodle plugin: local_quicknote
 
+## v45-0.12.0 (2026-10-03)
+
+- **Bulk Actions in Notes Center**:
+  - Added multi-select capabilities with individual card checkboxes and "Select all" / "Deselect all" controls.
+  - Implemented an atomic bulk deletion external API (`delete_notes`) with a confirmation modal and automatic screenshot cleanup.
+  - Added support for bulk exporting selected notes to PDF and Markdown.
+  - Maintained selection state across AJAX pagination and searches using a JavaScript `Set`.
+  - Added a responsive bulk actions toolbar with selected items count and mobile-optimized layout.
+- **General Notes (Dashboard & Front Page)**:
+  - Added support for creating and viewing general notes on the Dashboard (`/my/`) and Front Page (`courseid = 0`).
+  - Added an administrative setting (`enable_dashboard` and `enable_frontpage`) to control QuickNote availability on the Dashboard and Front page.
+  - Refactored note access validation (`util::validate_note_access`) to handle system context and courses consistently.
+  - Added "General notes" option in Notes Center filters and export routines.
+- **UI/UX & Theming**:
+  - Dynamically adjusted the floating toggle button's vertical position when Moodle's sticky footer is active (`.hasstickyfooter`), preventing it from overlapping bottom action bars.
+  - Migrated core language strings to reduce plugin footprint (`bulkactions`, `selectall`, `search`).
+- **Performance & Lazy Loading**:
+  - Implemented lazy loading for the sidebar: user notes are now fetched via AJAX only when the drawer is first opened, speeding up initial page loads.
+  - Added loading indicator state with draft preservation and auto-focus restoration upon fetch completion.
+- **Text Highlighting in Same-Origin Iframes (H5P)**:
+  - Added support for detecting text selections and triggering highlight notes inside same-origin iframes, particularly for `mod_hvp` (H5P) activities.
+  - Implemented a `MutationObserver` to watch and attach listeners dynamically to newly injected iframes.
+  - Added smart button offset positioning relative to the iframe window and viewport.
+- **Security & URL Validation**:
+  - Introduced `util::clean_url()` to strictly sanitize and validate note URLs, blocking dangerous URI schemes (e.g. `javascript:`, `data:`).
+  - Improved handling for complex URLs with multiple hash fragments (common in interactive modules and SPAs).
+  - Applied URL sanitization across note saving (`save_note`), PDF/Markdown exports (`exporter`), and Notes Center rendering.
+
+## m45-0.11.0 (2026-09-12)
+*Screenshot functionality co-authored and ported with contributions by Andreas Giesen (@108design).*
+
+- **Screenshots & Lightbox Gallery**:
+  - Added support for pasting screenshots directly into notes from the clipboard (`Ctrl+V` / `Cmd+V`).
+  - Implemented client-side automatic image compression (`compressImage`) to optimize file dimensions (up to 1920x1080) and convert to WebP (with JPEG fallback) prior to upload.
+  - Built an accessible Lightbox gallery module with previous/next navigation, keyboard arrow controls, image download, and mobile-friendly touch targets.
+  - Created external APIs (`upload_screenshot`, `delete_screenshot`) with private pluginfile serving and automatic file cleanup on note deletion.
+  - Added administrative settings to enable/disable screenshot attachments globally, configure maximum allowed upload size (`max_bytes`), and limit maximum screenshots per note (`max_files_per_note`).
+  - Added the `local/quicknote:uploadscreenshot` capability (`CONTEXT_COURSE`) for granular role-based access control.
+- **UI/UX & Accessibility**:
+  - Added a search icon inside the sidebar search input that dynamically toggles with the clear search button when typing.
+  - Simplified search button markup in the Notes Center (`view.mustache`), converting it to a concise icon-only button.
+
 ## 0.10.0 (2026-08-30)
 *Major contributions and features in this release were ported from a downstream fork by Andreas Giesen (@108design).*
 
