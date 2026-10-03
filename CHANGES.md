@@ -1,5 +1,13 @@
 # Moodle plugin: local_quicknote
 
+## [Unreleased] (v0.13.0)
+
+- **UI/UX & Fast Note Creation**:
+  - Introduced a bookmark-style "Speed Dial" tab above the main floating button (visible on hover) to create notes with a single click.
+  - Relocated the "Add note" primary action in the sidebar to the bottom footer, reducing cursor travel distance (Fitts's Law) and preventing accidental clicks.
+  - Added a global keyboard shortcut (`Alt + Q` or `Alt + Shift + Q`) to instantly open the sidebar and focus on a new note, explicitly ignoring inputs to avoid conflicts.
+  - Added tooltip hints and accessibility attributes (`aria-keyshortcuts`) communicating the shortcut to users.
+
 ## v0.12.0 (2026-09-28)
 
 - **Bulk Actions in Notes Center**:
