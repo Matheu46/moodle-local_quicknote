@@ -97,11 +97,6 @@
             </button>
         </div>
 
-        <div class="local-quicknote__toolbar">
-            <button type="button" class="btn btn-primary" data-action="add">
-                {{addlabel}}
-            </button>
-        </div>
 
         <div class="local-quicknote__search position-relative">
             <label class="visually-hidden" for="local-quicknote-search">{{#str}} search:placeholder, local_quicknote {{/str}}</label>
@@ -177,7 +172,10 @@
             </article>
         </template>
 
-        <div class="local-quicknote__footer mt-3 pt-3 border-top text-center">
+        <div class="local-quicknote__footer mt-auto p-3 pb-0 border-top d-flex flex-column align-items-center">
+            <button type="button" class="btn btn-primary mb-2" data-action="add">
+                {{addlabel}}
+            </button>
             <a href="{{config.wwwroot}}/local/quicknote/view.php" class="btn btn-link">
                 {{#str}} viewnotescenter, local_quicknote {{/str}}
             </a>
