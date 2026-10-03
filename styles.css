@@ -84,7 +84,7 @@
 
 .local-quicknote__fab-add {
     position: absolute;
-    bottom: 1.5rem;
+    bottom: 1rem;
     z-index: 1;
     display: inline-flex;
     align-items: flex-start;
@@ -92,7 +92,7 @@
     padding-top: 0.65rem;
     padding-inline: 1.5rem;
     width: 2.75rem;
-    height: 3rem;
+    height: 3.5rem;
     border: 0;
     border-radius: 12px 12px 0 0;
     background: var(--bs-body-bg, #fff);
@@ -102,7 +102,7 @@
     transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(1.5rem);
+    transform: translateY(1.7rem);
 }
 
 .local-quicknote__fab-add:hover,
@@ -114,7 +114,7 @@
 .local-quicknote:not(.is-open) .local-quicknote__fab-wrapper:focus-within .local-quicknote__fab-add {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(-2rem);
+    transform: translateY(-1rem);
 }
 
 .hasstickyfooter .local-quicknote__fab-wrapper {
