@@ -50,22 +50,34 @@
     data-uploadingtext="{{#str}} screenshot:uploading, local_quicknote {{/str}}"
     data-loadingtext="{{#str}} loading, core {{/str}}"
 >
-    <button
-        type="button"
-        class="local-quicknote__toggle"
-        data-action="toggle"
-        aria-controls="local-quicknote-panel"
-        aria-expanded="false"
-        title="{{togglelabel}}"
-        aria-label="{{togglelabel}}"
-    >
-        <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--edit">
-            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-        </span>
-        <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--close">
-            {{#pix}} e/cancel, core {{/pix}}
-        </span>
-    </button>
+    <div class="local-quicknote__fab-wrapper">
+        <button
+            type="button"
+            class="local-quicknote__fab-add"
+            data-action="add-and-open"
+            title="{{addlabel}}"
+            aria-label="{{addlabel}}"
+        >
+            <i class="fa fa-plus" aria-hidden="true"></i>
+        </button>
+
+        <button
+            type="button"
+            class="local-quicknote__toggle"
+            data-action="toggle"
+            aria-controls="local-quicknote-panel"
+            aria-expanded="false"
+            title="{{togglelabel}}"
+            aria-label="{{togglelabel}}"
+        >
+            <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--edit">
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+            </span>
+            <span class="local-quicknote__toggle-icon local-quicknote__toggle-icon--close">
+                {{#pix}} e/cancel, core {{/pix}}
+            </span>
+        </button>
+    </div>
 
     <aside
         id="local-quicknote-panel"

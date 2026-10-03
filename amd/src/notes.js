@@ -1170,6 +1170,15 @@ define([
                 return;
             }
 
+            var addAndOpenBtn = e.target.closest('[data-action="add-and-open"]');
+            if (addAndOpenBtn) {
+                if (!state.root.classList.contains('is-open')) {
+                    handleToggleClick();
+                }
+                handleAddClick();
+                return;
+            }
+
             var addBtn = e.target.closest(SELECTORS.add);
             if (addBtn) {
                 handleAddClick();
