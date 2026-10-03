@@ -977,6 +977,19 @@ define([
             }
         });
 
+        document.addEventListener('keydown', function(e) {
+            if (e.target.closest('input, textarea, select, [contenteditable="true"]') || e.target.isContentEditable) {
+                return;
+            }
+            if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'q') {
+                e.preventDefault();
+                if (!state.root.classList.contains('is-open')) {
+                    setOpenState(true);
+                }
+                handleAddClick();
+            }
+        });
+
         var handleToggleClick = function() {
             setOpenState(!state.root.classList.contains('is-open'));
         };
@@ -997,6 +1010,10 @@ define([
             var textarea = noteEl ? noteEl.querySelector(SELECTORS.textarea) : null;
             if (textarea) {
                 textarea.focus();
+            }
+            var list = state.root.querySelector(SELECTORS.list);
+            if (list) {
+                list.scrollTop = 0;
             }
         };
 
@@ -1167,6 +1184,15 @@ define([
             var closeBtn = e.target.closest(SELECTORS.close);
             if (closeBtn) {
                 handleCloseClick();
+                return;
+            }
+
+            var addAndOpenBtn = e.target.closest('[data-action="add-and-open"]');
+            if (addAndOpenBtn) {
+                if (!state.root.classList.contains('is-open')) {
+                    handleToggleClick();
+                }
+                handleAddClick();
                 return;
             }
 
