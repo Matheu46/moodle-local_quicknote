@@ -39,6 +39,7 @@ define([
             // Bulk actions state
             var bulkMode = false;
             var selectedNoteIds = new Set();
+            var lastCheckedCheckbox = null;
 
             var replaceRegion = function(nextDocument, selector) {
                 var currentRegion = document.querySelector(selector);
@@ -120,6 +121,7 @@ define([
             var toggleBulkMode = function() {
                 var bulkBar = document.getElementById('quicknote-bulk-bar');
                 bulkMode = !bulkMode;
+                lastCheckedCheckbox = null;
                 if (bulkBar) {
                     if (bulkMode) {
                         bulkBar.classList.remove('d-none');
@@ -232,6 +234,7 @@ define([
                     window.history.replaceState({}, '', url.toString());
 
                     updateBulkVisuals();
+                    lastCheckedCheckbox = null;
 
                     // Accessibility Announcement
                     var noteCount = document.querySelectorAll('[data-region="quicknote-results"] .card').length;
@@ -348,16 +351,43 @@ define([
                         }
                     });
                     updateBulkVisuals();
+                    lastCheckedCheckbox = null;
                 }
 
                 if (e.target.closest('.local-quicknote-card-select')) {
                     var cb = e.target.closest('.local-quicknote-card-select');
-                    var id = parseInt(cb.getAttribute('data-id'), 10);
-                    if (cb.checked) {
-                        selectedNoteIds.add(id);
+                    var allCheckboxes = Array.from(document.querySelectorAll('.local-quicknote-card-select'));
+
+                    if (e.shiftKey && lastCheckedCheckbox && lastCheckedCheckbox !== cb) {
+                        var start = allCheckboxes.indexOf(lastCheckedCheckbox);
+                        var end = allCheckboxes.indexOf(cb);
+
+                        if (start !== -1 && end !== -1) {
+                            var min = Math.min(start, end);
+                            var max = Math.max(start, end);
+                            var stateToApply = cb.checked;
+
+                            for (var i = min; i <= max; i++) {
+                                var rangeCb = allCheckboxes[i];
+                                rangeCb.checked = stateToApply;
+                                var rangeId = parseInt(rangeCb.getAttribute('data-id'), 10);
+                                if (stateToApply) {
+                                    selectedNoteIds.add(rangeId);
+                                } else {
+                                    selectedNoteIds.delete(rangeId);
+                                }
+                            }
+                        }
                     } else {
-                        selectedNoteIds.delete(id);
+                        var id = parseInt(cb.getAttribute('data-id'), 10);
+                        if (cb.checked) {
+                            selectedNoteIds.add(id);
+                        } else {
+                            selectedNoteIds.delete(id);
+                        }
                     }
+
+                    lastCheckedCheckbox = cb;
                     updateBulkVisuals();
                 }
 
