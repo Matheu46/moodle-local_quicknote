@@ -39,6 +39,7 @@ define([
             // Bulk actions state
             var bulkMode = false;
             var selectedNoteIds = new Set();
+            var lastCheckedCheckbox = null;
 
             var replaceRegion = function(nextDocument, selector) {
                 var currentRegion = document.querySelector(selector);
@@ -120,6 +121,7 @@ define([
             var toggleBulkMode = function() {
                 var bulkBar = document.getElementById('quicknote-bulk-bar');
                 bulkMode = !bulkMode;
+                lastCheckedCheckbox = null;
                 if (bulkBar) {
                     if (bulkMode) {
                         bulkBar.classList.remove('d-none');
@@ -232,6 +234,7 @@ define([
                     window.history.replaceState({}, '', url.toString());
 
                     updateBulkVisuals();
+                    lastCheckedCheckbox = null;
 
                     // Accessibility Announcement
                     var noteCount = document.querySelectorAll('[data-region="quicknote-results"] .card').length;
@@ -312,6 +315,167 @@ define([
                 });
             }
 
+            var handleSelectAll = function(e) {
+                var allCards = document.querySelectorAll('[data-region="quicknote-results"] .card');
+                var isChecked = e.target.closest('#quicknote-bulk-select-all').checked;
+                allCards.forEach(function(card) {
+                    var checkbox = card.querySelector('.local-quicknote-card-select');
+                    if (checkbox) {
+                        var id = parseInt(checkbox.getAttribute('data-id'), 10);
+                        if (isChecked) {
+                            selectedNoteIds.add(id);
+                        } else {
+                            selectedNoteIds.delete(id);
+                        }
+                    }
+                });
+                updateBulkVisuals();
+                lastCheckedCheckbox = null;
+            };
+
+            var handleCardSelect = function(e) {
+                var cb = e.target.closest('.local-quicknote-card-select');
+                var allCheckboxes = Array.from(document.querySelectorAll('.local-quicknote-card-select'));
+
+                if (e.shiftKey && lastCheckedCheckbox && lastCheckedCheckbox !== cb) {
+                    var start = allCheckboxes.indexOf(lastCheckedCheckbox);
+                    var end = allCheckboxes.indexOf(cb);
+
+                    if (start !== -1 && end !== -1) {
+                        var min = Math.min(start, end);
+                        var max = Math.max(start, end);
+                        var stateToApply = cb.checked;
+
+                        for (var i = min; i <= max; i++) {
+                            var rangeCb = allCheckboxes[i];
+                            rangeCb.checked = stateToApply;
+                            var rangeId = parseInt(rangeCb.getAttribute('data-id'), 10);
+                            if (stateToApply) {
+                                selectedNoteIds.add(rangeId);
+                            } else {
+                                selectedNoteIds.delete(rangeId);
+                            }
+                        }
+                    }
+                } else {
+                    var id = parseInt(cb.getAttribute('data-id'), 10);
+                    if (cb.checked) {
+                        selectedNoteIds.add(id);
+                    } else {
+                        selectedNoteIds.delete(id);
+                    }
+                }
+
+                lastCheckedCheckbox = cb;
+                updateBulkVisuals();
+            };
+
+            var handleBulkDelete = function() {
+                var count = selectedNoteIds.size;
+                if (count === 0) {
+                    return;
+                }
+
+                Str.get_strings([
+                    {key: 'confirm', component: 'core'},
+                    {key: 'bulkdeleteconfirm', component: 'local_quicknote'},
+                    {key: 'delete', component: 'core'},
+                    {key: 'cancel', component: 'core'}
+                ]).done(function(strings) {
+                    var confirmMsg = strings[1].replace('{$a}', count);
+                    Notification.confirm(
+                        strings[0],
+                        confirmMsg,
+                        strings[2],
+                        strings[3],
+                        function() {
+                            var idsArray = Array.from(selectedNoteIds);
+                            Repository.deleteNotes(idsArray).done(function() {
+                                selectedNoteIds.clear();
+                                submitSearch(true);
+
+                                Str.get_string('bulkdelete_success', 'local_quicknote', count).done(function(successMsg) {
+                                    Notification.addNotification({
+                                        message: successMsg,
+                                        type: 'success'
+                                    });
+                                }).fail(Notification.exception);
+                            }).fail(Notification.exception);
+                        }
+                    );
+                }).fail(Notification.exception);
+            };
+
+            var handleScreenshotLink = function(e, screenshotLink) {
+                e.preventDefault();
+                var container = screenshotLink.closest('[data-region="screenshots"]');
+                var allLinks = container ?
+                    Array.prototype.slice.call(container.querySelectorAll('.local-quicknote__screenshot a')) :
+                    [screenshotLink];
+                var gallery = allLinks.map(function(link) {
+                    var img = link.querySelector('img');
+                    return {src: link.href, alt: img ? img.alt : ''};
+                });
+                var currentIndex = allLinks.indexOf(screenshotLink);
+                Lightbox.show(gallery, Math.max(0, currentIndex));
+            };
+
+            var handleScreenshotDelete = function(e, deleteScreenshotBtn) {
+                e.preventDefault();
+                var fileId = deleteScreenshotBtn.getAttribute('data-fileid');
+                var noteCard = deleteScreenshotBtn.closest('.card');
+                var noteDeleteBtn = noteCard ? noteCard.querySelector('.local-quicknote-delete-btn') : null;
+                var screenshotNoteId = noteDeleteBtn ? noteDeleteBtn.getAttribute('data-id') : null;
+
+                if (screenshotNoteId && fileId) {
+                    Str.get_strings([
+                        {key: 'confirm', component: 'core'},
+                        {key: 'screenshot:delete', component: 'local_quicknote'},
+                        {key: 'delete', component: 'core'},
+                        {key: 'cancel', component: 'core'}
+                    ]).done(function(strings) {
+                        Notification.confirm(
+                            strings[0],
+                            strings[1],
+                            strings[2],
+                            strings[3],
+                            function() {
+                                Repository.deleteScreenshot(Number(screenshotNoteId), Number(fileId)).done(function() {
+                                    submitSearch(true);
+                                }).fail(Notification.exception);
+                            }
+                        );
+                    }).fail(Notification.exception);
+                }
+            };
+
+            var handleNoteDelete = function(e, deleteBtn) {
+                e.preventDefault();
+                var deleteNoteId = deleteBtn.getAttribute('data-id');
+
+                Str.get_strings([
+                    {key: 'confirm', component: 'core'},
+                    {key: 'note:delete_confirm', component: 'local_quicknote'},
+                    {key: 'delete', component: 'core'},
+                    {key: 'cancel', component: 'core'}
+                ]).done(function(strings) {
+                    Notification.confirm(
+                        strings[0],
+                        strings[1],
+                        strings[2],
+                        strings[3],
+                        function() {
+                            Repository.deleteNote(deleteNoteId).done(function() {
+                                if (selectedNoteIds.has(parseInt(deleteNoteId, 10))) {
+                                    selectedNoteIds.delete(parseInt(deleteNoteId, 10));
+                                }
+                                submitSearch(true);
+                            }).fail(Notification.exception);
+                        }
+                    );
+                }).fail(Notification.exception);
+            };
+
             // Handle delete buttons and lightbox.
             document.addEventListener('click', function(e) {
                 var paginationLink = e.target.closest('[data-region="quicknote-pagination"] a');
@@ -334,31 +498,11 @@ define([
                 }
 
                 if (e.target.closest('#quicknote-bulk-select-all')) {
-                    var allCards = document.querySelectorAll('[data-region="quicknote-results"] .card');
-                    var isChecked = e.target.closest('#quicknote-bulk-select-all').checked;
-                    allCards.forEach(function(card) {
-                        var checkbox = card.querySelector('.local-quicknote-card-select');
-                        if (checkbox) {
-                            var id = parseInt(checkbox.getAttribute('data-id'), 10);
-                            if (isChecked) {
-                                selectedNoteIds.add(id);
-                            } else {
-                                selectedNoteIds.delete(id);
-                            }
-                        }
-                    });
-                    updateBulkVisuals();
+                    handleSelectAll(e);
                 }
 
                 if (e.target.closest('.local-quicknote-card-select')) {
-                    var cb = e.target.closest('.local-quicknote-card-select');
-                    var id = parseInt(cb.getAttribute('data-id'), 10);
-                    if (cb.checked) {
-                        selectedNoteIds.add(id);
-                    } else {
-                        selectedNoteIds.delete(id);
-                    }
-                    updateBulkVisuals();
+                    handleCardSelect(e);
                 }
 
                 if (e.target.closest('#quicknote-bulk-export-md')) {
@@ -372,116 +516,25 @@ define([
                 }
 
                 if (e.target.closest('#quicknote-bulk-delete')) {
-                    var count = selectedNoteIds.size;
-                    if (count === 0) {
-                        return;
-                    }
-
-                    Str.get_strings([
-                        {key: 'confirm', component: 'core'},
-                        {key: 'bulkdeleteconfirm', component: 'local_quicknote'},
-                        {key: 'delete', component: 'core'},
-                        {key: 'cancel', component: 'core'}
-                    ]).done(function(strings) {
-                        var confirmMsg = strings[1].replace('{$a}', count);
-                        Notification.confirm(
-                            strings[0],
-                            confirmMsg,
-                            strings[2],
-                            strings[3],
-                            function() {
-                                var idsArray = Array.from(selectedNoteIds);
-                                Repository.deleteNotes(idsArray).done(function() {
-                                    selectedNoteIds.clear();
-                                    submitSearch(true);
-
-                                    Str.get_string('bulkdelete_success', 'local_quicknote', count).done(function(successMsg) {
-                                        Notification.addNotification({
-                                            message: successMsg,
-                                            type: 'success'
-                                        });
-                                    }).fail(Notification.exception);
-                                }).fail(Notification.exception);
-                            }
-                        );
-                    }).fail(Notification.exception);
+                    handleBulkDelete();
                     return;
                 }
 
                 var screenshotLink = e.target.closest('.local-quicknote__screenshot a');
                 if (screenshotLink) {
-                    e.preventDefault();
-                    var container = screenshotLink.closest('[data-region="screenshots"]');
-                    var allLinks = container ?
-                        Array.prototype.slice.call(container.querySelectorAll('.local-quicknote__screenshot a')) :
-                        [screenshotLink];
-                    var gallery = allLinks.map(function(link) {
-                        var img = link.querySelector('img');
-                        return {src: link.href, alt: img ? img.alt : ''};
-                    });
-                    var currentIndex = allLinks.indexOf(screenshotLink);
-                    Lightbox.show(gallery, Math.max(0, currentIndex));
+                    handleScreenshotLink(e, screenshotLink);
                     return;
                 }
 
                 var deleteScreenshotBtn = e.target.closest('[data-action="delete-screenshot"]');
                 if (deleteScreenshotBtn) {
-                    e.preventDefault();
-                    var fileId = deleteScreenshotBtn.getAttribute('data-fileid');
-                    var noteCard = deleteScreenshotBtn.closest('.card');
-                    var noteDeleteBtn = noteCard ? noteCard.querySelector('.local-quicknote-delete-btn') : null;
-                    var screenshotNoteId = noteDeleteBtn ? noteDeleteBtn.getAttribute('data-id') : null;
-
-                    if (screenshotNoteId && fileId) {
-                        Str.get_strings([
-                            {key: 'confirm', component: 'core'},
-                            {key: 'screenshot:delete', component: 'local_quicknote'},
-                            {key: 'delete', component: 'core'},
-                            {key: 'cancel', component: 'core'}
-                        ]).done(function(strings) {
-                            Notification.confirm(
-                                strings[0],
-                                strings[1],
-                                strings[2],
-                                strings[3],
-                                function() {
-                                    Repository.deleteScreenshot(Number(screenshotNoteId), Number(fileId)).done(function() {
-                                        submitSearch(true);
-                                    }).fail(Notification.exception);
-                                }
-                            );
-                        }).fail(Notification.exception);
-                    }
+                    handleScreenshotDelete(e, deleteScreenshotBtn);
                     return;
                 }
+
                 var deleteBtn = e.target.closest('.local-quicknote-delete-btn');
                 if (deleteBtn) {
-                    e.preventDefault();
-                    var deleteNoteId = deleteBtn.getAttribute('data-id');
-
-                    Str.get_strings([
-                        {key: 'confirm', component: 'core'},
-                        {key: 'note:delete_confirm', component: 'local_quicknote'},
-                        {key: 'delete', component: 'core'},
-                        {key: 'cancel', component: 'core'}
-                    ]).done(function(strings) {
-                        Notification.confirm(
-                            strings[0],
-                            strings[1],
-                            strings[2],
-                            strings[3],
-                            function() {
-                                Repository.deleteNote(deleteNoteId).done(function() {
-                                    // Refresh the entire grid silently to handle pagination
-                                    // (e.g. pulling a note from the next page to fill the gap).
-                                    if (selectedNoteIds.has(parseInt(deleteNoteId, 10))) {
-                                        selectedNoteIds.delete(parseInt(deleteNoteId, 10));
-                                    }
-                                    submitSearch(true);
-                                }).fail(Notification.exception);
-                            }
-                        );
-                    }).fail(Notification.exception);
+                    handleNoteDelete(e, deleteBtn);
                 }
             });
         }
