@@ -1166,12 +1166,26 @@ define([
                 var screenshotNoteEl = deleteScreenshotBtn.closest(SELECTORS.note);
                 var screenshotNote = screenshotNoteEl ?
                     getNoteByKey(screenshotNoteEl.getAttribute('data-note-key')) : null;
-                if (screenshotNote && screenshotNote.id) {
-                    deleteScreenshot(
-                        screenshotNote,
-                        Number(deleteScreenshotBtn.getAttribute('data-fileid')),
-                        screenshotNoteEl
-                    );
+                var fileId = Number(deleteScreenshotBtn.getAttribute('data-fileid'));
+
+                if (screenshotNote && screenshotNote.id && fileId) {
+                    Str.get_strings([
+                        {key: 'confirm', component: 'core'},
+                        {key: 'screenshot:delete', component: 'local_quicknote'},
+                        {key: 'delete', component: 'core'},
+                        {key: 'cancel', component: 'core'}
+                    ]).then(function(strings) {
+                        Notification.confirm(
+                            strings[0],
+                            strings[1],
+                            strings[2],
+                            strings[3],
+                            function() {
+                                deleteScreenshot(screenshotNote, fileId, screenshotNoteEl);
+                            }
+                        );
+                        return true;
+                    }).catch(Notification.exception);
                 }
                 return;
             }
