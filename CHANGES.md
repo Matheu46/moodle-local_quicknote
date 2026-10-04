@@ -4,6 +4,8 @@
 
 - **Bulk Actions & Selection**:
   - Implemented `Shift + Click` range selection in the Notes Center, allowing users to rapidly select or deselect multiple contiguous note cards.
+- **Data Safety & Consistency**:
+  - Added a confirmation modal when deleting screenshots from within the sidebar (`notes.js`), aligning the UX with the Notes Center and preventing irreversible accidental deletions.
 - **UI/UX & Fast Note Creation**:
   - Introduced a bookmark-style "Speed Dial" tab above the main floating button (visible on hover) to create notes with a single click.
   - Relocated the "Add note" primary action in the sidebar to the bottom footer, reducing cursor travel distance (Fitts's Law) and preventing accidental clicks.
