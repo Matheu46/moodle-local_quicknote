@@ -1,6 +1,6 @@
 # Moodle plugin: local_quicknote
 
-## [Unreleased] (v0.13.0)
+## v0.13.0 (2026-10-13)
 
 - **Bulk Actions & Selection**:
   - Implemented `Shift + Click` range selection in the Notes Center, allowing users to rapidly select or deselect multiple contiguous note cards.
