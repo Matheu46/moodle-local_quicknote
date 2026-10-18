@@ -124,6 +124,21 @@ QuickNote is designed to be simple for students from the first interaction.
 8. Click `View in text` to return to the original page location and highlight the saved passage.
 9. **Attach Screenshots**: Paste images directly into a note with `Ctrl+V` / `Cmd+V`. Click any thumbnail to view it in full screen via the built-in lightbox gallery, navigate between screenshots, or download them to your device.
 
+## 💡 Design Principles & Contributing
+
+QuickNote was built with clear pedagogical and architectural priorities. If you are planning to contribute or propose new features, please keep these core principles in mind:
+
+1. **Simplicity First, Especially in the Sidebar Drawer:**
+   - The primary goal of the sidebar drawer is frictionless active reading. It must remain minimalist, intuitive, and distraction-free.
+   - Rich management workflows belong in the full-page **Notes Center**, not inside the reading companion drawer.
+
+2. **Performance Is a Feature:**
+   - Any proposed feature that impacts page load times, DOM complexity, API payload size, database query efficiency, or browser memory usage must be thoroughly evaluated and benchmarked.
+
+3. **Prudence with Interface Additions:**
+   - Every additional button, toolbar, or setting inside the sidebar drawer competes for student attention.
+   - New features that add UI complexity to the drawer or risk introducing performance overhead will require careful evaluation before acceptance.
+
 ## 🧩 Plugin Details
 
 - **Plugin name**: QuickNote
