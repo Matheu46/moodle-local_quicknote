@@ -1,5 +1,16 @@
 # Moodle plugin: local_quicknote
 
+## [Unreleased] (v0.14.0)
+
+- **UI/UX & Quotations**:
+  - Implemented collapsible long quotations ("More" / "Less" toggle) in both the sidebar drawer and Notes Center, preventing oversized quotes from dominating the screen.
+  - Standardized the "View in text" link presentation in Notes Center across notes with and without quotations, using consistent icon indicator (`fa-external-link`), `rem`-based typography, and removing Bootstrap's blockquote em-dash prefix.
+  - Added source page title (`pagetitle`) persistence and normalization: displays the page title as a subtitle in Notes Center cards, uses it as the clickable location label in the sidebar (with fallback to URL for legacy notes), and includes it in search filters.
+- **URL Normalization & Domain Migration Resilience (`pagehash`)**:
+  - Canonicalized saved note and quote URLs by stripping volatile session parameters (`sesskey`, `_qf__*`, drawer flags) and sorting query parameters deterministically.
+  - Added `pagehash` (`SHA-256` of the installation-independent canonical path + query) with a composite database index (`userid, pagehash`) and automatic upgrade backfilling for existing notes.
+  - Automatically rebased stored note and quote URLs to the current `$CFG->wwwroot` on save and render/export so links remain unbroken after Moodle domain, protocol, or subdirectory migrations.
+
 ## v0.13.0 (2026-10-13)
 
 - **Bulk Actions & Selection**:
