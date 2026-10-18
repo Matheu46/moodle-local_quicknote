@@ -92,7 +92,7 @@ class save_note extends \core_external\external_api {
 
         $course = \local_quicknote\util::validate_note_access((int) $params['courseid']);
 
-        $cleanurl = \local_quicknote\util::clean_url($params['url']);
+        $cleanurl = \local_quicknote\util::clean_url($params['url'], true, true);
         if ($cleanurl === null && trim((string)$params['url']) !== '') {
             throw new \invalid_parameter_exception('Invalid URL scheme provided.');
         }
@@ -103,6 +103,7 @@ class save_note extends \core_external\external_api {
             'courseid' => $course->id,
             'content' => core_text::substr($params['content'], 0, 20000),
             'url' => core_text::substr($cleanurl ?? '', 0, 255),
+            'pagehash' => \local_quicknote\util::calculate_page_hash($cleanurl),
             'timemodified' => $now,
         ];
 
@@ -111,7 +112,7 @@ class save_note extends \core_external\external_api {
         }
 
         if (array_key_exists('quoteurl', $params) && $params['quoteurl'] !== null) {
-            $cleanquoteurl = \local_quicknote\util::clean_url($params['quoteurl']);
+            $cleanquoteurl = \local_quicknote\util::clean_url($params['quoteurl'], true, false);
             $record->quoteurl = $cleanquoteurl !== null ? core_text::substr($cleanquoteurl, 0, 1024) : null;
         }
 
@@ -131,6 +132,10 @@ class save_note extends \core_external\external_api {
 
             $record->id = $existing->id;
             $record->timecreated = $existing->timecreated;
+
+            if ($record->pagehash === '' && !empty($existing->pagehash)) {
+                $record->pagehash = $existing->pagehash;
+            }
 
             if (!property_exists($record, 'quote')) {
                 $record->quote = $existing->quote ?? null;
@@ -183,6 +188,7 @@ class save_note extends \core_external\external_api {
             'quotetext' => new \core_external\external_value(PARAM_RAW, 'Quote text safe for template rendering.'),
             'quoteurl' => new \core_external\external_value(PARAM_RAW, 'URL pointing to the selected quote.'),
             'url' => new \core_external\external_value(PARAM_RAW, 'Last saved page URL.'),
+            'pagehash' => new \core_external\external_value(PARAM_ALPHANUM, 'Canonical source page SHA-256 hash.'),
             'pagetitle' => new \core_external\external_value(PARAM_TEXT, 'Source page title.'),
             'screenshots' => new \core_external\external_multiple_structure(
                 screenshot_manager::external_structure()
@@ -201,6 +207,9 @@ class save_note extends \core_external\external_api {
      */
     public static function export_note(\stdClass $note, ?array $screenshots = null): array {
         $quote = (string) ($note->quote ?? '');
+        $pagehash = !empty($note->pagehash)
+            ? (string) $note->pagehash
+            : \local_quicknote\util::calculate_page_hash($note->url ?? null);
 
         return [
             'id' => (int) $note->id,
@@ -210,8 +219,9 @@ class save_note extends \core_external\external_api {
             'quote' => $quote,
             'hasquote' => trim($quote) !== '',
             'quotetext' => $quote,
-            'quoteurl' => \local_quicknote\util::clean_url($note->quoteurl ?? null) ?? '',
-            'url' => \local_quicknote\util::clean_url($note->url ?? null) ?? '',
+            'quoteurl' => \local_quicknote\util::clean_url($note->quoteurl ?? null, true, false) ?? '',
+            'url' => \local_quicknote\util::clean_url($note->url ?? null, true, true) ?? '',
+            'pagehash' => $pagehash,
             'pagetitle' => (string) ($note->pagetitle ?? ''),
             'screenshots' => $screenshots ?? screenshot_manager::get_for_note((int) $note->id),
             'timecreated' => (int) $note->timecreated,

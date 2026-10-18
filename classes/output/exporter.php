@@ -85,7 +85,7 @@ class exporter {
                 if (!empty($record->quote)) {
                     $quote = format_text($record->quote, FORMAT_PLAIN);
                     $html .= '<blockquote style="margin-bottom: 4px; color: #555;"><i>' . $quote . '</i>';
-                    $cleanquoteurl = \local_quicknote\util::clean_url($record->quoteurl);
+                    $cleanquoteurl = \local_quicknote\util::clean_url($record->quoteurl, true, false);
                     if ($cleanquoteurl !== null) {
                         $html .= '<br><small><a href="'
                             . s($cleanquoteurl)
@@ -95,7 +95,7 @@ class exporter {
                     }
                     $html .= '</blockquote><br>';
                 } else {
-                    $cleanurl = \local_quicknote\util::clean_url($record->url);
+                    $cleanurl = \local_quicknote\util::clean_url($record->url, true, true);
                     if ($cleanurl !== null) {
                         $html .= '<p style="margin-bottom: 4px;"><small><a href="'
                             . s($cleanurl)
@@ -161,14 +161,14 @@ class exporter {
                 if (!empty($record->quote)) {
                     $quote = html_entity_decode(format_text($record->quote, FORMAT_PLAIN), ENT_QUOTES, 'UTF-8');
                     $md .= "> " . str_replace("\n", "\n> ", $quote) . "\n";
-                    $cleanquoteurl = \local_quicknote\util::clean_url($record->quoteurl);
+                    $cleanquoteurl = \local_quicknote\util::clean_url($record->quoteurl, true, false);
                     if ($cleanquoteurl !== null) {
                         $md .= "> [_" . get_string('note:viewintext', 'local_quicknote') . "_](" .
                             s($cleanquoteurl) . ")\n";
                     }
                     $md .= "\n";
                 } else {
-                    $cleanurl = \local_quicknote\util::clean_url($record->url);
+                    $cleanurl = \local_quicknote\util::clean_url($record->url, true, true);
                     if ($cleanurl !== null) {
                         $md .= "[_" . get_string('note:viewintext', 'local_quicknote') . "_](" .
                             s($cleanurl) . ")\n\n";

@@ -76,11 +76,12 @@ final class exporter_test extends advanced_testcase {
 
         $md = exporter::export_to_md($rs);
 
-        // Assert that the generated MD contains the expected text.
+        // Assert that the generated MD contains the expected text and rebased URL.
+        global $CFG;
         $this->assertStringContainsString('Test Course MD', $md);
         $this->assertStringContainsString('This is a test note content', $md);
         $this->assertStringContainsString('This is a quote', $md);
-        $this->assertStringContainsString('http://example.com/quote', $md);
+        $this->assertStringContainsString(rtrim($CFG->wwwroot, '/') . '/quote', $md);
     }
 
     /**

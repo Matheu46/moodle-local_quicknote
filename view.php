@@ -122,7 +122,7 @@ $sqlorder = " ORDER BY qn.timemodified DESC";
 $sqlcount = "SELECT COUNT(qn.id) " . $sqlfrom;
 $totalcount = $DB->count_records_sql($sqlcount, $params);
 
-$sql = "SELECT qn.id, qn.content, qn.url, qn.pagetitle, qn.quote, qn.quoteurl, qn.timemodified,
+$sql = "SELECT qn.id, qn.content, qn.url, qn.pagehash, qn.pagetitle, qn.quote, qn.quoteurl, qn.timemodified,
                c.fullname as coursefullname, c.id as courseid
         " . $sqlfrom . $sqlorder;
 
@@ -180,9 +180,9 @@ foreach ($noterecords as $record) {
         'pagetitle' => $pagetitle,
         'content' => $record->content,
         'timeupdated' => userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig')),
-        'url' => \local_quicknote\util::clean_url($record->url),
+        'url' => \local_quicknote\util::clean_url($record->url, true, true),
         'quote' => !empty($record->quote) ? $record->quote : null,
-        'quoteurl' => \local_quicknote\util::clean_url($record->quoteurl),
+        'quoteurl' => \local_quicknote\util::clean_url($record->quoteurl, true, false),
         'screenshots' => \local_quicknote\local\screenshot_manager::get_for_note((int) $record->id),
     ];
 }

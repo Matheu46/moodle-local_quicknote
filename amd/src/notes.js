@@ -82,6 +82,68 @@ define([
         }
     };
 
+    var VOLATILE_QUERY_KEYS = ['sesskey', 'local_quicknote_open', 'local_sidenotes_open'];
+
+    var cleanUrlQuery = function(rawUrl) {
+        try {
+            var parsed = new URL(rawUrl, window.location.origin);
+            var keys = [];
+            parsed.searchParams.forEach(function(val, key) {
+                if (keys.indexOf(key) === -1) {
+                    keys.push(key);
+                }
+            });
+            var entries = [];
+            keys.forEach(function(key) {
+                if (VOLATILE_QUERY_KEYS.indexOf(key) !== -1 || key.indexOf('_qf__') === 0) {
+                    return;
+                }
+                var values = parsed.searchParams.getAll(key);
+                values.forEach(function(val) {
+                    entries.push([key, val]);
+                });
+            });
+            entries.sort(function(a, b) {
+                if (a[0] === b[0]) {
+                    return a[1] < b[1] ? -1 : (a[1] > b[1] ? 1 : 0);
+                }
+                return a[0] < b[0] ? -1 : 1;
+            });
+            var search = new URLSearchParams();
+            entries.forEach(function(pair) {
+                search.append(pair[0], pair[1]);
+            });
+            var qs = search.toString();
+            return parsed.origin + parsed.pathname + (qs ? '?' + qs : '');
+        } catch (e) {
+            return String(rawUrl || '').split('#')[0];
+        }
+    };
+
+    var normalisePageUrl = function(url) {
+        if (!url) {
+            return '';
+        }
+        return cleanUrlQuery(String(url).split('#')[0]);
+    };
+
+    var getCleanLocationUrl = function() {
+        var href = String(window.location.href || '');
+        var hashIndex = href.indexOf('#');
+        var base = hashIndex === -1 ? href : href.substring(0, hashIndex);
+        var fragment = hashIndex === -1 ? '' : href.substring(hashIndex + 1);
+
+        if (fragment) {
+            var tfIndex = fragment.indexOf(':~:text=');
+            if (tfIndex !== -1) {
+                fragment = fragment.substring(0, tfIndex).replace(/[#&]+$/, '');
+            }
+        }
+
+        var cleanBase = cleanUrlQuery(base);
+        return fragment ? cleanBase + '#' + fragment : cleanBase;
+    };
+
     var createDraftNote = function() {
         var now = Math.floor(Date.now() / 1000);
 
@@ -89,7 +151,8 @@ define([
             id: 0,
             clientid: 'draft-' + Date.now() + '-' + Math.random().toString(16).slice(2),
             content: '',
-            url: window.location.href,
+            url: getCleanLocationUrl(),
+            pagehash: (state && state.pagehash) || '',
             pagetitle: (state && state.pagetitle) || document.title || '',
             timecreated: now,
             timemodified: now,
@@ -112,6 +175,7 @@ define([
             quote: note.quote || '',
             quoteurl: note.quoteurl || '',
             url: note.url || '',
+            pagehash: note.pagehash || '',
             pagetitle: note.pagetitle || '',
             status: note.status || ''
         });
@@ -814,7 +878,7 @@ define([
             id: note.id || 0,
             courseid: state.courseid,
             content: note.content,
-            url: note.url || window.location.href,
+            url: note.url || getCleanLocationUrl(),
             pagetitle: note.pagetitle || state.pagetitle || document.title || '',
             quote: note.quote || '',
             quoteurl: note.quoteurl || ''
@@ -831,6 +895,7 @@ define([
             note.courseid = savednote.courseid;
             note.userid = savednote.userid;
             note.url = savednote.url;
+            note.pagehash = savednote.pagehash;
             note.pagetitle = savednote.pagetitle;
             note.quote = savednote.quote;
             note.quoteurl = savednote.quoteurl;
@@ -974,10 +1039,11 @@ define([
         }
 
         var note = createDraftNote();
-        var quoteurl = window.location.href + '#:~:text=' + encodeURIComponent(text);
+        var cleanBaseUrl = getCleanLocationUrl();
+        var quoteurl = cleanBaseUrl + '#:~:text=' + encodeURIComponent(text);
 
         note.content = '';
-        note.url = window.location.href;
+        note.url = cleanBaseUrl;
         note.quote = formatQuotedNote(text);
         note.quoteurl = quoteurl;
         note.timemodified = Math.floor(Date.now() / 1000);
@@ -1167,14 +1233,14 @@ define([
 
         var handleQuoteClick = function(e, quoteLink) {
             var targetUrl = quoteLink.getAttribute('href');
-            var currentUrl = window.location.href.split('#')[0];
+            var currentNormalised = normalisePageUrl(window.location.href);
 
             if (targetUrl && !/^(https?:\/\/|#)/i.test(targetUrl)) {
                 e.preventDefault();
                 return;
             }
 
-            if (targetUrl && (targetUrl.indexOf(currentUrl) === 0 || targetUrl.indexOf('#') === 0)) {
+            if (targetUrl && (normalisePageUrl(targetUrl) === currentNormalised || targetUrl.indexOf('#') === 0)) {
                 e.preventDefault();
 
                 var hashIndex = targetUrl.indexOf('#');
@@ -1334,9 +1400,13 @@ define([
 
                 note.content = textarea.value;
                 if (!note.id) {
-                    note.url = window.location.href;
+                    note.url = getCleanLocationUrl();
                     note.pagetitle = state.pagetitle || document.title || '';
-                } else if (!note.pagetitle && note.url === window.location.href) {
+                } else if (
+                    !note.pagetitle &&
+                    ((note.pagehash && state.pagehash && note.pagehash === state.pagehash) ||
+                        normalisePageUrl(note.url) === normalisePageUrl(window.location.href))
+                ) {
                     note.pagetitle = state.pagetitle || document.title || '';
                 }
                 note.timemodified = Math.floor(Date.now() / 1000);
@@ -1585,6 +1655,8 @@ define([
             state = {
                 root: rootEl,
                 courseid: Number(config.courseid || rootEl.getAttribute('data-courseid')),
+                pageurl: String((config && config.pageurl) || rootEl.getAttribute('data-pageurl') || ''),
+                pagehash: String((config && config.pagehash) || rootEl.getAttribute('data-pagehash') || ''),
                 pagetitle: String((config && config.pagetitle) || rootEl.getAttribute('data-pagetitle') || document.title || ''),
                 enableScreenshots: config.hasOwnProperty('enable_screenshots') ?
                     Boolean(config.enable_screenshots) : false,
