@@ -81,6 +81,7 @@ $string['privacy:metadata:local_quicknote_notes'] = 'Information about private q
 $string['privacy:metadata:local_quicknote_notes:content'] = 'The text content of the note.';
 $string['privacy:metadata:local_quicknote_notes:core_files'] = 'Screenshots attached to notes are stored using the Moodle file system.';
 $string['privacy:metadata:local_quicknote_notes:courseid'] = 'The course where the note was created.';
+$string['privacy:metadata:local_quicknote_notes:pagetitle'] = 'The title of the page where the note was created.';
 $string['privacy:metadata:local_quicknote_notes:quote'] = 'The selected text quote that the note refers to.';
 $string['privacy:metadata:local_quicknote_notes:quoteurl'] = 'The URL of the specific section quoted.';
 $string['privacy:metadata:local_quicknote_notes:timecreated'] = 'The time when the note was created.';

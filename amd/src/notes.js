@@ -90,6 +90,7 @@ define([
             clientid: 'draft-' + Date.now() + '-' + Math.random().toString(16).slice(2),
             content: '',
             url: window.location.href,
+            pagetitle: (state && state.pagetitle) || document.title || '',
             timecreated: now,
             timemodified: now,
             status: ''
@@ -111,6 +112,7 @@ define([
             quote: note.quote || '',
             quoteurl: note.quoteurl || '',
             url: note.url || '',
+            pagetitle: note.pagetitle || '',
             status: note.status || ''
         });
 
@@ -248,7 +250,7 @@ define([
         }, 6000);
     };
 
-    var setNoteLocation = function(noteEl, url, hasquote) {
+    var setNoteLocation = function(noteEl, url, hasquote, pagetitle) {
         var locationEl = noteEl.querySelector(SELECTORS.location);
         if (!locationEl) {
             return;
@@ -265,8 +267,10 @@ define([
         if (url && /^(https?:\/\/|#)/i.test(url)) {
             safeHref = url;
         }
+        var label = (pagetitle && String(pagetitle).trim() !== '') ? String(pagetitle).trim() : url;
         a.setAttribute('href', safeHref);
-        a.textContent = url;
+        a.setAttribute('title', label);
+        a.textContent = label;
         locationEl.appendChild(a);
     };
 
@@ -549,7 +553,7 @@ define([
         setNoteStatus(noteEl, note.status, note.timemodified);
         renderScreenshots(noteEl, note);
         setNoteQuote(noteEl, note);
-        setNoteLocation(noteEl, note.url, note.hasquote);
+        setNoteLocation(noteEl, note.url, note.hasquote, note.pagetitle);
 
         var copyBtn = noteEl.querySelector('[data-action="copy-note"]');
         if (copyBtn) {
@@ -591,7 +595,8 @@ define([
         }
 
         return String(note.content || '').toLowerCase().indexOf(term) !== -1 ||
-            String(note.quote || '').toLowerCase().indexOf(term) !== -1;
+            String(note.quote || '').toLowerCase().indexOf(term) !== -1 ||
+            String(note.pagetitle || '').toLowerCase().indexOf(term) !== -1;
     };
 
     var applyFilter = function() {
@@ -810,6 +815,7 @@ define([
             courseid: state.courseid,
             content: note.content,
             url: note.url || window.location.href,
+            pagetitle: note.pagetitle || state.pagetitle || document.title || '',
             quote: note.quote || '',
             quoteurl: note.quoteurl || ''
         });
@@ -825,6 +831,7 @@ define([
             note.courseid = savednote.courseid;
             note.userid = savednote.userid;
             note.url = savednote.url;
+            note.pagetitle = savednote.pagetitle;
             note.quote = savednote.quote;
             note.quoteurl = savednote.quoteurl;
             note.hasquote = savednote.hasquote;
@@ -836,7 +843,7 @@ define([
             if (currentnoteEl) {
                 setNoteStatus(currentnoteEl, note.status, note.timemodified);
                 setNoteQuote(currentnoteEl, note);
-                setNoteLocation(currentnoteEl, note.url, note.hasquote);
+                setNoteLocation(currentnoteEl, note.url, note.hasquote, note.pagetitle);
 
                 setTimeout(function() {
                     note.status = '';
@@ -1326,7 +1333,12 @@ define([
                 }
 
                 note.content = textarea.value;
-                note.url = window.location.href;
+                if (!note.id) {
+                    note.url = window.location.href;
+                    note.pagetitle = state.pagetitle || document.title || '';
+                } else if (!note.pagetitle && note.url === window.location.href) {
+                    note.pagetitle = state.pagetitle || document.title || '';
+                }
                 note.timemodified = Math.floor(Date.now() / 1000);
 
                 var noteEl = textarea.closest(SELECTORS.note);
@@ -1573,6 +1585,7 @@ define([
             state = {
                 root: rootEl,
                 courseid: Number(config.courseid || rootEl.getAttribute('data-courseid')),
+                pagetitle: String((config && config.pagetitle) || rootEl.getAttribute('data-pagetitle') || document.title || ''),
                 enableScreenshots: config.hasOwnProperty('enable_screenshots') ?
                     Boolean(config.enable_screenshots) : false,
                 maxFiles: config.hasOwnProperty('max_files_per_note') ? Number(config.max_files_per_note) : 0,

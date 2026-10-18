@@ -103,10 +103,12 @@ if ($coursefilter > 0) {
 if ($searchterm !== '') {
     $contentlike = $DB->sql_like('qn.content', ':searchcontent', false, false);
     $quotelike = $DB->sql_like('qn.quote', ':searchquote', false, false);
-    $sqlfrom .= " AND ({$contentlike} OR {$quotelike})";
+    $titlelike = $DB->sql_like('qn.pagetitle', ':searchtitle', false, false);
+    $sqlfrom .= " AND ({$contentlike} OR {$quotelike} OR {$titlelike})";
 
     $params['searchcontent'] = '%' . $DB->sql_like_escape($searchterm) . '%';
     $params['searchquote'] = '%' . $DB->sql_like_escape($searchterm) . '%';
+    $params['searchtitle'] = '%' . $DB->sql_like_escape($searchterm) . '%';
 }
 
 if (!empty($noteids)) {
@@ -120,7 +122,8 @@ $sqlorder = " ORDER BY qn.timemodified DESC";
 $sqlcount = "SELECT COUNT(qn.id) " . $sqlfrom;
 $totalcount = $DB->count_records_sql($sqlcount, $params);
 
-$sql = "SELECT qn.id, qn.content, qn.url, qn.quote, qn.quoteurl, qn.timemodified, c.fullname as coursefullname, c.id as courseid
+$sql = "SELECT qn.id, qn.content, qn.url, qn.pagetitle, qn.quote, qn.quoteurl, qn.timemodified,
+               c.fullname as coursefullname, c.id as courseid
         " . $sqlfrom . $sqlorder;
 
 // If export, process immediately with recordset to save memory.
@@ -158,14 +161,23 @@ foreach ($noterecords as $record) {
         continue;
     }
 
+    $notecontext = ($record->courseid == SITEID) ?
+        $context :
+        context_course::instance($record->courseid);
+
     $coursefullname = ($record->courseid == SITEID) ?
         get_string('general_notes', 'local_quicknote') :
-        format_string($record->coursefullname, true, ['context' => context_course::instance($record->courseid)]);
+        format_string($record->coursefullname, true, ['context' => $notecontext]);
+
+    $pagetitle = !empty($record->pagetitle) ?
+        format_string($record->pagetitle, true, ['context' => $notecontext]) :
+        null;
 
     // Prepare variables for the template. Mustache escapes standard tags {{ }} automatically.
     $notes[] = [
         'id' => $record->id,
         'coursefullname' => $coursefullname,
+        'pagetitle' => $pagetitle,
         'content' => $record->content,
         'timeupdated' => userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig')),
         'url' => \local_quicknote\util::clean_url($record->url),

@@ -108,5 +108,16 @@ function xmldb_local_quicknote_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026080901, 'local', 'quicknote');
     }
 
+    if ($oldversion < 2026101800) {
+        $table = new xmldb_table('local_quicknote_notes');
+        $field = new xmldb_field('pagetitle', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'url');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026101800, 'local', 'quicknote');
+    }
+
     return true;
 }

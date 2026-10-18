@@ -107,4 +107,25 @@ final class util_test extends advanced_testcase {
         $this->assertNull(\local_quicknote\util::clean_url("https://example.com\r\njavascript:alert(1)"));
         $this->assertNull(\local_quicknote\util::clean_url("javascript\x00:alert(1)"));
     }
+
+    public function test_clean_page_title(): void {
+        $this->resetAfterTest();
+        $site = get_site();
+        $course = $this->getDataGenerator()->create_course([
+            'shortname' => 'PHYS101',
+            'fullname' => 'Physics 1',
+        ]);
+
+        // Strips site suffix and course prefix.
+        $raw = 'PHYS101: Lesson 3 - Newton Laws | ' . $site->shortname;
+        $this->assertEquals('Lesson 3 - Newton Laws', \local_quicknote\util::clean_page_title($raw, $course));
+
+        // Strips "Course: " prefix.
+        $rawcourse = get_string('course') . ': Physics 1 | ' . $site->fullname;
+        $this->assertEquals('Physics 1', \local_quicknote\util::clean_page_title($rawcourse, $course));
+
+        // Null and empty titles.
+        $this->assertNull(\local_quicknote\util::clean_page_title(null, $course));
+        $this->assertNull(\local_quicknote\util::clean_page_title('   ', $course));
+    }
 }

@@ -90,4 +90,53 @@ class util {
 
         return $url;
     }
+
+    /**
+     * Sanitizes and normalizes a page title by removing redundant site suffixes and course prefixes.
+     *
+     * @param string|null $title The raw page title.
+     * @param \stdClass|null $course Optional course object to strip leading course prefix.
+     * @return string|null Clean page title or null if empty.
+     */
+    public static function clean_page_title(?string $title, ?\stdClass $course = null): ?string {
+        if ($title === null) {
+            return null;
+        }
+
+        $title = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $title);
+        $title = trim(preg_replace('/\s+/u', ' ', (string) $title));
+        if ($title === '') {
+            return null;
+        }
+
+        // Remove trailing site name suffix (e.g. " | Site Name").
+        $site = get_site();
+        if ($site) {
+            foreach ([$site->fullname ?? '', $site->shortname ?? ''] as $sitename) {
+                $sitename = trim((string) $sitename);
+                if ($sitename !== '') {
+                    $stripped = preg_replace('/\s*\|\s*' . preg_quote($sitename, '/') . '\s*$/iu', '', $title);
+                    if ($stripped !== null && trim($stripped) !== '') {
+                        $title = trim($stripped);
+                    }
+                }
+            }
+        }
+
+        // Remove leading course shortname/fullname prefix (e.g. "PHYS101: Lesson 1").
+        if ($course && !empty($course->id) && $course->id != SITEID) {
+            foreach ([$course->shortname ?? '', $course->fullname ?? '', get_string('course')] as $prefix) {
+                $prefix = trim((string) $prefix);
+                if ($prefix !== '') {
+                    $stripped = preg_replace('/^' . preg_quote($prefix, '/') . '\s*:\s*/iu', '', $title);
+                    if ($stripped !== null && trim($stripped) !== '') {
+                        $title = trim($stripped);
+                    }
+                }
+            }
+        }
+
+        $title = \core_text::substr($title, 0, 255);
+        return $title !== '' ? $title : null;
+    }
 }

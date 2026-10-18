@@ -42,6 +42,7 @@ class save_note extends \core_external\external_api {
             'url' => new \core_external\external_value(PARAM_RAW, 'Current page URL.'),
             'quote' => new \core_external\external_value(PARAM_RAW, 'Selected quote text.', VALUE_DEFAULT, null),
             'quoteurl' => new \core_external\external_value(PARAM_RAW, 'URL pointing to the selected quote.', VALUE_DEFAULT, null),
+            'pagetitle' => new \core_external\external_value(PARAM_TEXT, 'Current page title.', VALUE_DEFAULT, null),
         ]);
     }
 
@@ -54,6 +55,7 @@ class save_note extends \core_external\external_api {
      * @param string $url
      * @param string|null $quote
      * @param string|null $quoteurl
+     * @param string|null $pagetitle
      * @return array
      */
     public static function execute(
@@ -62,7 +64,8 @@ class save_note extends \core_external\external_api {
         string $content,
         string $url,
         ?string $quote = null,
-        ?string $quoteurl = null
+        ?string $quoteurl = null,
+        ?string $pagetitle = null
     ): array {
         global $DB, $USER;
 
@@ -79,6 +82,10 @@ class save_note extends \core_external\external_api {
 
         if ($quoteurl !== null) {
             $input['quoteurl'] = $quoteurl;
+        }
+
+        if ($pagetitle !== null) {
+            $input['pagetitle'] = $pagetitle;
         }
 
         $params = self::validate_parameters(self::execute_parameters(), $input);
@@ -108,6 +115,10 @@ class save_note extends \core_external\external_api {
             $record->quoteurl = $cleanquoteurl !== null ? core_text::substr($cleanquoteurl, 0, 1024) : null;
         }
 
+        if (array_key_exists('pagetitle', $params) && $params['pagetitle'] !== null) {
+            $record->pagetitle = \local_quicknote\util::clean_page_title($params['pagetitle'], $course);
+        }
+
         if (!empty($params['id'])) {
             $existing = $DB->get_record('local_quicknote_notes', [
                 'id' => $params['id'],
@@ -129,12 +140,17 @@ class save_note extends \core_external\external_api {
                 $record->quoteurl = $existing->quoteurl ?? null;
             }
 
+            if (!property_exists($record, 'pagetitle') || $record->pagetitle === null) {
+                $record->pagetitle = $existing->pagetitle ?? null;
+            }
+
             $DB->update_record('local_quicknote_notes', $record);
             $saved = $DB->get_record('local_quicknote_notes', ['id' => $record->id], '*', MUST_EXIST);
         } else {
             $record->timecreated = $now;
             $record->quote = $record->quote ?? null;
             $record->quoteurl = $record->quoteurl ?? null;
+            $record->pagetitle = $record->pagetitle ?? null;
             $record->id = $DB->insert_record('local_quicknote_notes', $record);
             $saved = $DB->get_record('local_quicknote_notes', ['id' => $record->id], '*', MUST_EXIST);
         }
@@ -167,6 +183,7 @@ class save_note extends \core_external\external_api {
             'quotetext' => new \core_external\external_value(PARAM_RAW, 'Quote text safe for template rendering.'),
             'quoteurl' => new \core_external\external_value(PARAM_RAW, 'URL pointing to the selected quote.'),
             'url' => new \core_external\external_value(PARAM_RAW, 'Last saved page URL.'),
+            'pagetitle' => new \core_external\external_value(PARAM_TEXT, 'Source page title.'),
             'screenshots' => new \core_external\external_multiple_structure(
                 screenshot_manager::external_structure()
             ),
@@ -195,6 +212,7 @@ class save_note extends \core_external\external_api {
             'quotetext' => $quote,
             'quoteurl' => \local_quicknote\util::clean_url($note->quoteurl ?? null) ?? '',
             'url' => \local_quicknote\util::clean_url($note->url ?? null) ?? '',
+            'pagetitle' => (string) ($note->pagetitle ?? ''),
             'screenshots' => $screenshots ?? screenshot_manager::get_for_note((int) $note->id),
             'timecreated' => (int) $note->timecreated,
             'timemodified' => (int) $note->timemodified,

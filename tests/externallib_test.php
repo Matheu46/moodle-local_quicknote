@@ -52,7 +52,8 @@ final class externallib_test extends advanced_testcase {
             'My first note',
             'https://example.com/page1',
             'Quote text',
-            'https://example.com/quote1'
+            'https://example.com/quote1',
+            'Lesson 1: Introduction'
         );
         $result = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $result);
 
@@ -61,6 +62,7 @@ final class externallib_test extends advanced_testcase {
         $this->assertEquals($course->id, $result['courseid']);
         $this->assertEquals('My first note', $result['content']);
         $this->assertEquals('Quote text', $result['quote']);
+        $this->assertEquals('Lesson 1: Introduction', $result['pagetitle']);
 
         $noteid = $result['id'];
 
@@ -76,6 +78,7 @@ final class externallib_test extends advanced_testcase {
         $this->assertEquals($noteid, $result2['id']);
         $this->assertEquals('Updated note', $result2['content']);
         $this->assertEquals('Quote text', $result2['quote']); // Preserved from previous.
+        $this->assertEquals('Lesson 1: Introduction', $result2['pagetitle']); // Preserved from previous.
     }
 
     public function test_save_note_wrong_course(): void {

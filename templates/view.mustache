@@ -112,7 +112,12 @@
                     <div class="form-check local-quicknote-bulk-check me-2 d-none mb-0">
                         <input type="checkbox" class="form-check-input local-quicknote-card-select" data-id="{{id}}" aria-label="{{#str}} selectnote, local_quicknote {{/str}}">
                     </div>
-                    <span class="text-truncate" title="{{coursefullname}}">{{coursefullname}}</span>
+                    <div class="min-w-0 flex-grow-1 overflow-hidden">
+                        <div class="text-truncate" title="{{coursefullname}}">{{coursefullname}}</div>
+                        {{#pagetitle}}
+                        <div class="small text-muted fw-normal text-truncate" title="{{pagetitle}}">{{pagetitle}}</div>
+                        {{/pagetitle}}
+                    </div>
                 </div>
                 <div class="card-body local-quicknote-center__card-body">
                     {{#quote}}
