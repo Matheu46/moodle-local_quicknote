@@ -407,6 +407,7 @@
 
 
 .local-quicknote-center__quote {
+    font-size: 1rem;
     border-width: 3px;
     border-color: var(--bs-primary, #0f6cbf);
 }
@@ -451,6 +452,10 @@
 
 .local-quicknote-center__quote-toggle[hidden] {
     display: none;
+}
+
+.local-quicknote-center__quote-link {
+    font-size: 0.85rem;
 }
 
 .local-quicknote-center__content {

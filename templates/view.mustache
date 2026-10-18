@@ -129,16 +129,16 @@
                             hidden
                         >{{#str}} quote:more, local_quicknote {{/str}}</button>
                         {{#quoteurl}}
-                        <footer class="blockquote-footer mt-1">
-                            <a href="{{quoteurl}}" target="_blank" class="small">{{#str}} note:viewintext, local_quicknote {{/str}}</a>
-                        </footer>
+                        <div class="mt-2">
+                            <a href="{{quoteurl}}" target="_blank" rel="noopener" class="local-quicknote-center__quote-link"><i class="fa fa-external-link me-1" aria-hidden="true"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
+                        </div>
                         {{/quoteurl}}
                     </blockquote>
                     {{/quote}}
                     {{^quote}}
                         {{#url}}
                         <div class="mb-3">
-                            <a href="{{url}}" target="_blank" class="small"><i class="fa fa-external-link me-1"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
+                            <a href="{{url}}" target="_blank" rel="noopener" class="local-quicknote-center__quote-link"><i class="fa fa-external-link me-1" aria-hidden="true"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
                         </div>
                         {{/url}}
                     {{/quote}}
