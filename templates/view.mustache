@@ -116,8 +116,18 @@
                 </div>
                 <div class="card-body local-quicknote-center__card-body">
                     {{#quote}}
-                    <blockquote class="blockquote border-start border-primary ps-3 mb-3 local-quicknote-center__quote">
-                        <p class="mb-1 fst-italic text-muted local-quicknote-center__quote-text">{{quote}}</p>
+                    <blockquote class="blockquote border-start border-primary ps-3 mb-3 local-quicknote-center__quote" id="quicknote-quote-{{id}}">
+                        <p class="mb-0 fst-italic text-muted local-quicknote-center__quote-text">{{quote}}</p>
+                        <button
+                            type="button"
+                            class="local-quicknote-center__quote-toggle"
+                            data-action="toggle-quote"
+                            aria-controls="quicknote-quote-{{id}}"
+                            aria-expanded="false"
+                            data-more="{{#str}} quote:more, local_quicknote {{/str}}"
+                            data-less="{{#str}} quote:less, local_quicknote {{/str}}"
+                            hidden
+                        >{{#str}} quote:more, local_quicknote {{/str}}</button>
                         {{#quoteurl}}
                         <footer class="blockquote-footer mt-1">
                             <a href="{{quoteurl}}" target="_blank" class="small">{{#str}} note:viewintext, local_quicknote {{/str}}</a>

@@ -298,6 +298,47 @@
     font-style: italic;
 }
 
+.local-quicknote__quote-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.local-quicknote__quote-wrapper--collapsible:not(.local-quicknote__quote-wrapper--expanded) .local-quicknote__quote-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+}
+
+.local-quicknote__quote-toggle {
+    display: block;
+    width: fit-content;
+    margin: 0 auto 0.5rem;
+    padding: 0.15rem 0.75rem;
+    border: 0;
+    border-radius: 1rem;
+    background-color: var(--bs-secondary-bg, rgba(0, 0, 0, 0.05));
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--bs-primary);
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.local-quicknote__quote-toggle:hover,
+.local-quicknote__quote-toggle:focus {
+    background-color: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.1));
+    color: var(--bs-primary);
+    text-decoration: none;
+    filter: none;
+}
+
+.local-quicknote__quote-toggle[hidden] {
+    display: none;
+}
+
 .local-quicknote__quote-link {
     font-size: 0.8rem;
     color: var(--bs-primary);
@@ -373,6 +414,43 @@
 .local-quicknote-center__quote-text {
     font-size: 0.95rem;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.local-quicknote-center__quote--collapsible:not(.local-quicknote-center__quote--expanded) .local-quicknote-center__quote-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+}
+
+.local-quicknote-center__quote-toggle {
+    display: block;
+    width: fit-content;
+    margin: 0.35rem auto 0.5rem;
+    padding: 0.15rem 0.75rem;
+    border: 0;
+    border-radius: 1rem;
+    background-color: var(--bs-secondary-bg, rgba(0, 0, 0, 0.05));
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--bs-primary, #0f6cbf);
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.local-quicknote-center__quote-toggle:hover,
+.local-quicknote-center__quote-toggle:focus {
+    background-color: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.1));
+    color: var(--bs-primary, #0f6cbf);
+    text-decoration: none;
+    filter: none;
+}
+
+.local-quicknote-center__quote-toggle[hidden] {
+    display: none;
 }
 
 .local-quicknote-center__content {

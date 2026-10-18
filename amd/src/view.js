@@ -235,6 +235,7 @@ define([
 
                     updateBulkVisuals();
                     lastCheckedCheckbox = null;
+                    updateCenterQuotes();
 
                     // Accessibility Announcement
                     var noteCount = document.querySelectorAll('[data-region="quicknote-results"] .card').length;
@@ -476,6 +477,40 @@ define([
                 }).fail(Notification.exception);
             };
 
+            var updateCenterQuotes = function() {
+                window.requestAnimationFrame(function() {
+                    document.querySelectorAll('.local-quicknote-center__quote').forEach(function(quote) {
+                        var text = quote.querySelector('.local-quicknote-center__quote-text');
+                        var button = quote.querySelector('[data-action="toggle-quote"]');
+                        if (!text || !button || !text.offsetWidth) {
+                            return;
+                        }
+                        var style = window.getComputedStyle(text);
+                        var lineHeight = parseFloat(style.lineHeight) || 20;
+                        var isCollapsible = text.scrollHeight > (lineHeight * 3 + 2);
+
+                        button.hidden = !isCollapsible;
+                        quote.classList.toggle('local-quicknote-center__quote--collapsible', isCollapsible);
+                        if (!isCollapsible) {
+                            quote.classList.remove('local-quicknote-center__quote--expanded');
+                            button.setAttribute('aria-expanded', 'false');
+                            button.textContent = button.dataset.more;
+                        }
+                    });
+                });
+            };
+
+            var handleQuoteToggle = function(e, quoteToggle) {
+                e.preventDefault();
+                var quote = quoteToggle.closest('.local-quicknote-center__quote');
+                var expanded = quoteToggle.getAttribute('aria-expanded') !== 'true';
+                quoteToggle.setAttribute('aria-expanded', String(expanded));
+                if (quote) {
+                    quote.classList.toggle('local-quicknote-center__quote--expanded', expanded);
+                }
+                quoteToggle.textContent = expanded ? quoteToggle.dataset.less : quoteToggle.dataset.more;
+            };
+
             // Handle delete buttons and lightbox.
             document.addEventListener('click', function(e) {
                 var paginationLink = e.target.closest('[data-region="quicknote-pagination"] a');
@@ -535,8 +570,20 @@ define([
                 var deleteBtn = e.target.closest('.local-quicknote-delete-btn');
                 if (deleteBtn) {
                     handleNoteDelete(e, deleteBtn);
+                    return;
+                }
+
+                var quoteToggle = e.target.closest('[data-action="toggle-quote"]');
+                if (quoteToggle) {
+                    handleQuoteToggle(e, quoteToggle);
                 }
             });
+
+            window.addEventListener('resize', function() {
+                updateCenterQuotes();
+            });
+
+            updateCenterQuotes();
         }
     };
 });

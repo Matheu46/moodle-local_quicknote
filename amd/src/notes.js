@@ -49,7 +49,8 @@ define([
         location: '[data-region="note-location"]',
         quotewrapper: '[data-region="note-quote-wrapper"]',
         quote: '[data-region="note-quote"]',
-        quotelink: '[data-region="note-quote-link"]'
+        quotelink: '[data-region="note-quote-link"]',
+        quotetoggle: '[data-action="toggle-quote"]'
     };
 
     var SAVE_DELAY = 500;
@@ -269,17 +270,57 @@ define([
         locationEl.appendChild(a);
     };
 
+    var updateQuoteCollapse = function(wrapper) {
+        var text = wrapper.querySelector(SELECTORS.quote);
+        var button = wrapper.querySelector(SELECTORS.quotetoggle);
+        if (!text || !button || !text.offsetWidth) {
+            return;
+        }
+        var style = window.getComputedStyle(text);
+        var lineHeight = parseFloat(style.lineHeight) || 20;
+        var padding = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+        var isCollapsible = text.scrollHeight > (lineHeight * 3 + padding + 2);
+
+        button.hidden = !isCollapsible;
+        wrapper.classList.toggle('local-quicknote__quote-wrapper--collapsible', isCollapsible);
+        if (!isCollapsible) {
+            wrapper.classList.remove('local-quicknote__quote-wrapper--expanded');
+            button.setAttribute('aria-expanded', 'false');
+            button.textContent = button.dataset.more;
+        }
+    };
+
+    var updateAllQuoteCollapses = function() {
+        if (!state.root) {
+            return;
+        }
+        window.requestAnimationFrame(function() {
+            state.root.querySelectorAll(SELECTORS.quotewrapper).forEach(function(wrapper) {
+                if (!wrapper.hasAttribute('hidden')) {
+                    updateQuoteCollapse(wrapper);
+                }
+            });
+        });
+    };
+
     var setNoteQuote = function(noteEl, note) {
         var wrapper = noteEl.querySelector(SELECTORS.quotewrapper);
         var quote = noteEl.querySelector(SELECTORS.quote);
         var link = noteEl.querySelector(SELECTORS.quotelink);
+        var toggle = noteEl.querySelector(SELECTORS.quotetoggle);
 
         if (!note.hasquote) {
             if (wrapper) {
                 wrapper.setAttribute('hidden', 'hidden');
+                wrapper.classList.remove('local-quicknote__quote-wrapper--collapsible');
+                wrapper.classList.remove('local-quicknote__quote-wrapper--expanded');
             }
             if (quote) {
                 quote.textContent = '';
+            }
+            if (toggle) {
+                toggle.setAttribute('hidden', 'hidden');
+                toggle.setAttribute('aria-expanded', 'false');
             }
             if (link) {
                 link.setAttribute('href', '#');
@@ -305,6 +346,9 @@ define([
         }
         if (wrapper) {
             wrapper.removeAttribute('hidden');
+            window.requestAnimationFrame(function() {
+                updateQuoteCollapse(wrapper);
+            });
         }
     };
 
@@ -603,6 +647,7 @@ define([
 
         applyFilter();
         autogrowAllTextareas();
+        updateAllQuoteCollapses();
     };
 
     var openSidebar = function() {
@@ -739,6 +784,7 @@ define([
             }
 
             autogrowAllTextareas();
+            updateAllQuoteCollapses();
 
             var closeBtn = panel ? panel.querySelector(SELECTORS.close) : null;
             if (closeBtn) {
@@ -990,6 +1036,12 @@ define([
             }
         });
 
+        window.addEventListener('resize', function() {
+            if (state.root && state.root.classList.contains('is-open')) {
+                updateAllQuoteCollapses();
+            }
+        });
+
         var handleToggleClick = function() {
             setOpenState(!state.root.classList.contains('is-open'));
         };
@@ -1144,6 +1196,17 @@ define([
             }
         };
 
+        var handleQuoteToggle = function(e, quoteToggle) {
+            e.preventDefault();
+            var wrapper = quoteToggle.closest(SELECTORS.quotewrapper);
+            var expanded = quoteToggle.getAttribute('aria-expanded') !== 'true';
+            quoteToggle.setAttribute('aria-expanded', String(expanded));
+            if (wrapper) {
+                wrapper.classList.toggle('local-quicknote__quote-wrapper--expanded', expanded);
+            }
+            quoteToggle.textContent = expanded ? quoteToggle.dataset.less : quoteToggle.dataset.more;
+        };
+
         state.root.addEventListener('click', function(e) {
             var screenshotLink = e.target.closest('.local-quicknote__screenshot a');
             if (screenshotLink) {
@@ -1236,6 +1299,12 @@ define([
             var deleteBtn = e.target.closest(SELECTORS.deletebutton);
             if (deleteBtn) {
                 handleDeleteClick(deleteBtn);
+                return;
+            }
+
+            var quoteToggle = e.target.closest(SELECTORS.quotetoggle);
+            if (quoteToggle) {
+                handleQuoteToggle(e, quoteToggle);
                 return;
             }
 
