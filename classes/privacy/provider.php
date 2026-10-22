@@ -52,6 +52,8 @@ class provider implements
             'quote' => 'privacy:metadata:local_quicknote_notes:quote',
             'quoteurl' => 'privacy:metadata:local_quicknote_notes:quoteurl',
             'url' => 'privacy:metadata:local_quicknote_notes:url',
+            'pagehash' => 'privacy:metadata:local_quicknote_notes:pagehash',
+            'pagetitle' => 'privacy:metadata:local_quicknote_notes:pagetitle',
             'timecreated' => 'privacy:metadata:local_quicknote_notes:timecreated',
             'timemodified' => 'privacy:metadata:local_quicknote_notes:timemodified',
         ], 'privacy:metadata:local_quicknote_notes');
@@ -125,6 +127,8 @@ class provider implements
                 'quote' => $note->quote,
                 'quoteurl' => $note->quoteurl,
                 'url' => $note->url,
+                'pagehash' => $note->pagehash ?? null,
+                'pagetitle' => $note->pagetitle ?? null,
                 'timecreated' => transform::datetime($note->timecreated),
                 'timemodified' => transform::datetime($note->timemodified),
             ];

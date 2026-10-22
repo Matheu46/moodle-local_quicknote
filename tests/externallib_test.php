@@ -52,7 +52,8 @@ final class externallib_test extends advanced_testcase {
             'My first note',
             'https://example.com/page1',
             'Quote text',
-            'https://example.com/quote1'
+            'https://example.com/quote1',
+            'Lesson 1: Introduction'
         );
         $result = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $result);
 
@@ -61,6 +62,7 @@ final class externallib_test extends advanced_testcase {
         $this->assertEquals($course->id, $result['courseid']);
         $this->assertEquals('My first note', $result['content']);
         $this->assertEquals('Quote text', $result['quote']);
+        $this->assertEquals('Lesson 1: Introduction', $result['pagetitle']);
 
         $noteid = $result['id'];
 
@@ -76,6 +78,7 @@ final class externallib_test extends advanced_testcase {
         $this->assertEquals($noteid, $result2['id']);
         $this->assertEquals('Updated note', $result2['content']);
         $this->assertEquals('Quote text', $result2['quote']); // Preserved from previous.
+        $this->assertEquals('Lesson 1: Introduction', $result2['pagetitle']); // Preserved from previous.
     }
 
     public function test_save_note_wrong_course(): void {
@@ -101,6 +104,7 @@ final class externallib_test extends advanced_testcase {
     }
 
     public function test_save_and_get_note_with_complex_fragment_url(): void {
+        global $CFG;
         $this->resetAfterTest();
 
         $generator = $this->getDataGenerator();
@@ -109,10 +113,14 @@ final class externallib_test extends advanced_testcase {
         $generator->enrol_user($user->id, $course->id, 'student');
         $this->setUser($user);
 
-        // URL with multiple fragments (typical for H5P Interactive Book + Text Fragments).
-        $complexurl = 'http://example.com/mod/h5pactivity/view.php?id=10#h5pbookid=2&section=top';
+        // URL with multiple fragments (typical for H5P Interactive Book + Text Fragments) and volatile params.
+        $complexurl = 'http://example.com/mod/h5pactivity/view.php?sesskey=xyz&b=2&id=10#h5pbookid=2&section=top';
         $quoteurl = $complexurl . '&chapter=123#:~:text=trecho%20selecionado';
         $quotetext = '"trecho selecionado"';
+
+        $expectedurl = rtrim($CFG->wwwroot, '/') . '/mod/h5pactivity/view.php?b=2&id=10#h5pbookid=2&section=top';
+        $expectedquoteurl = $expectedurl . '&chapter=123#:~:text=trecho%20selecionado';
+        $expectedhash = hash('sha256', '/mod/h5pactivity/view.php?b=2&id=10');
 
         // 1. Save note with complex URL.
         $result = save_note::execute(
@@ -125,17 +133,19 @@ final class externallib_test extends advanced_testcase {
         );
         $result = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $result);
 
-        $this->assertEquals($quoteurl, $result['quoteurl']);
-        $this->assertEquals($complexurl, $result['url']);
+        $this->assertEquals($expectedquoteurl, $result['quoteurl']);
+        $this->assertEquals($expectedurl, $result['url']);
+        $this->assertEquals($expectedhash, $result['pagehash']);
         $this->assertTrue($result['hasquote']);
 
-        // 2. Retrieve via get_notes and verify it is not purged.
+        // 2. Retrieve via get_notes and verify it is not purged and rebases legacy URLs.
         $notes = get_notes::execute($course->id);
         $notes = \core_external\external_api::clean_returnvalue(get_notes::execute_returns(), $notes);
 
         $this->assertCount(1, $notes);
-        $this->assertEquals($quoteurl, $notes[0]['quoteurl']);
-        $this->assertEquals($complexurl, $notes[0]['url']);
+        $this->assertEquals($expectedquoteurl, $notes[0]['quoteurl']);
+        $this->assertEquals($expectedurl, $notes[0]['url']);
+        $this->assertEquals($expectedhash, $notes[0]['pagehash']);
     }
 
     public function test_save_and_get_note_rejects_javascript_url(): void {

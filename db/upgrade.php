@@ -108,5 +108,48 @@ function xmldb_local_quicknote_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026080901, 'local', 'quicknote');
     }
 
+    if ($oldversion < 2026101800) {
+        $table = new xmldb_table('local_quicknote_notes');
+        $field = new xmldb_field('pagetitle', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'url');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026101800, 'local', 'quicknote');
+    }
+
+    if ($oldversion < 2026101801) {
+        $table = new xmldb_table('local_quicknote_notes');
+        $field = new xmldb_field('pagehash', XMLDB_TYPE_CHAR, '64', null, null, null, null, 'url');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Backfill pagehash for existing notes using a cursor recordset to avoid memory exhaustion.
+        $rs = $DB->get_recordset_select(
+            'local_quicknote_notes',
+            "pagehash IS NULL OR pagehash = ''",
+            null,
+            'id ASC',
+            'id, url'
+        );
+        foreach ($rs as $note) {
+            $hash = \local_quicknote\util::calculate_page_hash($note->url ?? null);
+            if ($hash !== '') {
+                $DB->set_field('local_quicknote_notes', 'pagehash', $hash, ['id' => $note->id]);
+            }
+        }
+        $rs->close();
+
+        $index = new xmldb_index('userpage_ix', XMLDB_INDEX_NOTUNIQUE, ['userid', 'pagehash']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        upgrade_plugin_savepoint(true, 2026101801, 'local', 'quicknote');
+    }
+
     return true;
 }
