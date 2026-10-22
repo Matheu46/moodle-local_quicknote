@@ -36,6 +36,9 @@
     id="local-quicknote-root"
     class="local-quicknote {{positionclass}}"
     data-courseid="{{courseid}}"
+    data-pageurl="{{pageurl}}"
+    data-pagehash="{{pagehash}}"
+    data-pagetitle="{{pagetitle}}"
     data-placeholder="{{placeholder}}"
     data-emptytext="{{emptytext}}"
     data-savingtext="{{savingtext}}"
@@ -142,15 +145,28 @@
                 </div>
 
                 <div class="local-quicknote__quote-wrapper" data-region="note-quote-wrapper" hidden>
-                    <blockquote class="local-quicknote__quote" data-region="note-quote"></blockquote>
-                    <a
-                        class="local-quicknote__quote-link"
-                        data-region="note-quote-link"
-                        href="#"
+                    <blockquote class="local-quicknote__quote">
+                        <div class="local-quicknote__quote-text" data-region="note-quote"></div>
+                    </blockquote>
+                    <button
+                        type="button"
+                        class="local-quicknote__quote-toggle"
+                        data-action="toggle-quote"
+                        aria-expanded="false"
+                        data-more="{{#str}} quote:more, local_quicknote {{/str}}"
+                        data-less="{{#str}} quote:less, local_quicknote {{/str}}"
                         hidden
-                    >
-                        {{#str}} note:viewintext, local_quicknote {{/str}}
-                    </a>
+                    >{{#str}} quote:more, local_quicknote {{/str}}</button>
+                    <div>
+                        <a
+                            class="local-quicknote__quote-link"
+                            data-region="note-quote-link"
+                            href="#"
+                            hidden
+                        >
+                            {{#str}} note:viewintext, local_quicknote {{/str}}
+                        </a>
+                    </div>
                 </div>
 
                 <div class="local-quicknote__meta" data-region="note-location"></div>

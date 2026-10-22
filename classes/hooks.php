@@ -234,9 +234,16 @@ class hooks {
 
         $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
         $maxbytes = (int) get_config('local_quicknote', 'max_bytes');
+        $rawtitle = trim((string) ($PAGE->title ?: $PAGE->heading));
+        $pagetitle = \local_quicknote\util::clean_page_title($rawtitle, $course) ?? '';
+        $pageurl = \local_quicknote\util::clean_url($PAGE->url->out(false), true, true) ?? '';
+        $pagehash = \local_quicknote\util::calculate_page_hash($pageurl);
 
         $PAGE->requires->js_call_amd('local_quicknote/notes', 'init', [[
             'courseid' => (int) $course->id,
+            'pageurl' => $pageurl,
+            'pagehash' => $pagehash,
+            'pagetitle' => $pagetitle,
             'enable_screenshots' => $canuploadscreenshots,
             'max_files_per_note' => $maxfiles,
             'max_bytes' => $maxbytes,
@@ -250,6 +257,9 @@ class hooks {
 
         $html = $OUTPUT->render_from_template('local_quicknote/sidebar', [
             'courseid' => (int) $course->id,
+            'pageurl' => $pageurl,
+            'pagehash' => $pagehash,
+            'pagetitle' => $pagetitle,
             'positionclass' => $positionclass,
             'hasquote' => false,
             'quotetext' => '',
