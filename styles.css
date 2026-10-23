@@ -190,7 +190,8 @@
     border-left: 1px solid var(--bs-border-color, #d5ddea);
     box-shadow: -0.5rem 0 1.5rem rgba(0, 0, 0, 0.12);
     transform: translateX(100%);
-    transition: transform 0.2s ease;
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
 }
 
 .local-quicknote--left .local-quicknote__panel {
@@ -203,10 +204,34 @@
 }
 
 .local-quicknote.is-open .local-quicknote__panel {
+    visibility: visible;
     transform: translateX(0);
+    transition: transform 0.2s ease, visibility 0s linear 0s;
 }
 
 .local-quicknote.is-open.local-quicknote--left .local-quicknote__panel {
+    visibility: visible;
+    transform: translateX(0);
+    transition: transform 0.2s ease, visibility 0s linear 0s;
+}
+
+/* RTL language support (Moodle RTLCSS does not auto-mirror translateX). */
+/* rtl:ignore */
+[dir="rtl"] .local-quicknote__panel,
+.dir-rtl .local-quicknote__panel {
+    transform: translateX(-100%);
+}
+
+/* rtl:ignore */
+[dir="rtl"] .local-quicknote--left .local-quicknote__panel,
+.dir-rtl .local-quicknote--left .local-quicknote__panel {
+    transform: translateX(100%);
+}
+
+[dir="rtl"] .local-quicknote.is-open .local-quicknote__panel,
+.dir-rtl .local-quicknote.is-open .local-quicknote__panel,
+[dir="rtl"] .local-quicknote.is-open.local-quicknote--left .local-quicknote__panel,
+.dir-rtl .local-quicknote.is-open.local-quicknote--left .local-quicknote__panel {
     transform: translateX(0);
 }
 
