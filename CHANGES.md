@@ -1,7 +1,10 @@
 # Moodle plugin: local_quicknote
 
-## [Unreleased] (v0.14.0)
+## v0.14.0 (2026-10-23)
 
+- **Accessibility & RTL Language Support (Fixes #43)**:
+  - Fixed keyboard navigation accessibility hazard: closed sidebar panel now uses `visibility: hidden` (with delayed transition), ensuring that hidden drawer elements (such as note deletion buttons) cannot receive keyboard focus via `Tab` or trigger unexpected actions when the drawer is closed.
+  - Fixed RTL layout bug: added explicit RTL rules (`[dir="rtl"]` / `.dir-rtl`) for Moodle RTLCSS compatibility, ensuring the drawer slides offscreen to the left instead of appearing stuck in the middle of the screen on Arabic, Hebrew, or other right-to-left languages.
 - **UI/UX & Quotations**:
   - Implemented collapsible long quotations ("More" / "Less" toggle) in both the sidebar drawer and Notes Center, preventing oversized quotes from dominating the screen.
   - Standardized the "View in text" link presentation in Notes Center across notes with and without quotations, using consistent icon indicator (`fa-external-link`), `rem`-based typography, and removing Bootstrap's blockquote em-dash prefix.
