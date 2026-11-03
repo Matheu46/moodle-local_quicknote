@@ -151,5 +151,14 @@ function xmldb_local_quicknote_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026101801, 'local', 'quicknote');
     }
 
+    if ($oldversion < 2026110301) {
+        // Update capabilities and assign the new 'user' archetype to authenticated users.
+        update_capabilities('local_quicknote');
+        assign_legacy_capabilities('local/quicknote:use', ['user' => CAP_ALLOW]);
+        assign_legacy_capabilities('local/quicknote:uploadscreenshot', ['user' => CAP_ALLOW]);
+
+        upgrade_plugin_savepoint(true, 2026110301, 'local', 'quicknote');
+    }
+
     return true;
 }

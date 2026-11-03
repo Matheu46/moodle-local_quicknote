@@ -150,6 +150,9 @@ class hooks {
             }
             $course = get_site();
             $context = \context_system::instance();
+            if (!has_capability('local/quicknote:use', $context)) {
+                return '';
+            }
             $skipatterncheck = true;
         } else {
             if (empty($PAGE->course->id) || $PAGE->course->id === SITEID) {
@@ -225,12 +228,8 @@ class hooks {
             }
         }
 
-        if ($isdashboard || $isfrontpage) {
-            $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots');
-        } else {
-            $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
-                has_capability('local/quicknote:uploadscreenshot', $context);
-        }
+        $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
+            has_capability('local/quicknote:uploadscreenshot', $context);
 
         $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
         $maxbytes = (int) get_config('local_quicknote', 'max_bytes');

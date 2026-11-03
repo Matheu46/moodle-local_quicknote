@@ -111,6 +111,9 @@ function local_quicknote_pluginfile($course, $cm, $context, $filearea, $args, $f
     }
 
     require_login();
+    if (isguestuser()) {
+        return false;
+    }
 
     $noteid = (int) array_shift($args);
     $note = $DB->get_record('local_quicknote_notes', ['id' => $noteid, 'userid' => $USER->id], 'id, courseid');

@@ -33,14 +33,23 @@ class util {
      * @throws \moodle_exception
      */
     public static function validate_note_access(int $courseid, bool $checkscreenshotcap = false): \stdClass {
+        require_login();
+        if (isguestuser()) {
+            throw new \require_login_exception('Guests cannot use QuickNote');
+        }
+
         if ($courseid == SITEID) {
-            require_login();
             if (!get_config('local_quicknote', 'enable_dashboard') && !get_config('local_quicknote', 'enable_frontpage')) {
                 throw new \moodle_exception('disabledforcourse', 'local_quicknote');
             }
             $course = get_site();
             $context = \context_system::instance();
             \core_external\external_api::validate_context($context);
+            require_capability('local/quicknote:use', $context);
+
+            if ($checkscreenshotcap) {
+                require_capability('local/quicknote:uploadscreenshot', $context);
+            }
         } else {
             $course = get_course($courseid);
             require_login($course);

@@ -83,6 +83,129 @@ final class util_test extends advanced_testcase {
         $this->assertEquals($course->id, $validatedcourse->id);
     }
 
+    public function test_validate_note_access_guest_rejected(): void {
+        $this->resetAfterTest();
+        $this->setGuestUser();
+
+        set_config('enable_dashboard', 1, 'local_quicknote');
+
+        $this->expectException(\require_login_exception::class);
+        \local_quicknote\util::validate_note_access(SITEID);
+    }
+
+    public function test_validate_note_access_guest_rejected_in_course(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $this->setGuestUser();
+
+        $this->expectException(\require_login_exception::class);
+        \local_quicknote\util::validate_note_access($course->id);
+    }
+
+    public function test_validate_note_access_dashboard_capability_prohibited(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $user = $this->getDataGenerator()->create_user();
+        $this->setUser($user);
+
+        set_config('enable_dashboard', 1, 'local_quicknote');
+
+        $syscontext = \context_system::instance();
+        $authrole = $DB->get_record('role', ['shortname' => 'user'], '*', MUST_EXIST);
+        assign_capability('local/quicknote:use', CAP_PROHIBIT, $authrole->id, $syscontext->id, true);
+
+        $this->expectException(\required_capability_exception::class);
+        \local_quicknote\util::validate_note_access(SITEID);
+    }
+
+    public function test_validate_note_access_screenshot_capability(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $user = $this->getDataGenerator()->create_user();
+        $this->setUser($user);
+
+        set_config('enable_dashboard', 1, 'local_quicknote');
+
+        // By default with 'user' archetype, screenshot capability should succeed.
+        $course = \local_quicknote\util::validate_note_access(SITEID, true);
+        $this->assertEquals(SITEID, $course->id);
+
+        // When uploadscreenshot capability is prohibited, it should throw required_capability_exception.
+        $syscontext = \context_system::instance();
+        $authrole = $DB->get_record('role', ['shortname' => 'user'], '*', MUST_EXIST);
+        assign_capability('local/quicknote:uploadscreenshot', CAP_PROHIBIT, $authrole->id, $syscontext->id, true);
+
+        $this->expectException(\required_capability_exception::class);
+        \local_quicknote\util::validate_note_access(SITEID, true);
+    }
+
+    public function test_validate_note_access_course_prohibit_does_not_affect_dashboard(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        $generator->enrol_user($user->id, $course->id, 'editingteacher');
+        $this->setUser($user);
+        set_config('enable_dashboard', 1, 'local_quicknote');
+
+        // Prohibit local/quicknote:use only inside this specific course for the editingteacher role.
+        $coursecontext = \context_course::instance($course->id);
+        $teacherrole = $DB->get_record('role', ['shortname' => 'editingteacher'], '*', MUST_EXIST);
+        assign_capability('local/quicknote:use', CAP_PROHIBIT, $teacherrole->id, $coursecontext->id, true);
+
+        // 1. In the course: access must be denied.
+        try {
+            \local_quicknote\util::validate_note_access($course->id);
+            $this->fail('Expected required_capability_exception was not thrown for prohibited course role.');
+        } catch (\required_capability_exception $e) {
+            $this->assertEquals('nopermissions', $e->errorcode);
+        }
+
+        // 2. On the dashboard: the same user must still have access because prohibit was scoped to the course.
+        $sitecourse = \local_quicknote\util::validate_note_access(SITEID);
+        $this->assertEquals(SITEID, $sitecourse->id);
+    }
+
+    public function test_validate_note_access_non_enrolled_user_rejected_in_course(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        // User is logged in but NOT enrolled in the course.
+        $this->setUser($user);
+
+        // The require_login($course) call rejects non-enrolled users (triggers redirect exception in unit tests).
+        $this->expectException(\moodle_exception::class);
+        \local_quicknote\util::validate_note_access($course->id);
+    }
+
+    public function test_validate_note_access_course_screenshot_capability_prohibited(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        // Prohibit uploadscreenshot capability in the course for students.
+        $coursecontext = \context_course::instance($course->id);
+        $studentrole = $DB->get_record('role', ['shortname' => 'student'], '*', MUST_EXIST);
+        assign_capability('local/quicknote:uploadscreenshot', CAP_PROHIBIT, $studentrole->id, $coursecontext->id, true);
+
+        // Text access without screenshot check should still succeed.
+        $validatedcourse = \local_quicknote\util::validate_note_access($course->id, false);
+        $this->assertEquals($course->id, $validatedcourse->id);
+
+        // Screenshot access check must throw required_capability_exception.
+        $this->expectException(\required_capability_exception::class);
+        \local_quicknote\util::validate_note_access($course->id, true);
+    }
+
     public function test_clean_url(): void {
         // Valid simple URLs.
         $this->assertEquals('http://example.com', \local_quicknote\util::clean_url('http://example.com'));

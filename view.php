@@ -26,7 +26,11 @@ require_once('../../config.php');
 
 // Require login and set context.
 require_login();
+if (isguestuser()) {
+    throw new \require_login_exception('Guests cannot use QuickNote');
+}
 $context = context_system::instance();
+require_capability('local/quicknote:use', $context);
 
 // Get optional parameters.
 $coursefilter = optional_param('coursefilter', 0, PARAM_INT);
