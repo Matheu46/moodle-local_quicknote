@@ -82,7 +82,7 @@ function local_quicknote_coursemodule_edit_post_actions($data, $course) {
         } else {
             $record = new \stdClass();
             $record->courseid = $courseid;
-            $record->enabled = 1;
+            $record->enabled = null;
             $record->module_settings = $json;
             $DB->insert_record('local_quicknote_course', $record);
         }

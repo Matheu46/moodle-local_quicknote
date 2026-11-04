@@ -71,13 +71,13 @@ class restore_local_quicknote_plugin extends restore_local_plugin {
         $courseid = $this->task->get_courseid();
         $record = new \stdClass();
         $record->courseid = $courseid;
-        $record->enabled = 1;
+        $record->enabled = null;
         $record->module_settings = '';
         $shouldsave = false;
 
         // Restore course-level configuration.
-        if ($this->courseconfig && isset($this->courseconfig->enabled)) {
-            $record->enabled = $this->courseconfig->enabled;
+        if ($this->courseconfig && isset($this->courseconfig->enabled) && $this->courseconfig->enabled !== '') {
+            $record->enabled = (int)$this->courseconfig->enabled;
             $shouldsave = true;
         }
 
@@ -109,6 +109,9 @@ class restore_local_quicknote_plugin extends restore_local_plugin {
             $existing = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
             if ($existing) {
                 $record->id = $existing->id;
+                if ($record->enabled === null && $existing->enabled !== null) {
+                    $record->enabled = $existing->enabled;
+                }
                 $DB->update_record('local_quicknote_course', $record);
             } else {
                 $DB->insert_record('local_quicknote_course', $record);
