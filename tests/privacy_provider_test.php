@@ -43,6 +43,14 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
         $this->assertCount(2, $items);
         $this->assertEquals('local_quicknote_notes', $items[0]->get_name());
         $this->assertEquals('core_files', $items[1]->get_name());
+
+        // Verify that all declared privacy metadata strings exist in the language pack.
+        $stringmanager = get_string_manager();
+        $this->assertTrue($stringmanager->string_exists($items[0]->get_summary(), 'local_quicknote'));
+        foreach ($items[0]->get_privacy_fields() as $field => $stringkey) {
+            $this->assertTrue($stringmanager->string_exists($stringkey, 'local_quicknote'));
+        }
+        $this->assertTrue($stringmanager->string_exists($items[1]->get_summary(), 'local_quicknote'));
     }
 
     /**
