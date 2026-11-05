@@ -104,7 +104,7 @@ class exporter {
                             . '</a></small></p>';
                     }
                 }
-                $html .= '<p>' . nl2br($content) . '</p>';
+                $html .= '<p>' . $content . '</p>';
                 $html .= '<hr style="color: #f8f9fa;">';
 
                 $pdf->writeHTML($html, true, false, true, false, '');
@@ -145,6 +145,7 @@ class exporter {
                             true,
                             [
                                 'context' => \context_course::instance($record->courseid),
+                                'escape' => false,
                             ]
                         );
                     }
@@ -154,12 +155,12 @@ class exporter {
                 }
 
                 $timeupdated = userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig'));
-                $content = format_text($record->content, FORMAT_PLAIN);
+                $content = (string) $record->content;
 
                 $md .= "**" . $timeupdated . "**\n";
 
                 if (!empty($record->quote)) {
-                    $quote = html_entity_decode(format_text($record->quote, FORMAT_PLAIN), ENT_QUOTES, 'UTF-8');
+                    $quote = (string) $record->quote;
                     $md .= "> " . str_replace("\n", "\n> ", $quote) . "\n";
                     $cleanquoteurl = \local_quicknote\util::clean_url($record->quoteurl, true, false);
                     if ($cleanquoteurl !== null) {

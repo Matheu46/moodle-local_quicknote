@@ -198,6 +198,10 @@ if ($perpage > 0) {
     $pagingbarhtml = '';
 }
 
+// Prepare export URLs.
+$exportmdurl = (new moodle_url($url, ['export' => 'md']))->out(false);
+$exportpdfurl = (new moodle_url($url, ['export' => 'pdf']))->out(false);
+
 // Prepare template context.
 $templatecontext = [
     'pagingbar' => $pagingbarhtml,
@@ -209,6 +213,8 @@ $templatecontext = [
     'search' => get_string('search'),
     'exportpdf' => get_string('exportpdf', 'local_quicknote'),
     'exportmd' => get_string('exportmd', 'local_quicknote'),
+    'exportmdurl' => $exportmdurl,
+    'exportpdfurl' => $exportpdfurl,
     'hasnotestosearch' => $hasnotestosearch,
     'hasnotes' => !empty($notes),
     'coursefilter' => $coursefilter,
