@@ -36,7 +36,6 @@ class mobile {
         $courseid = $args['courseid'] ?? 0;
 
         $js = file_get_contents(__DIR__ . '/mobile.js');
-        $js = str_replace('%%DELETE_CONFIRM%%', get_string('note:delete_confirm', 'local_quicknote'), $js);
 
         return [
             'templates' => [
@@ -48,6 +47,7 @@ class mobile {
             'javascript' => $js,
             'otherdata' => [
                 'courseid' => $courseid,
+                'deleteconfirm' => get_string('note:delete_confirm', 'local_quicknote'),
             ],
         ];
     }

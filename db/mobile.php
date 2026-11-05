@@ -39,6 +39,7 @@ $addons = [
         ],
         'lang' => [
             ['pluginname', 'local_quicknote'],
+            ['note:delete_confirm', 'local_quicknote'],
         ],
     ],
 ];
