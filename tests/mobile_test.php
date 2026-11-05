@@ -68,4 +68,3 @@ final class mobile_test extends advanced_testcase {
         $this->assertNotEmpty($result['otherdata']['deleteconfirm']);
     }
 }
-

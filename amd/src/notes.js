@@ -299,7 +299,7 @@ define([
         closeBtn.style.top = '5px';
         closeBtn.style.fontSize = '1.2rem';
         closeBtn.style.lineHeight = '1';
-        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.setAttribute('aria-label', state.strings.closelabel || 'Close');
         closeBtn.innerHTML = '<span aria-hidden="true">&times;</span>';
         closeBtn.addEventListener('click', function() {
             alertNode.remove();
@@ -1683,6 +1683,9 @@ define([
                     highlightlabel: rootEl.getAttribute('data-highlightlabel'),
                     deleteconfirm: rootEl.getAttribute('data-deleteconfirm'),
                     noresultstext: rootEl.getAttribute('data-noresultstext'),
+                    closelabel: rootEl.getAttribute('data-closelabel'),
+                    deleteimagelabel: rootEl.getAttribute('data-deleteimagelabel'),
+                    uploadingtext: rootEl.getAttribute('data-uploadingtext'),
                     loadingtext: rootEl.getAttribute('data-loadingtext')
                 }
             };
