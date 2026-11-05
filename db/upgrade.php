@@ -136,7 +136,7 @@ function xmldb_local_quicknote_upgrade($oldversion) {
             'id, url'
         );
         foreach ($rs as $note) {
-            $hash = \local_quicknote\util::calculate_page_hash($note->url ?? null);
+            $hash = local_quicknote_upgrade_calculate_page_hash($note->url ?? null);
             if ($hash !== '') {
                 $DB->set_field('local_quicknote_notes', 'pagehash', $hash, ['id' => $note->id]);
             }

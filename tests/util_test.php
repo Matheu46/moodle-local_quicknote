@@ -259,6 +259,13 @@ final class util_test extends advanced_testcase {
         $this->assertSame(64, strlen($hash1));
         $this->assertSame($hash1, $hash2);
 
+        // Verify that the frozen upgrade helper in upgradelib produces the identical hash.
+        require_once($CFG->dirroot . '/local/quicknote/db/upgradelib.php');
+        $this->assertSame($hash1, local_quicknote_upgrade_calculate_page_hash($url1));
+        $this->assertSame($hash2, local_quicknote_upgrade_calculate_page_hash($url2));
+        $this->assertSame('', local_quicknote_upgrade_calculate_page_hash(null));
+        $this->assertSame('', local_quicknote_upgrade_calculate_page_hash('#section1'));
+
         // Rebased URL points to current $CFG->wwwroot and preserves fragment.
         $this->assertEquals(
             rtrim($CFG->wwwroot, '/') . '/mod/page/view.php?a=1&b=2#section1',
