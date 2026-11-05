@@ -40,17 +40,11 @@ class hooks {
     public static function course_edit_form(\core_course\hook\after_form_definition $hook) {
         $mform = $hook->mform;
 
-        $cmid = optional_param('update', 0, PARAM_INT);
-
-        if ($cmid > 0) {
-            // Module forms are handled via coursemodule_standard_elements in lib.php.
-            return;
-        }
-
         $mform->addElement('header', 'local_quicknote_header', get_string('pluginname', 'local_quicknote'));
 
         // Course edit form — per-course on/off.
-        $courseid = optional_param('id', 0, PARAM_INT);
+        $course = method_exists($hook->formwrapper, 'get_course') ? $hook->formwrapper->get_course() : null;
+        $courseid = !empty($course->id) ? (int)$course->id : optional_param('id', 0, PARAM_INT);
 
         $globaldefault = get_config('local_quicknote', 'default_enabled');
         $enabled = ($globaldefault === false || $globaldefault === null) ? 1 : $globaldefault;
@@ -74,30 +68,25 @@ class hooks {
      * @param \core_course\hook\after_form_submission $hook The hook object.
      */
     public static function course_edit_submission(\core_course\hook\after_form_submission $hook) {
-        $cmid = optional_param('update', 0, PARAM_INT);
-
-        if ($cmid > 0) {
-            // Module forms are handled via coursemodule_edit_post_actions in lib.php.
+        $data = $hook->get_data();
+        if (empty($data->id) || !property_exists($data, 'local_quicknote_enabled')) {
             return;
         }
 
-        // Course form — save per-course on/off.
-        $courseid = optional_param('id', 0, PARAM_INT);
-        $enabled = optional_param('local_quicknote_enabled', 0, PARAM_INT);
+        $courseid = (int) $data->id;
+        $enabled = (int) $data->local_quicknote_enabled;
 
-        if ($courseid > 0) {
-            global $DB;
-            $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
-            if ($record) {
-                $record->enabled = $enabled;
-                $DB->update_record('local_quicknote_course', $record);
-            } else {
-                $record = new \stdClass();
-                $record->courseid = $courseid;
-                $record->enabled = $enabled;
-                $record->module_settings = '';
-                $DB->insert_record('local_quicknote_course', $record);
-            }
+        global $DB;
+        $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
+        if ($record) {
+            $record->enabled = $enabled;
+            $DB->update_record('local_quicknote_course', $record);
+        } else {
+            $record = new \stdClass();
+            $record->courseid = $courseid;
+            $record->enabled = $enabled;
+            $record->module_settings = '';
+            $DB->insert_record('local_quicknote_course', $record);
         }
     }
 
