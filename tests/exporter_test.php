@@ -171,4 +171,63 @@ final class exporter_test extends advanced_testcase {
         $this->assertStringContainsString("## " . $generalnotesstring, $md);
         $this->assertStringContainsString("Dashboard note content", $md);
     }
+
+    /**
+     * Test exporting notes with special characters and newlines to Markdown.
+     */
+    public function test_export_to_md_special_characters_and_newlines(): void {
+        $this->resetAfterTest();
+        global $DB;
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course(['fullname' => 'Math & Science <101>']);
+        $user = $generator->create_user();
+
+        // Note with HTML-like characters and newlines.
+        $note = (object)[
+            'userid' => $user->id,
+            'courseid' => $course->id,
+            'content' => "Line 1 & Line 2\nLine 3 <tag> and 'quotes' & \"double\"",
+            'quote' => "Quoted line 1 & 2\nQuoted line 3",
+            'quoteurl' => 'http://example.com/quote',
+            'url' => 'http://example.com/note',
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+        $DB->insert_record('local_quicknote_notes', $note);
+
+        $sql = "SELECT qn.id, qn.content, qn.url, qn.quote, qn.quoteurl, qn.timemodified,
+                       c.fullname as coursefullname, c.id as courseid
+                FROM {local_quicknote_notes} qn
+                JOIN {course} c ON c.id = qn.courseid
+                WHERE qn.userid = :userid";
+        $rs = $DB->get_recordset_sql($sql, ['userid' => $user->id]);
+
+        $md = exporter::export_to_md($rs);
+
+        // Verify that Markdown contains clean raw text, not HTML entities or <br /> tags.
+        $this->assertStringContainsString("Line 1 & Line 2\nLine 3 <tag> and 'quotes' & \"double\"", $md);
+        $this->assertStringNotContainsString('&amp;', $md);
+        $this->assertStringNotContainsString('&lt;', $md);
+        $this->assertStringNotContainsString('&nbsp;', $md);
+        $this->assertStringNotContainsString('<br />', $md);
+        $this->assertStringNotContainsString('<br>', $md);
+
+        // Verify quote formatting with markdown blockquotes.
+        $this->assertStringContainsString("> Quoted line 1 & 2\n> Quoted line 3", $md);
+    }
+
+    /**
+     * Test that export URLs properly encode special characters in query parameters.
+     */
+    public function test_export_urls_encoding(): void {
+        $baseurl = new \moodle_url('/local/quicknote/view.php', [
+            'coursefilter' => 123,
+            'searchterm' => 'math & science #1 + notes',
+        ]);
+        $mdurl = (new \moodle_url($baseurl, ['export' => 'md']))->out(false);
+        $this->assertStringContainsString('searchterm=math%20%26%20science%20%231%20%2B%20notes', $mdurl);
+        $this->assertStringContainsString('export=md', $mdurl);
+        $this->assertStringContainsString('coursefilter=123', $mdurl);
+    }
 }

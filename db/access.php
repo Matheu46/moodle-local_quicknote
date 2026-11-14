@@ -30,9 +30,10 @@ defined('MOODLE_INTERNAL') || die();
 $capabilities = [
     'local/quicknote:use' => [
         'captype' => 'write',
-        'contextlevel' => CONTEXT_COURSE,
+        'contextlevel' => CONTEXT_SYSTEM,
         'riskbitmask' => RISK_PERSONAL,
         'archetypes' => [
+            'user' => CAP_ALLOW,
             'student' => CAP_ALLOW,
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
@@ -41,9 +42,10 @@ $capabilities = [
     ],
     'local/quicknote:uploadscreenshot' => [
         'captype' => 'write',
-        'contextlevel' => CONTEXT_COURSE,
+        'contextlevel' => CONTEXT_SYSTEM,
         'riskbitmask' => RISK_SPAM,
         'archetypes' => [
+            'user' => CAP_ALLOW,
             'student' => CAP_ALLOW,
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,

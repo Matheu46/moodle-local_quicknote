@@ -1,5 +1,42 @@
 # Moodle plugin: local_quicknote
 
+## v0.14.1 (2026-11-11)
+
+- **Security & Authorization Hardening**:
+  - Fixed authorization gap where site-level notes (`courseid == SITEID`, such as on the Dashboard or Front page) bypassed role capabilities and allowed unauthenticated guests to store and read notes/screenshots anonymously.
+  - Added strict `isguestuser()` rejection in `util::validate_note_access()`, `view.php`, and `pluginfile.php`.
+  - Added the `user => CAP_ALLOW` archetype to `local/quicknote:use` and `local/quicknote:uploadscreenshot` in `db/access.php` with `CONTEXT_SYSTEM` level, ensuring authenticated users retain dashboard note access while allowing administrators to restrict access via role permissions.
+  - Enforced `require_capability('local/quicknote:use')` and `require_capability('local/quicknote:uploadscreenshot')` checks on site-level notes in `util::validate_note_access()`, `hooks.php`, and `view.php`.
+  - Added an upgrade step to refresh plugin capabilities via `update_capabilities('local_quicknote')` on existing installations.
+- **Data Integrity in Enrolment Observer**:
+  - Fixed premature deletion of course notes and screenshots in `observers::user_enrolment_deleted()`: the observer now checks `$event->other['userenrolment']['lastenrol']` (with defensive fallback to `is_enrolled()`) before deleting records, preventing irreversible deletion of notes when a student has multiple enrolment methods in a course (e.g., manual + self or cohort sync) and only one method is removed.
+- **Backup & Restore Course Setting Preservation**:
+  - Fixed functional regression where duplicating, importing, or restoring a course that had no explicit QuickNote setting silently disabled the plugin in the restored course.
+  - Updated `backup_local_quicknote_plugin` to export `null` (restored as `$@NULL@$`) instead of an empty string `''` when no course setting is defined.
+  - Updated `restore_local_quicknote_plugin` to initialize `enabled = null` and ignore empty strings, preventing the database driver from converting `''` into `0` and preserving the three-state model (inheriting the site-level `default_enabled`).
+  - Fixed restore behavior when only module settings exist, ensuring course-level `enabled` remains `null` rather than hardcoding `enabled = 1`.
+- **Course & Module Settings Persistence in Hooks**:
+  - Fixed issue where QuickNote settings chosen during course creation were silently dropped: `hooks::course_edit_submission()` now reads `$data->id` and `$data->local_quicknote_enabled` directly from `\core_course\hook\after_form_submission::get_data()` rather than relying on raw request parameters (`optional_param('id')`, which is `0` when creating a new course).
+  - Updated `hooks::course_edit_form()` to retrieve the course ID via `$hook->formwrapper->get_course()`.
+  - Updated `local_quicknote_coursemodule_standard_elements()` and `local_quicknote_coursemodule_edit_post_actions()` to use `$formwrapper->get_coursemodule()` and handle `$data->coursemodule`, enabling settings to be persisted on newly created modules as well as existing ones.
+- **Privacy API Compliance**:
+  - Corrected language string key for `core_files` subsystem metadata in `lang/en/local_quicknote.php`: renamed `privacy:metadata:local_quicknote_notes:core_files` to `privacy:metadata:core_files` to match `provider::get_metadata()`, resolving missing-string placeholder in Moodle's Plugin Privacy Registry and data-export requests.
+- **Export Formatting & URL Encoding Hardening**:
+  - Fixed HTML artifacts in Markdown export (`exporter::export_to_md()`): raw text is now exported directly without running through `format_text(..., FORMAT_PLAIN)`, eliminating unwanted `<br />`, `&amp;`, `&lt;`, and `&nbsp;` entities in downloaded `.md` files.
+  - Fixed duplicated line breaks in PDF export (`exporter::export_to_pdf()`): removed redundant `nl2br()` on content that had already been processed by `format_text()`.
+  - Fixed export links encoding in Notes Center (`view.php` and `view.mustache`): export URLs are now constructed with `moodle_url::out(false)`, properly URL-encoding search terms with special characters (such as `&`, `#`, `+`) and preventing query string corruption.
+- **Mobile App Architecture & String Escaping**:
+  - Fixed JavaScript syntax breakage in Moodle Mobile App: replaced raw string interpolation (`str_replace` of `%%DELETE_CONFIRM%%`) with structured data in `otherdata` (`deleteconfirm`), preventing syntax errors in language packs with apostrophes (such as French, Italian, or Portuguese) and eliminating script injection risks.
+  - Registered `note:delete_confirm` in `db/mobile.php` language strings.
+- **Accessibility & Internationalization (a11y/i18n)**:
+  - Eliminated hardcoded `'Close'` label on dynamic error alert close button in `amd/src/notes.js`: the close button now consumes the localized `closelabel` from `state.strings` passed via `data-closelabel` on `#local-quicknote-root`.
+  - Mapped missing `closelabel`, `deleteimagelabel`, and `uploadingtext` attributes into `state.strings`.
+  - Recompiled AMD modules with Moodle Grunt.
+- **Upgrade Self-Containment & Codebase Cleanliness**:
+  - Isolated the historical `pagehash` backfill hashing logic in `db/upgradelib.php` (`local_quicknote_upgrade_calculate_page_hash()`) instead of calling the live class `\local_quicknote\util::calculate_page_hash()` during upgrade step `2026101801`, ensuring long-term upgrade stability and preventing regressions if runtime plugin classes change in future releases.
+  - Removed unused boilerplate scaffold function `local_quicknote_helper_function()` from `db/upgradelib.php`.
+  - Removed obsolete empty scaffold file `db/install.php`.
+
 ## v0.14.0 (2026-10-23)
 
 - **Accessibility & RTL Language Support (Fixes #43)**:

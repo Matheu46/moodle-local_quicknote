@@ -60,6 +60,15 @@ class observers {
     public static function user_enrolment_deleted(\core\event\user_enrolment_deleted $event) {
         global $DB;
 
+        $ue = $event->other['userenrolment'] ?? [];
+        $lastenrol = $ue['lastenrol'] ?? null;
+        if ($lastenrol === false) {
+            return;
+        }
+        if ($lastenrol === null && is_enrolled(\context_course::instance($event->courseid), $event->relateduserid)) {
+            return;
+        }
+
         $userid = $event->relateduserid;
         $courseid = $event->courseid;
 

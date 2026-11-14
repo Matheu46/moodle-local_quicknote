@@ -49,7 +49,7 @@ class backup_local_quicknote_plugin extends backup_local_plugin {
         $courseid = $this->step->get_task()->get_courseid();
         global $DB;
         $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
-        $enabled = $record ? $record->enabled : '';
+        $enabled = ($record && $record->enabled !== null && $record->enabled !== '') ? (int)$record->enabled : null;
         $coursenode->set_source_array([['id' => $courseid, 'enabled' => $enabled]]);
 
         // Module-level settings container node.
