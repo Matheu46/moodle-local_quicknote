@@ -809,6 +809,58 @@ define([
         }
     };
 
+    /**
+     * Updates the copy button visibility for a note element.
+     *
+     * @param {HTMLElement} noteEl The note container element.
+     * @param {string} content Current content of the note.
+     */
+    var setNoteCopyButton = function(noteEl, content) {
+        var copyBtn = noteEl ? noteEl.querySelector('[data-action="copy-note"]') : null;
+        if (!copyBtn) {
+            return;
+        }
+
+        if (content && content.trim().length > 0) {
+            copyBtn.style.display = '';
+        } else {
+            copyBtn.style.display = 'none';
+        }
+    };
+
+    /**
+     * Updates the voice dictation button state for a note element.
+     *
+     * @param {HTMLElement} noteEl The note container element.
+     * @param {Object} note The note data object.
+     */
+    var setNoteVoiceButton = function(noteEl, note) {
+        var voiceBtn = noteEl ? noteEl.querySelector(SELECTORS.voicebutton) : null;
+        if (!voiceBtn) {
+            return;
+        }
+
+        if (state && state.enableVoiceDictation && isSpeechRecognitionSupported()) {
+            voiceBtn.classList.remove('d-none');
+        } else {
+            voiceBtn.classList.add('d-none');
+        }
+
+        if (activeVoiceNoteKey === note.clientid) {
+            voiceBtn.classList.add('is-recording');
+            var stopLabel = (state && state.strings && state.strings.voicestoplabel) || 'Stop dictating';
+            voiceBtn.setAttribute('title', stopLabel);
+            voiceBtn.setAttribute('aria-label', stopLabel);
+            voiceBtn.setAttribute('aria-pressed', 'true');
+        } else {
+            voiceBtn.classList.remove('is-recording');
+            var dictateLabel = (state && state.strings && state.strings.voicelabel) || 'Dictate note';
+            voiceBtn.setAttribute('title', dictateLabel);
+            voiceBtn.setAttribute('aria-label', dictateLabel);
+            voiceBtn.setAttribute('aria-pressed', 'false');
+        }
+    };
+
     var updateNoteElement = function(note, noteEl, preservecontent) {
         var textarea = noteEl.querySelector(SELECTORS.textarea);
         var currentcontent = preservecontent && textarea ? textarea.value : note.content;
@@ -840,38 +892,8 @@ define([
         renderScreenshots(noteEl, note);
         setNoteQuote(noteEl, note);
         setNoteLocation(noteEl, note.url, note.hasquote, note.pagetitle);
-
-        var copyBtn = noteEl.querySelector('[data-action="copy-note"]');
-        if (copyBtn) {
-            if (currentcontent.trim().length > 0) {
-                copyBtn.style.display = '';
-            } else {
-                copyBtn.style.display = 'none';
-            }
-        }
-
-        var voiceBtn = noteEl.querySelector(SELECTORS.voicebutton);
-        if (voiceBtn) {
-            if (state && state.enableVoiceDictation && isSpeechRecognitionSupported()) {
-                voiceBtn.classList.remove('d-none');
-            } else {
-                voiceBtn.classList.add('d-none');
-            }
-
-            if (activeVoiceNoteKey === note.clientid) {
-                voiceBtn.classList.add('is-recording');
-                var stopLabel = (state && state.strings && state.strings.voicestoplabel) || 'Stop dictating';
-                voiceBtn.setAttribute('title', stopLabel);
-                voiceBtn.setAttribute('aria-label', stopLabel);
-                voiceBtn.setAttribute('aria-pressed', 'true');
-            } else {
-                voiceBtn.classList.remove('is-recording');
-                var dictateLabel = (state && state.strings && state.strings.voicelabel) || 'Dictate note';
-                voiceBtn.setAttribute('title', dictateLabel);
-                voiceBtn.setAttribute('aria-label', dictateLabel);
-                voiceBtn.setAttribute('aria-pressed', 'false');
-            }
-        }
+        setNoteCopyButton(noteEl, currentcontent);
+        setNoteVoiceButton(noteEl, note);
     };
 
     var createNoteElement = function(note) {
@@ -1688,15 +1710,7 @@ define([
                 note.timemodified = Math.floor(Date.now() / 1000);
 
                 var noteEl = textarea.closest(SELECTORS.note);
-                var cBtn = noteEl ? noteEl.querySelector('[data-action="copy-note"]') : null;
-
-                if (cBtn) {
-                    if (note.content.trim().length > 0) {
-                        cBtn.style.display = '';
-                    } else {
-                        cBtn.style.display = 'none';
-                    }
-                }
+                setNoteCopyButton(noteEl, note.content);
 
                 scheduleSave(note);
                 applyFilter();
