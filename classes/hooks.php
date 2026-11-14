@@ -220,8 +220,7 @@ class hooks {
         $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
             has_capability('local/quicknote:uploadscreenshot', $context);
 
-        $enablevoicedictation = get_config('local_quicknote', 'enable_voice_dictation');
-        $enablevoicedictation = ($enablevoicedictation === false) ? true : (bool) $enablevoicedictation;
+        $enablevoicedictation = self::is_voice_dictation_enabled();
 
         $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
         $maxbytes = (int) get_config('local_quicknote', 'max_bytes');
@@ -294,6 +293,20 @@ class hooks {
         if ($enabled === false || $enabled === null || $enabled === '') {
             // Return the default setting defined by the administrator in Site Administration.
             return (bool) get_config('local_quicknote', 'default_enabled');
+        }
+
+        return (string) $enabled !== '0';
+    }
+
+    /**
+     * Checks whether voice dictation is enabled globally.
+     *
+     * @return bool True if voice dictation is enabled.
+     */
+    public static function is_voice_dictation_enabled(): bool {
+        $enabled = get_config('local_quicknote', 'enable_voice_dictation');
+        if ($enabled === false || $enabled === null || $enabled === '') {
+            return true;
         }
 
         return (string) $enabled !== '0';

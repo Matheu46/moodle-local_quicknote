@@ -181,4 +181,80 @@ final class hooks_test extends \advanced_testcase {
         $settings = json_decode($record->module_settings, true);
         $this->assertArrayNotHasKey($page->cmid, $settings);
     }
+
+    /**
+     * Test is_voice_dictation_enabled returns true by default when not set.
+     */
+    public function test_is_voice_dictation_enabled_default(): void {
+        $this->resetAfterTest();
+        unset_config('enable_voice_dictation', 'local_quicknote');
+
+        $this->assertTrue(\local_quicknote\hooks::is_voice_dictation_enabled());
+    }
+
+    /**
+     * Test is_voice_dictation_enabled respects explicitly configured values.
+     */
+    public function test_is_voice_dictation_enabled_configured(): void {
+        $this->resetAfterTest();
+
+        // When set to 0, voice dictation should be disabled.
+        set_config('enable_voice_dictation', 0, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::is_voice_dictation_enabled());
+
+        // When set to 1, voice dictation should be enabled.
+        set_config('enable_voice_dictation', 1, 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::is_voice_dictation_enabled());
+    }
+
+    /**
+     * Test sidebar template renders voice dictation elements correctly.
+     */
+    public function test_sidebar_template_voice_dictation_rendering(): void {
+        global $OUTPUT;
+        $this->resetAfterTest();
+
+        $context = [
+            'courseid' => 1,
+            'pageurl' => 'https://example.com/test',
+            'pagehash' => 'dummyhash',
+            'pagetitle' => 'Test Page',
+            'positionclass' => 'local-quicknote--right',
+            'title' => get_string('sidebar:title', 'local_quicknote'),
+            'togglelabel' => get_string('sidebar:toggle', 'local_quicknote'),
+            'closelabel' => get_string('sidebar:close', 'local_quicknote'),
+            'addlabel' => get_string('note:add', 'local_quicknote'),
+            'placeholder' => get_string('note:placeholder', 'local_quicknote'),
+            'emptytext' => get_string('note:empty', 'local_quicknote'),
+            'savingtext' => get_string('note:saving', 'local_quicknote'),
+            'savedtext' => get_string('note:saved', 'local_quicknote'),
+            'errortext' => get_string('note:error', 'local_quicknote'),
+            'updatedlabel' => get_string('note:updated', 'local_quicknote'),
+            'locationlabel' => get_string('note:location', 'local_quicknote'),
+            'deleteconfirm' => get_string('note:delete_confirm', 'local_quicknote'),
+            'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
+            'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
+            'enablescreenshots' => false,
+            'enablevoicedictation' => true,
+            'voicelabel' => get_string('voice:dictate', 'local_quicknote'),
+            'voicestoplabel' => get_string('voice:stop', 'local_quicknote'),
+            'voicelisteninglabel' => get_string('voice:listening', 'local_quicknote'),
+            'voiceendedlabel' => get_string('voice:ended', 'local_quicknote'),
+        ];
+
+        // 1. Render with voice dictation enabled.
+        $html = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
+
+        $this->assertStringContainsString('data-enablevoicedictation="1"', $html);
+        $this->assertStringContainsString('data-action="voice-dictate"', $html);
+        $this->assertStringContainsString('id="local-quicknote-a11y-announcer"', $html);
+        $this->assertStringContainsString('aria-live="polite"', $html);
+        $this->assertStringContainsString('aria-pressed="false"', $html);
+        $this->assertStringContainsString('local-quicknote__voice-btn', $html);
+
+        // 2. Render with voice dictation disabled.
+        $context['enablevoicedictation'] = false;
+        $html = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
+        $this->assertStringContainsString('data-enablevoicedictation="0"', $html);
+    }
 }
