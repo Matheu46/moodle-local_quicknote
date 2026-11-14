@@ -533,4 +533,67 @@ final class externallib_test extends advanced_testcase {
         $deleteresult = \core_external\external_api::clean_returnvalue(delete_note::execute_returns(), $deleteresult);
         $this->assertTrue($deleteresult['deleted']);
     }
+
+    public function test_guest_cannot_save_or_get_notes(): void {
+        $this->resetAfterTest();
+        $this->setGuestUser();
+
+        set_config('enable_dashboard', 1, 'local_quicknote');
+
+        $this->expectException(\require_login_exception::class);
+        save_note::execute(0, SITEID, 'Guest note', '');
+    }
+
+    public function test_dashboard_notes_capability_enforced_in_external(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $user = $this->getDataGenerator()->create_user();
+        $this->setUser($user);
+
+        set_config('enable_dashboard', 1, 'local_quicknote');
+
+        $syscontext = \context_system::instance();
+        $authrole = $DB->get_record('role', ['shortname' => 'user'], '*', MUST_EXIST);
+        assign_capability('local/quicknote:use', CAP_PROHIBIT, $authrole->id, $syscontext->id, true);
+
+        $this->expectException(\required_capability_exception::class);
+        save_note::execute(0, SITEID, 'Unauthorized note', '');
+    }
+
+    public function test_course_prohibit_does_not_block_dashboard_in_external_api(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        $generator->enrol_user($user->id, $course->id, 'editingteacher');
+        $this->setUser($user);
+        set_config('enable_dashboard', 1, 'local_quicknote');
+
+        // Prohibit local/quicknote:use in this specific course.
+        $coursecontext = \context_course::instance($course->id);
+        $teacherrole = $DB->get_record('role', ['shortname' => 'editingteacher'], '*', MUST_EXIST);
+        assign_capability('local/quicknote:use', CAP_PROHIBIT, $teacherrole->id, $coursecontext->id, true);
+
+        // 1. Course save must throw required_capability_exception.
+        try {
+            save_note::execute(0, $course->id, 'Course note', '');
+            $this->fail('Expected required_capability_exception was not thrown for prohibited course role.');
+        } catch (\required_capability_exception $e) {
+            $this->assertEquals('nopermissions', $e->errorcode);
+        }
+
+        // 2. Dashboard save for the same user must succeed.
+        $result = save_note::execute(0, SITEID, 'Dashboard note', '');
+        $result = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $result);
+        $this->assertNotEmpty($result['id']);
+        $this->assertEquals('Dashboard note', $result['content']);
+
+        // 3. Dashboard get_notes for the same user must succeed.
+        $notes = get_notes::execute(SITEID);
+        $notes = \core_external\external_api::clean_returnvalue(get_notes::execute_returns(), $notes);
+        $this->assertCount(1, $notes);
+        $this->assertEquals('Dashboard note', $notes[0]['content']);
+    }
 }

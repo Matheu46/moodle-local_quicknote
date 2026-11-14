@@ -29,17 +29,21 @@
  * @param MoodleQuickForm $mform The form element.
  */
 function local_quicknote_coursemodule_standard_elements($formwrapper, $mform) {
-    $cmid = optional_param('update', 0, PARAM_INT);
+    $cm = method_exists($formwrapper, 'get_coursemodule') ? $formwrapper->get_coursemodule() : null;
+    $cmid = $cm ? (int)$cm->id : optional_param('update', 0, PARAM_INT);
     $current = null;
 
     if ($cmid > 0) {
-        $courseid = $formwrapper->get_course()->id;
-        global $DB;
-        $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
-        $settingsjson = $record ? $record->module_settings : null;
-        $settings = $settingsjson ? json_decode($settingsjson, true) : [];
-        $settings = is_array($settings) ? $settings : [];
-        $current = $settings[$cmid] ?? null;
+        $course = method_exists($formwrapper, 'get_course') ? $formwrapper->get_course() : null;
+        $courseid = $course ? (int)$course->id : 0;
+        if ($courseid > 0) {
+            global $DB;
+            $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
+            $settingsjson = $record ? $record->module_settings : null;
+            $settings = $settingsjson ? json_decode($settingsjson, true) : [];
+            $settings = is_array($settings) ? $settings : [];
+            $current = $settings[$cmid] ?? null;
+        }
     }
 
     $mform->addElement('header', 'local_quicknote_header', get_string('pluginname', 'local_quicknote'));
@@ -59,8 +63,8 @@ function local_quicknote_coursemodule_standard_elements($formwrapper, $mform) {
  * @return stdClass
  */
 function local_quicknote_coursemodule_edit_post_actions($data, $course) {
-    if (!empty($data->update) && isset($data->local_quicknote_module)) {
-        $cmid = $data->update;
+    $cmid = !empty($data->coursemodule) ? (int)$data->coursemodule : (!empty($data->update) ? (int)$data->update : 0);
+    if ($cmid > 0 && isset($data->local_quicknote_module)) {
         $courseid = $course->id;
 
         global $DB;
@@ -82,7 +86,7 @@ function local_quicknote_coursemodule_edit_post_actions($data, $course) {
         } else {
             $record = new \stdClass();
             $record->courseid = $courseid;
-            $record->enabled = 1;
+            $record->enabled = null;
             $record->module_settings = $json;
             $DB->insert_record('local_quicknote_course', $record);
         }
@@ -127,6 +131,9 @@ function local_quicknote_pluginfile($course, $cm, $context, $filearea, $args, $f
     }
 
     require_login();
+    if (isguestuser()) {
+        return false;
+    }
 
     $noteid = (int) array_shift($args);
     $note = $DB->get_record('local_quicknote_notes', ['id' => $noteid, 'userid' => $USER->id], 'id, courseid');

@@ -67,7 +67,12 @@ this.saveNote = function () {
 };
 
 this.deleteNote = function (noteId) {
-    DomUtils.showConfirm('%%DELETE_CONFIRM%%')
+    var confirmMsg = (that.CONTENT_OTHERDATA && that.CONTENT_OTHERDATA.deleteconfirm) ||
+        that.deleteconfirm ||
+        (this.CONTENT_OTHERDATA && this.CONTENT_OTHERDATA.deleteconfirm) ||
+        this.deleteconfirm;
+
+    DomUtils.showConfirm(confirmMsg)
         .then(function () {
             SitesService.getCurrentSite().write('local_quicknote_delete_note', { noteid: noteId })
                 .then(function () {
