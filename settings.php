@@ -59,6 +59,14 @@ if ($hassiteconfig) {
         0
     ));
 
+    // Enable/disable voice dictation.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_voice_dictation',
+        get_string('enable_voice_dictation', 'local_quicknote'),
+        get_string('enable_voice_dictation_desc', 'local_quicknote'),
+        1
+    ));
+
     // Maximum screenshot file size.
     $settings->add(new admin_setting_configselect(
         'local_quicknote/max_bytes',

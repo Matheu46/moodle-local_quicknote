@@ -220,6 +220,9 @@ class hooks {
         $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
             has_capability('local/quicknote:uploadscreenshot', $context);
 
+        $enablevoicedictation = get_config('local_quicknote', 'enable_voice_dictation');
+        $enablevoicedictation = ($enablevoicedictation === false) ? true : (bool) $enablevoicedictation;
+
         $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
         $maxbytes = (int) get_config('local_quicknote', 'max_bytes');
         $rawtitle = trim((string) ($PAGE->title ?: $PAGE->heading));
@@ -233,6 +236,7 @@ class hooks {
             'pagehash' => $pagehash,
             'pagetitle' => $pagetitle,
             'enable_screenshots' => $canuploadscreenshots,
+            'enable_voice_dictation' => $enablevoicedictation,
             'max_files_per_note' => $maxfiles,
             'max_bytes' => $maxbytes,
         ]]);
@@ -266,6 +270,11 @@ class hooks {
             'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
             'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
             'enablescreenshots' => $canuploadscreenshots,
+            'enablevoicedictation' => $enablevoicedictation,
+            'voicelabel' => get_string('voice:dictate', 'local_quicknote'),
+            'voicestoplabel' => get_string('voice:stop', 'local_quicknote'),
+            'voicelisteninglabel' => get_string('voice:listening', 'local_quicknote'),
+            'voiceendedlabel' => get_string('voice:ended', 'local_quicknote'),
         ]);
 
         return $html;

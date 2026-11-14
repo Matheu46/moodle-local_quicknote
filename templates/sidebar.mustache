@@ -53,6 +53,12 @@
     data-deleteimagelabel="{{#str}} screenshot:delete, local_quicknote {{/str}}"
     data-uploadingtext="{{#str}} screenshot:uploading, local_quicknote {{/str}}"
     data-loadingtext="{{#str}} loading, core {{/str}}"
+    data-enablevoicedictation="{{enablevoicedictation}}"
+    data-voicelabel="{{voicelabel}}"
+    data-voicestoplabel="{{voicestoplabel}}"
+    data-voicelisteninglabel="{{voicelisteninglabel}}"
+    data-voiceendedlabel="{{voiceendedlabel}}"
+    data-voicepermissiondenied="{{#str}} voice:permission_denied, local_quicknote {{/str}}"
 >
     <div class="local-quicknote__fab-wrapper">
         <button
@@ -90,6 +96,7 @@
         data-region="panel"
         aria-hidden="true"
     >
+        <div id="local-quicknote-a11y-announcer" class="visually-hidden" aria-live="polite"></div>
         <div class="local-quicknote__header">
             <h3 class="local-quicknote__title">{{title}}</h3>
             <button
@@ -171,16 +178,34 @@
 
                 <div class="local-quicknote__meta" data-region="note-location"></div>
 
-                <div class="position-relative local-quicknote__textarea-wrapper">
+                <div class="local-quicknote__textarea-wrapper">
                     <textarea
                         class="local-quicknote__textarea"
                         data-note-key=""
                         placeholder="{{placeholder}}"
                         aria-label="{{placeholder}}"
                     ></textarea>
-                    <button type="button" class="btn btn-sm btn-link local-quicknote__copy-btn" data-action="copy-note" title="{{#str}} copy, core {{/str}}">
-                        <i class="fa-regular fa-copy" aria-hidden="true"></i>
-                    </button>
+                    <div class="local-quicknote__textarea-actions">
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-link local-quicknote__voice-btn d-none"
+                            data-action="voice-dictate"
+                            title="{{voicelabel}}"
+                            aria-label="{{voicelabel}}"
+                            aria-pressed="false"
+                        >
+                            <i class="fa-solid fa-microphone" aria-hidden="true"></i>
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-link local-quicknote__copy-btn"
+                            data-action="copy-note"
+                            title="{{#str}} copy, core {{/str}}"
+                            aria-label="{{#str}} copy, core {{/str}}"
+                        >
+                            <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="local-quicknote__screenshots" data-region="screenshots"></div>

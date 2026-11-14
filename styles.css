@@ -398,30 +398,108 @@
 }
 
 .local-quicknote__textarea-wrapper {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--bs-border-color, #c7d0dd);
+    border-radius: 0.5rem;
+    background-color: var(--bs-body-bg, #fff);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.local-quicknote__textarea-wrapper:focus-within {
+    border-color: var(--bs-primary, #0f6cbf);
+    box-shadow: 0 0 0 0.2rem rgba(15, 108, 191, 0.25);
 }
 
 .local-quicknote__textarea {
     width: 100%;
-    min-height: 7rem;
+    min-height: 5.5rem;
     max-height: 40vh;
     overflow-y: hidden;
     resize: none;
-    border: 1px solid var(--bs-border-color, #c7d0dd);
-    border-radius: 0.5rem;
+    border: 0;
+    outline: none;
+    box-shadow: none;
     transition: height 0.1s ease-out;
-    padding: 0.75rem;
-    background-color: var(--bs-body-bg, #fff);
+    padding: 0.75rem 0.75rem 0.25rem;
+    background-color: transparent;
     color: var(--bs-body-color, #212529);
 }
 
-.local-quicknote__copy-btn {
-    position: absolute;
-    right: 5px;
-    bottom: 5px;
-    z-index: 10;
-    display: none;
+.local-quicknote__textarea:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.local-quicknote__textarea-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 0.25rem 0.5rem 0.4rem;
+    min-height: 2rem;
+}
+
+.local-quicknote__copy-btn,
+.local-quicknote__voice-btn {
     color: var(--bs-secondary-color, #6c757d);
+    padding: 0.25rem;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    border-radius: 0.25rem;
+    border: 0;
+    background: transparent;
+}
+
+.local-quicknote__copy-btn {
+    display: none;
+}
+
+.local-quicknote__voice-btn:hover,
+.local-quicknote__voice-btn:focus,
+.local-quicknote__copy-btn:hover,
+.local-quicknote__copy-btn:focus {
+    color: var(--bs-primary, #0f6cbf);
+}
+
+.local-quicknote__voice-btn:focus-visible,
+.local-quicknote__copy-btn:focus-visible {
+    outline: 2px solid var(--bs-primary, #0f6cbf);
+    outline-offset: 1px;
+}
+
+.local-quicknote__voice-btn.is-recording,
+.local-quicknote__textarea-actions .local-quicknote__voice-btn.is-recording {
+    color: var(--bs-danger, #dc3545);
+    animation: local-quicknote-voice-pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes local-quicknote-voice-pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.25);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .local-quicknote__voice-btn.is-recording,
+    .local-quicknote__textarea-actions .local-quicknote__voice-btn.is-recording {
+        animation: none;
+    }
 }
 
 /* QuickNote Center View Styles */
