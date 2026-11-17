@@ -305,4 +305,53 @@ class util {
         $title = \core_text::substr($title, 0, 255);
         return $title !== '' ? $title : null;
     }
+
+    /**
+     * Parses an ISO datetime string (YYYY-MM-DDTHH:mm) into a Unix timestamp using the user's Moodle timezone.
+     *
+     * @param string $isostr ISO datetime string.
+     * @return int|null Unix timestamp or null if invalid.
+     */
+    public static function parse_user_iso_datetime(string $isostr): ?int {
+        $isostr = trim($isostr);
+        if ($isostr === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/', $isostr, $matches)) {
+            $year = (int) $matches[1];
+            $month = (int) $matches[2];
+            $day = (int) $matches[3];
+            $hour = (int) $matches[4];
+            $minute = (int) $matches[5];
+
+            if (checkdate($month, $day, $year) && $hour >= 0 && $hour <= 23 && $minute >= 0 && $minute <= 59) {
+                return make_timestamp($year, $month, $day, $hour, $minute, 0);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Formats a Unix timestamp into an ISO datetime string (YYYY-MM-DDTHH:mm) in the user's Moodle timezone.
+     *
+     * @param int|null $timestamp Unix timestamp.
+     * @return string|null ISO datetime string or null.
+     */
+    public static function format_user_iso_datetime(?int $timestamp): ?string {
+        if (empty($timestamp)) {
+            return null;
+        }
+
+        $date = usergetdate($timestamp);
+        return sprintf(
+            '%04d-%02d-%02dT%02d:%02d',
+            $date['year'],
+            $date['mon'],
+            $date['mday'],
+            $date['hours'],
+            $date['minutes']
+        );
+    }
 }

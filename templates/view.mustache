@@ -170,6 +170,12 @@
                         <span class="visually-hidden">{{#str}} lastmodified, core {{/str}}:</span>
                         {{timeupdated}}
                     </span>
+                    {{#remindertimeformatted}}
+                    <span class="badge text-bg-light border text-muted small" title="{{#str}} note:reminder, local_quicknote {{/str}}">
+                        <i class="fa-regular fa-bell text-primary me-1" aria-hidden="true"></i>
+                        {{remindertimeformatted}}
+                    </span>
+                    {{/remindertimeformatted}}
                     <button type="button" class="btn btn-sm btn-link text-danger local-quicknote-delete-btn" data-action="delete" data-id="{{id}}" title="{{#str}} note:delete, local_quicknote {{/str}}">
                         <i class="fa fa-trash-o" aria-hidden="true"></i>
                     </button>

@@ -37,4 +37,8 @@ $observers = [
         'eventname'   => '\core\event\user_deleted',
         'callback'    => '\local_quicknote\observers::user_deleted',
     ],
+    [
+        'eventname'   => '\core\event\calendar_event_deleted',
+        'callback'    => '\local_quicknote\observers::calendar_event_deleted',
+    ],
 ];

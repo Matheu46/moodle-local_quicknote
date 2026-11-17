@@ -54,6 +54,8 @@ class provider implements
             'url' => 'privacy:metadata:local_quicknote_notes:url',
             'pagehash' => 'privacy:metadata:local_quicknote_notes:pagehash',
             'pagetitle' => 'privacy:metadata:local_quicknote_notes:pagetitle',
+            'eventid' => 'privacy:metadata:local_quicknote_notes:eventid',
+            'remindertime' => 'privacy:metadata:local_quicknote_notes:remindertime',
             'timecreated' => 'privacy:metadata:local_quicknote_notes:timecreated',
             'timemodified' => 'privacy:metadata:local_quicknote_notes:timemodified',
         ], 'privacy:metadata:local_quicknote_notes');
@@ -129,6 +131,7 @@ class provider implements
                 'url' => $note->url,
                 'pagehash' => $note->pagehash ?? null,
                 'pagetitle' => $note->pagetitle ?? null,
+                'remindertime' => !empty($note->remindertime) ? transform::datetime($note->remindertime) : null,
                 'timecreated' => transform::datetime($note->timecreated),
                 'timemodified' => transform::datetime($note->timemodified),
             ];

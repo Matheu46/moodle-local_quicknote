@@ -43,6 +43,18 @@ class save_note extends \core_external\external_api {
             'quote' => new \core_external\external_value(PARAM_RAW, 'Selected quote text.', VALUE_DEFAULT, null),
             'quoteurl' => new \core_external\external_value(PARAM_RAW, 'URL pointing to the selected quote.', VALUE_DEFAULT, null),
             'pagetitle' => new \core_external\external_value(PARAM_TEXT, 'Current page title.', VALUE_DEFAULT, null),
+            'remindertime' => new \core_external\external_value(
+                PARAM_INT,
+                'Reminder timestamp, 0 or null to remove.',
+                VALUE_DEFAULT,
+                null
+            ),
+            'remindertimestr' => new \core_external\external_value(
+                PARAM_TEXT,
+                'Reminder ISO string (YYYY-MM-DDTHH:mm), empty to remove.',
+                VALUE_DEFAULT,
+                null
+            ),
         ]);
     }
 
@@ -56,6 +68,8 @@ class save_note extends \core_external\external_api {
      * @param string|null $quote
      * @param string|null $quoteurl
      * @param string|null $pagetitle
+     * @param int|null $remindertime
+     * @param string|null $remindertimestr
      * @return array
      */
     public static function execute(
@@ -65,7 +79,9 @@ class save_note extends \core_external\external_api {
         string $url,
         ?string $quote = null,
         ?string $quoteurl = null,
-        ?string $pagetitle = null
+        ?string $pagetitle = null,
+        ?int $remindertime = null,
+        ?string $remindertimestr = null
     ): array {
         global $DB, $USER;
 
@@ -86,6 +102,14 @@ class save_note extends \core_external\external_api {
 
         if ($pagetitle !== null) {
             $input['pagetitle'] = $pagetitle;
+        }
+
+        if ($remindertime !== null) {
+            $input['remindertime'] = $remindertime;
+        }
+
+        if ($remindertimestr !== null) {
+            $input['remindertimestr'] = $remindertimestr;
         }
 
         $params = self::validate_parameters(self::execute_parameters(), $input);
@@ -120,6 +144,25 @@ class save_note extends \core_external\external_api {
             $record->pagetitle = \local_quicknote\util::clean_page_title($params['pagetitle'], $course);
         }
 
+        $enablereminders = (bool) get_config('local_quicknote', 'enable_calendar_reminders');
+
+        // Resolve reminder timestamp.
+        $remindervalue = null;
+        $reminderprovided = false;
+
+        if (array_key_exists('remindertimestr', $params) && $params['remindertimestr'] !== null) {
+            $reminderprovided = true;
+            $trimmed = trim($params['remindertimestr']);
+            if ($trimmed !== '') {
+                $remindervalue = \local_quicknote\util::parse_user_iso_datetime($trimmed);
+            } else {
+                $remindervalue = 0;
+            }
+        } else if (array_key_exists('remindertime', $params) && $params['remindertime'] !== null) {
+            $reminderprovided = true;
+            $remindervalue = (int) $params['remindertime'];
+        }
+
         if (!empty($params['id'])) {
             $existing = $DB->get_record('local_quicknote_notes', [
                 'id' => $params['id'],
@@ -149,6 +192,56 @@ class save_note extends \core_external\external_api {
                 $record->pagetitle = $existing->pagetitle ?? null;
             }
 
+            $record->eventid = $existing->eventid ?? null;
+            $record->remindertime = $existing->remindertime ?? null;
+
+            if ($enablereminders && $reminderprovided) {
+                global $CFG;
+                require_once($CFG->dirroot . '/calendar/lib.php');
+
+                if ($remindervalue !== null && $remindervalue > 0) {
+                    $eventdata = new \stdClass();
+                    $eventname = get_string('pluginname', 'local_quicknote');
+                    $cleancontent = trim(strip_tags($record->content));
+                    if ($cleancontent !== '') {
+                        $eventname .= ': ' . core_text::substr($cleancontent, 0, 50);
+                    }
+                    $eventdata->name = $eventname;
+                    $description = format_text($record->content, FORMAT_PLAIN);
+                    if (!empty($record->url)) {
+                        $description .= '<br><br><a href="' . s($record->url) . '">' .
+                            get_string('note:viewintext', 'local_quicknote') . '</a>';
+                    }
+                    $eventdata->description = $description;
+                    $eventdata->format = FORMAT_HTML;
+                    $eventdata->eventtype = 'user';
+                    $eventdata->timestart = $remindervalue;
+                    $eventdata->timeduration = 0;
+                    $eventdata->userid = $USER->id;
+                    $eventdata->courseid = 0;
+                    $eventdata->repeatid = 0;
+
+                    if (!empty($record->eventid) && $DB->record_exists('event', ['id' => $record->eventid])) {
+                        $event = \calendar_event::load($record->eventid);
+                        $event->update($eventdata, false);
+                    } else {
+                        $event = \calendar_event::create($eventdata, false);
+                        $record->eventid = $event->id;
+                    }
+                    $record->remindertime = $remindervalue;
+                } else if (!empty($record->eventid)) {
+                    if ($DB->record_exists('event', ['id' => $record->eventid])) {
+                        $event = \calendar_event::load($record->eventid);
+                        $event->delete();
+                    }
+                    $record->eventid = null;
+                    $record->remindertime = null;
+                } else {
+                    $record->eventid = null;
+                    $record->remindertime = null;
+                }
+            }
+
             $DB->update_record('local_quicknote_notes', $record);
             $saved = $DB->get_record('local_quicknote_notes', ['id' => $record->id], '*', MUST_EXIST);
         } else {
@@ -156,6 +249,41 @@ class save_note extends \core_external\external_api {
             $record->quote = $record->quote ?? null;
             $record->quoteurl = $record->quoteurl ?? null;
             $record->pagetitle = $record->pagetitle ?? null;
+            $record->eventid = null;
+            $record->remindertime = null;
+
+            if ($enablereminders && $reminderprovided) {
+                if ($remindervalue !== null && $remindervalue > 0) {
+                    global $CFG;
+                    require_once($CFG->dirroot . '/calendar/lib.php');
+
+                    $eventdata = new \stdClass();
+                    $eventname = get_string('pluginname', 'local_quicknote');
+                    $cleancontent = trim(strip_tags($record->content));
+                    if ($cleancontent !== '') {
+                        $eventname .= ': ' . core_text::substr($cleancontent, 0, 50);
+                    }
+                    $eventdata->name = $eventname;
+                    $description = format_text($record->content, FORMAT_PLAIN);
+                    if (!empty($record->url)) {
+                        $description .= '<br><br><a href="' . s($record->url) . '">' .
+                            get_string('note:viewintext', 'local_quicknote') . '</a>';
+                    }
+                    $eventdata->description = $description;
+                    $eventdata->format = FORMAT_HTML;
+                    $eventdata->eventtype = 'user';
+                    $eventdata->timestart = $remindervalue;
+                    $eventdata->timeduration = 0;
+                    $eventdata->userid = $USER->id;
+                    $eventdata->courseid = 0;
+                    $eventdata->repeatid = 0;
+
+                    $event = \calendar_event::create($eventdata, false);
+                    $record->eventid = $event->id;
+                    $record->remindertime = $remindervalue;
+                }
+            }
+
             $record->id = $DB->insert_record('local_quicknote_notes', $record);
             $saved = $DB->get_record('local_quicknote_notes', ['id' => $record->id], '*', MUST_EXIST);
         }
@@ -193,6 +321,18 @@ class save_note extends \core_external\external_api {
             'screenshots' => new \core_external\external_multiple_structure(
                 screenshot_manager::external_structure()
             ),
+            'eventid' => new \core_external\external_value(PARAM_INT, 'Calendar event id.', VALUE_OPTIONAL),
+            'remindertime' => new \core_external\external_value(PARAM_INT, 'Reminder timestamp.', VALUE_OPTIONAL),
+            'remindertimeiso' => new \core_external\external_value(
+                PARAM_TEXT,
+                'Reminder ISO string in user timezone.',
+                VALUE_OPTIONAL
+            ),
+            'remindertimeformatted' => new \core_external\external_value(
+                PARAM_TEXT,
+                'Reminder human formatted string in user timezone.',
+                VALUE_OPTIONAL
+            ),
             'timecreated' => new \core_external\external_value(PARAM_INT, 'Creation timestamp.'),
             'timemodified' => new \core_external\external_value(PARAM_INT, 'Last modification timestamp.'),
         ]);
@@ -211,6 +351,12 @@ class save_note extends \core_external\external_api {
             ? (string) $note->pagehash
             : \local_quicknote\util::calculate_page_hash($note->url ?? null);
 
+        $remindertime = !empty($note->remindertime) ? (int) $note->remindertime : null;
+        $remindertimeiso = $remindertime ? \local_quicknote\util::format_user_iso_datetime($remindertime) : null;
+        $remindertimeformatted = $remindertime ?
+            userdate($remindertime, get_string('strftimedatetimeshort', 'langconfig')) :
+            null;
+
         return [
             'id' => (int) $note->id,
             'userid' => (int) $note->userid,
@@ -224,6 +370,10 @@ class save_note extends \core_external\external_api {
             'pagehash' => $pagehash,
             'pagetitle' => (string) ($note->pagetitle ?? ''),
             'screenshots' => $screenshots ?? screenshot_manager::get_for_note((int) $note->id),
+            'eventid' => !empty($note->eventid) ? (int) $note->eventid : null,
+            'remindertime' => $remindertime,
+            'remindertimeiso' => $remindertimeiso,
+            'remindertimeformatted' => $remindertimeformatted,
             'timecreated' => (int) $note->timecreated,
             'timemodified' => (int) $note->timemodified,
         ];

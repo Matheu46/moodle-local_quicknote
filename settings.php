@@ -67,6 +67,14 @@ if ($hassiteconfig) {
         1
     ));
 
+    // Enable/disable calendar reminders.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_calendar_reminders',
+        get_string('enable_calendar_reminders', 'local_quicknote'),
+        get_string('enable_calendar_reminders_desc', 'local_quicknote'),
+        1
+    ));
+
     // Maximum screenshot file size.
     $settings->add(new admin_setting_configselect(
         'local_quicknote/max_bytes',

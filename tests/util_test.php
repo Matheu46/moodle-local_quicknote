@@ -293,4 +293,34 @@ final class util_test extends advanced_testcase {
         $this->assertNull(\local_quicknote\util::clean_page_title(null, $course));
         $this->assertNull(\local_quicknote\util::clean_page_title('   ', $course));
     }
+
+    /**
+     * Test parsing and formatting user ISO datetimes.
+     */
+    public function test_user_iso_datetime_helpers(): void {
+        $this->resetAfterTest();
+
+        // Valid ISO datetime format.
+        $isostr = '2026-11-25T14:30';
+        $timestamp = \local_quicknote\util::parse_user_iso_datetime($isostr);
+        $this->assertNotNull($timestamp);
+
+        $expected = make_timestamp(2026, 11, 25, 14, 30, 0);
+        $this->assertEquals($expected, $timestamp);
+
+        // Formats back symmetrically.
+        $formatted = \local_quicknote\util::format_user_iso_datetime($timestamp);
+        $this->assertEquals($isostr, $formatted);
+
+        // Invalid inputs for parsing.
+        $this->assertNull(\local_quicknote\util::parse_user_iso_datetime(''));
+        $this->assertNull(\local_quicknote\util::parse_user_iso_datetime('invalid-string'));
+        $this->assertNull(\local_quicknote\util::parse_user_iso_datetime('2026-02-31T10:00')); // Invalid calendar date.
+        $this->assertNull(\local_quicknote\util::parse_user_iso_datetime('2026-11-25T25:00')); // Invalid hour.
+        $this->assertNull(\local_quicknote\util::parse_user_iso_datetime('2026-11-25T10:65')); // Invalid minute.
+
+        // Null and 0 formatting.
+        $this->assertNull(\local_quicknote\util::format_user_iso_datetime(null));
+        $this->assertNull(\local_quicknote\util::format_user_iso_datetime(0));
+    }
 }

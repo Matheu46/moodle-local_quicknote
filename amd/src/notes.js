@@ -51,7 +51,16 @@ define([
         quote: '[data-region="note-quote"]',
         quotelink: '[data-region="note-quote-link"]',
         quotetoggle: '[data-action="toggle-quote"]',
-        voicebutton: '[data-action="voice-dictate"]'
+        voicebutton: '[data-action="voice-dictate"]',
+        reminderbtn: '[data-action="toggle-reminder"]',
+        reminderpopover: '[data-region="reminder-popover"]',
+        reminderinput: '[data-region="reminder-input"]',
+        remindersave: '[data-action="save-reminder"]',
+        remindercancel: '[data-action="cancel-reminder"]',
+        reminderbadgewrapper: '[data-region="reminder-badge-wrapper"]',
+        reminderbadge: '.local-quicknote__reminder-badge',
+        remindertext: '[data-region="reminder-text"]',
+        reminderremove: '[data-action="remove-reminder"]'
     };
 
     var SAVE_DELAY = 500;
@@ -156,6 +165,52 @@ define([
         return fragment ? cleanBase + '#' + fragment : cleanBase;
     };
 
+    var formatDatetimeLocal = function(timestamp) {
+        if (!timestamp) {
+            return '';
+        }
+        var d = new Date(timestamp * 1000);
+        var pad = function(n) {
+            return n < 10 ? '0' + n : n;
+        };
+        return d.getFullYear() + '-' +
+               pad(d.getMonth() + 1) + '-' +
+               pad(d.getDate()) + 'T' +
+               pad(d.getHours()) + ':' +
+               pad(d.getMinutes());
+    };
+
+    var parseDatetimeLocal = function(val) {
+        if (!val) {
+            return null;
+        }
+        var d = new Date(val);
+        if (isNaN(d.getTime())) {
+            return null;
+        }
+        return Math.floor(d.getTime() / 1000);
+    };
+
+    var formatReminderDisplay = function(timestamp) {
+        if (!timestamp) {
+            return '';
+        }
+        var d = new Date(timestamp * 1000);
+        var pad = function(n) {
+            return n < 10 ? '0' + n : n;
+        };
+        return pad(d.getDate()) + '/' +
+               pad(d.getMonth() + 1) + ' ' +
+               pad(d.getHours()) + ':' +
+               pad(d.getMinutes());
+    };
+
+    var getDefaultReminderDatetime = function() {
+        var d = new Date();
+        d.setHours(d.getHours() + 1, 0, 0, 0);
+        return formatDatetimeLocal(Math.floor(d.getTime() / 1000));
+    };
+
     var createDraftNote = function() {
         var now = Math.floor(Date.now() / 1000);
 
@@ -168,6 +223,10 @@ define([
             pagetitle: (state && state.pagetitle) || document.title || '',
             timecreated: now,
             timemodified: now,
+            remindertime: null,
+            remindertimeiso: '',
+            remindertimeformatted: '',
+            eventid: null,
             status: ''
         };
     };
@@ -181,6 +240,10 @@ define([
     };
 
     var normaliseNote = function(note) {
+        var remindertime = note.remindertime ? parseInt(note.remindertime, 10) : null;
+        var remindertimeiso = note.remindertimeiso || (remindertime ? formatDatetimeLocal(remindertime) : '');
+        var remindertimeformatted = note.remindertimeformatted || (remindertime ? formatReminderDisplay(remindertime) : '');
+
         var normalisednote = Object.assign({}, note, {
             clientid: note.clientid || ('note-' + note.id),
             content: note.content || '',
@@ -189,6 +252,10 @@ define([
             url: note.url || '',
             pagehash: note.pagehash || '',
             pagetitle: note.pagetitle || '',
+            remindertime: remindertime,
+            remindertimeiso: remindertimeiso,
+            remindertimeformatted: remindertimeformatted,
+            eventid: note.eventid ? parseInt(note.eventid, 10) : null,
             status: note.status || ''
         });
 
@@ -861,6 +928,69 @@ define([
         }
     };
 
+    /**
+     * Updates the calendar reminder controls and badge for a note element.
+     *
+     * @param {HTMLElement} noteEl The note container element.
+     * @param {Object} note The note data object.
+     */
+    var setNoteReminder = function(noteEl, note) {
+        if (!noteEl) {
+            return;
+        }
+
+        var reminderBtn = noteEl.querySelector(SELECTORS.reminderbtn);
+        var popover = noteEl.querySelector(SELECTORS.reminderpopover);
+        var badgeWrapper = noteEl.querySelector(SELECTORS.reminderbadgewrapper);
+        var reminderText = noteEl.querySelector(SELECTORS.remindertext);
+        var reminderInput = noteEl.querySelector(SELECTORS.reminderinput);
+
+        if (!state || !state.enableCalendarReminders) {
+            if (reminderBtn) {
+                reminderBtn.classList.add('d-none');
+            }
+            if (popover) {
+                popover.classList.add('d-none');
+            }
+            if (badgeWrapper) {
+                badgeWrapper.classList.add('d-none');
+            }
+            return;
+        }
+
+        if (reminderBtn) {
+            reminderBtn.classList.remove('d-none');
+            var icon = reminderBtn.querySelector('i');
+            if (note.remindertime && note.remindertime > 0) {
+                reminderBtn.classList.add('has-reminder');
+                if (icon) {
+                    icon.classList.remove('fa-regular');
+                    icon.classList.add('fa-solid');
+                }
+            } else {
+                reminderBtn.classList.remove('has-reminder');
+                if (icon) {
+                    icon.classList.remove('fa-solid');
+                    icon.classList.add('fa-regular');
+                }
+            }
+        }
+
+        if (badgeWrapper && reminderText) {
+            if (note.remindertime && note.remindertime > 0) {
+                badgeWrapper.classList.remove('d-none');
+                reminderText.textContent = note.remindertimeformatted || formatReminderDisplay(note.remindertime);
+            } else {
+                badgeWrapper.classList.add('d-none');
+                reminderText.textContent = '';
+            }
+        }
+
+        if (reminderInput) {
+            reminderInput.value = note.remindertimeiso || formatDatetimeLocal(note.remindertime);
+        }
+    };
+
     var updateNoteElement = function(note, noteEl, preservecontent) {
         var textarea = noteEl.querySelector(SELECTORS.textarea);
         var currentcontent = preservecontent && textarea ? textarea.value : note.content;
@@ -894,6 +1024,7 @@ define([
         setNoteLocation(noteEl, note.url, note.hasquote, note.pagetitle);
         setNoteCopyButton(noteEl, currentcontent);
         setNoteVoiceButton(noteEl, note);
+        setNoteReminder(noteEl, note);
     };
 
     var createNoteElement = function(note) {
@@ -1142,7 +1273,7 @@ define([
             setNoteStatus(noteEl, state.strings.savingtext, note.timemodified);
         }
 
-        request = Repository.saveNote({
+        var payload = {
             id: note.id || 0,
             courseid: state.courseid,
             content: note.content,
@@ -1150,7 +1281,17 @@ define([
             pagetitle: note.pagetitle || state.pagetitle || document.title || '',
             quote: note.quote || '',
             quoteurl: note.quoteurl || ''
-        });
+        };
+
+        if (state.enableCalendarReminders) {
+            if (note.remindertimestr !== undefined) {
+                payload.remindertimestr = note.remindertimestr;
+            } else if (note.remindertime !== undefined || note.eventid) {
+                payload.remindertime = note.remindertime ? note.remindertime : 0;
+            }
+        }
+
+        request = Repository.saveNote(payload);
 
         return request.then(function(response) {
             var savednote = normaliseNote(response);
@@ -1171,12 +1312,18 @@ define([
             note.quotetext = savednote.quotetext;
             note.timecreated = savednote.timecreated;
             note.timemodified = savednote.timemodified;
+            note.remindertime = savednote.remindertime;
+            note.remindertimeiso = savednote.remindertimeiso;
+            note.remindertimeformatted = savednote.remindertimeformatted;
+            note.eventid = savednote.eventid;
+            delete note.remindertimestr;
             note.status = state.strings.savedtext;
 
             if (currentnoteEl) {
                 setNoteStatus(currentnoteEl, note.status, note.timemodified);
                 setNoteQuote(currentnoteEl, note);
                 setNoteLocation(currentnoteEl, note.url, note.hasquote, note.pagetitle);
+                setNoteReminder(currentnoteEl, note);
 
                 setTimeout(function() {
                     note.status = '';
@@ -1572,6 +1719,118 @@ define([
             quoteToggle.textContent = expanded ? quoteToggle.dataset.less : quoteToggle.dataset.more;
         };
 
+        var handleToggleReminder = function(e, reminderBtn) {
+            e.preventDefault();
+            var noteEl = reminderBtn.closest(SELECTORS.note);
+            if (!noteEl) {
+                return;
+            }
+            var popover = noteEl.querySelector(SELECTORS.reminderpopover);
+            var reminderInput = noteEl.querySelector(SELECTORS.reminderinput);
+            if (!popover || !reminderInput) {
+                return;
+            }
+
+            var isHidden = popover.classList.contains('d-none');
+            if (isHidden) {
+                popover.classList.remove('d-none');
+                var note = getNoteByKey(noteEl.getAttribute('data-note-key'));
+                if (note && (note.remindertimeiso || note.remindertime)) {
+                    reminderInput.value = note.remindertimeiso || formatDatetimeLocal(note.remindertime);
+                } else if (!reminderInput.value) {
+                    reminderInput.value = getDefaultReminderDatetime();
+                }
+                reminderInput.focus();
+            } else {
+                popover.classList.add('d-none');
+            }
+        };
+
+        var handleBadgeClick = function(e, reminderBadge) {
+            e.preventDefault();
+            var noteEl = reminderBadge.closest(SELECTORS.note);
+            if (!noteEl) {
+                return;
+            }
+            var popover = noteEl.querySelector(SELECTORS.reminderpopover);
+            var reminderInput = noteEl.querySelector(SELECTORS.reminderinput);
+            if (popover && reminderInput) {
+                popover.classList.remove('d-none');
+                var note = getNoteByKey(noteEl.getAttribute('data-note-key'));
+                if (note && (note.remindertimeiso || note.remindertime)) {
+                    reminderInput.value = note.remindertimeiso || formatDatetimeLocal(note.remindertime);
+                }
+                reminderInput.focus();
+            }
+        };
+
+        var handleSaveReminder = function(e, saveBtn) {
+            e.preventDefault();
+            var noteEl = saveBtn.closest(SELECTORS.note);
+            if (!noteEl) {
+                return;
+            }
+            var popover = noteEl.querySelector(SELECTORS.reminderpopover);
+            var reminderInput = noteEl.querySelector(SELECTORS.reminderinput);
+            var note = getNoteByKey(noteEl.getAttribute('data-note-key'));
+            if (!note || !reminderInput) {
+                return;
+            }
+
+            var isovalue = reminderInput.value ? reminderInput.value.trim() : '';
+            if (isovalue) {
+                note.remindertimestr = isovalue;
+                note.remindertimeiso = isovalue;
+                note.remindertime = parseDatetimeLocal(isovalue);
+                if (popover) {
+                    popover.classList.add('d-none');
+                }
+                setNoteReminder(noteEl, note);
+                scheduleSave(note);
+            }
+        };
+
+        var handleCancelReminder = function(e, cancelBtn) {
+            e.preventDefault();
+            var noteEl = cancelBtn.closest(SELECTORS.note);
+            if (!noteEl) {
+                return;
+            }
+            var popover = noteEl.querySelector(SELECTORS.reminderpopover);
+            var reminderInput = noteEl.querySelector(SELECTORS.reminderinput);
+            var note = getNoteByKey(noteEl.getAttribute('data-note-key'));
+            if (popover) {
+                popover.classList.add('d-none');
+            }
+            if (reminderInput && note) {
+                reminderInput.value = note.remindertimeiso || formatDatetimeLocal(note.remindertime);
+            }
+        };
+
+        var handleRemoveReminder = function(e, removeBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            var noteEl = removeBtn.closest(SELECTORS.note);
+            if (!noteEl) {
+                return;
+            }
+            var popover = noteEl.querySelector(SELECTORS.reminderpopover);
+            var note = getNoteByKey(noteEl.getAttribute('data-note-key'));
+            if (!note) {
+                return;
+            }
+
+            note.remindertime = 0;
+            note.remindertimestr = '';
+            note.remindertimeiso = '';
+            note.remindertimeformatted = '';
+            if (popover) {
+                popover.classList.add('d-none');
+            }
+            setNoteReminder(noteEl, note);
+            scheduleSave(note);
+        };
+
         state.root.addEventListener('click', function(e) {
             var screenshotLink = e.target.closest('.local-quicknote__screenshot a');
             if (screenshotLink) {
@@ -1667,6 +1926,36 @@ define([
                 return;
             }
 
+            var reminderBtn = e.target.closest(SELECTORS.reminderbtn);
+            if (reminderBtn) {
+                handleToggleReminder(e, reminderBtn);
+                return;
+            }
+
+            var saveReminderBtn = e.target.closest(SELECTORS.remindersave);
+            if (saveReminderBtn) {
+                handleSaveReminder(e, saveReminderBtn);
+                return;
+            }
+
+            var cancelReminderBtn = e.target.closest(SELECTORS.remindercancel);
+            if (cancelReminderBtn) {
+                handleCancelReminder(e, cancelReminderBtn);
+                return;
+            }
+
+            var removeReminderBtn = e.target.closest(SELECTORS.reminderremove);
+            if (removeReminderBtn) {
+                handleRemoveReminder(e, removeReminderBtn);
+                return;
+            }
+
+            var reminderBadge = e.target.closest(SELECTORS.reminderbadge);
+            if (reminderBadge) {
+                handleBadgeClick(e, reminderBadge);
+                return;
+            }
+
             var deleteBtn = e.target.closest(SELECTORS.deletebutton);
             if (deleteBtn) {
                 handleDeleteClick(deleteBtn);
@@ -1720,6 +2009,26 @@ define([
             var search = e.target.closest(SELECTORS.search);
             if (search) {
                 handleSearchInput();
+            }
+        });
+
+        state.root.addEventListener('keydown', function(e) {
+            var reminderInput = e.target.closest(SELECTORS.reminderinput);
+            if (reminderInput) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var noteEl = reminderInput.closest(SELECTORS.note);
+                    var saveBtn = noteEl ? noteEl.querySelector(SELECTORS.remindersave) : null;
+                    if (saveBtn) {
+                        handleSaveReminder(e, saveBtn);
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    var popover = reminderInput.closest(SELECTORS.reminderpopover);
+                    if (popover) {
+                        popover.classList.add('d-none');
+                    }
+                }
             }
         });
 
@@ -1954,6 +2263,10 @@ define([
                     Boolean(config.enable_voice_dictation) :
                     (rootEl.getAttribute('data-enablevoicedictation') === '1' ||
                      rootEl.getAttribute('data-enablevoicedictation') === 'true'),
+                enableCalendarReminders: config.hasOwnProperty('enable_calendar_reminders') ?
+                    Boolean(config.enable_calendar_reminders) :
+                    (rootEl.getAttribute('data-enablecalendarreminders') === '1' ||
+                     rootEl.getAttribute('data-enablecalendarreminders') === 'true'),
                 maxFiles: config.hasOwnProperty('max_files_per_note') ? Number(config.max_files_per_note) : 0,
                 maxBytes: config.hasOwnProperty('max_bytes') ? Number(config.max_bytes) : 0,
                 loaded: false,
@@ -1979,7 +2292,11 @@ define([
                     voicestoplabel: rootEl.getAttribute('data-voicestoplabel'),
                     voicelisteninglabel: rootEl.getAttribute('data-voicelisteninglabel'),
                     voiceendedlabel: rootEl.getAttribute('data-voiceendedlabel'),
-                    voicepermissiondenied: rootEl.getAttribute('data-voicepermissiondenied')
+                    voicepermissiondenied: rootEl.getAttribute('data-voicepermissiondenied'),
+                    reminderlabel: rootEl.getAttribute('data-reminderlabel'),
+                    remindertimelabel: rootEl.getAttribute('data-remindertimelabel'),
+                    remindersetlabel: rootEl.getAttribute('data-remindersetlabel'),
+                    reminderremovelabel: rootEl.getAttribute('data-reminderremovelabel')
                 }
             };
 

@@ -60,6 +60,37 @@ class get_notes extends \core_external\external_api {
         $noteids = array_keys($records);
         $screenshots = \local_quicknote\local\screenshot_manager::get_for_notes($noteids);
 
+        // Verify if calendar events still exist, cleaning up any orphaned reminders.
+        $eventids = [];
+        foreach ($records as $record) {
+            if (!empty($record->eventid)) {
+                $eventids[(int) $record->eventid] = true;
+            }
+        }
+        if (!empty($eventids)) {
+            [$insql, $inparams] = $DB->get_in_or_equal(array_keys($eventids), SQL_PARAMS_NAMED);
+            $existingevents = $DB->get_fieldset_select('event', 'id', "id $insql", $inparams);
+            $existingmap = array_fill_keys($existingevents, true);
+
+            $orphannoteids = [];
+            foreach ($records as $record) {
+                if (!empty($record->eventid) && empty($existingmap[(int) $record->eventid])) {
+                    $record->eventid = null;
+                    $record->remindertime = null;
+                    $orphannoteids[] = (int) $record->id;
+                }
+            }
+            if (!empty($orphannoteids)) {
+                [$oinsql, $oinparams] = $DB->get_in_or_equal($orphannoteids, SQL_PARAMS_NAMED);
+                $DB->execute(
+                    "UPDATE {local_quicknote_notes}
+                        SET eventid = NULL, remindertime = NULL
+                      WHERE id $oinsql",
+                    $oinparams
+                );
+            }
+        }
+
         $notes = [];
         foreach ($records as $record) {
             $notes[] = save_note::export_note($record, $screenshots[$record->id] ?? []);

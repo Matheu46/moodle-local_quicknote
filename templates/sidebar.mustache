@@ -58,6 +58,11 @@
     data-voicestoplabel="{{voicestoplabel}}"
     data-voicelisteninglabel="{{voicelisteninglabel}}"
     data-voiceendedlabel="{{voiceendedlabel}}"
+    data-enablecalendarreminders="{{enablecalendarreminders}}"
+    data-reminderlabel="{{reminderlabel}}"
+    data-remindertimelabel="{{remindertimelabel}}"
+    data-remindersetlabel="{{remindersetlabel}}"
+    data-reminderremovelabel="{{reminderremovelabel}}"
     data-voicepermissiondenied="{{#str}} voice:permission_denied, local_quicknote {{/str}}"
 >
     <div class="local-quicknote__fab-wrapper">
@@ -196,6 +201,18 @@
                         >
                             <i class="fa-solid fa-microphone" aria-hidden="true"></i>
                         </button>
+                        {{#enablecalendarreminders}}
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-link local-quicknote__reminder-btn d-none"
+                            data-action="toggle-reminder"
+                            title="{{reminderlabel}}"
+                            aria-label="{{reminderlabel}}"
+                            aria-expanded="false"
+                        >
+                            <i class="fa-regular fa-bell" aria-hidden="true"></i>
+                        </button>
+                        {{/enablecalendarreminders}}
                         <button
                             type="button"
                             class="btn btn-sm btn-link local-quicknote__copy-btn"
@@ -207,6 +224,50 @@
                         </button>
                     </div>
                 </div>
+
+                {{#enablecalendarreminders}}
+                <div class="local-quicknote__reminder-popover d-none" data-region="reminder-popover">
+                    <div class="d-flex align-items-center gap-1 p-1">
+                        <input
+                            type="datetime-local"
+                            class="form-control form-control-sm local-quicknote__reminder-input"
+                            data-region="reminder-input"
+                            aria-label="{{remindertimelabel}}"
+                        >
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-primary py-0 px-2 local-quicknote__reminder-save-btn"
+                            data-action="save-reminder"
+                            title="{{#str}} save, core {{/str}}"
+                            aria-label="{{#str}} save, core {{/str}}"
+                        >
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-secondary py-0 px-2 local-quicknote__reminder-cancel-btn"
+                            data-action="cancel-reminder"
+                            title="{{#str}} cancel, core {{/str}}"
+                            aria-label="{{#str}} cancel, core {{/str}}"
+                        >
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="local-quicknote__reminder-badge-wrapper d-none" data-region="reminder-badge-wrapper">
+                    <span class="badge text-bg-light border local-quicknote__reminder-badge d-inline-flex align-items-center gap-1 mt-1">
+                        <i class="fa-regular fa-bell text-primary" aria-hidden="true"></i>
+                        <span class="local-quicknote__reminder-text" data-region="reminder-text"></span>
+                        <button
+                            type="button"
+                            class="btn-close btn-close-sm ms-1"
+                            data-action="remove-reminder"
+                            title="{{reminderremovelabel}}"
+                            aria-label="{{reminderremovelabel}}"
+                        ></button>
+                    </span>
+                </div>
+                {{/enablecalendarreminders}}
 
                 <div class="local-quicknote__screenshots" data-region="screenshots"></div>
                 {{#enablescreenshots}}

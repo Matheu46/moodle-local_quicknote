@@ -61,6 +61,15 @@ class delete_note extends \core_external\external_api {
 
         \local_quicknote\local\screenshot_manager::delete_for_note((int) $note->id);
 
+        if (!empty($note->eventid)) {
+            global $CFG;
+            require_once($CFG->dirroot . '/calendar/lib.php');
+            if ($DB->record_exists('event', ['id' => $note->eventid])) {
+                $event = \calendar_event::load($note->eventid);
+                $event->delete();
+            }
+        }
+
         $DB->delete_records('local_quicknote_notes', ['id' => $note->id]);
 
         return [

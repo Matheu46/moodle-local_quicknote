@@ -72,10 +72,17 @@ class delete_notes extends \core_external\external_api {
         }
 
         if (!empty($validids)) {
+            global $CFG;
+            require_once($CFG->dirroot . '/calendar/lib.php');
+
             $transaction = $DB->start_delegated_transaction();
 
             foreach ($validids as $vid) {
                 \local_quicknote\local\screenshot_manager::delete_for_note($vid);
+                if (!empty($notes[$vid]->eventid) && $DB->record_exists('event', ['id' => $notes[$vid]->eventid])) {
+                    $event = \calendar_event::load($notes[$vid]->eventid);
+                    $event->delete();
+                }
             }
 
             [$vinsql, $vinparams] = $DB->get_in_or_equal($validids, SQL_PARAMS_NAMED, 'vnid');

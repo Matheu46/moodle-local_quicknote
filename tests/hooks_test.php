@@ -208,6 +208,31 @@ final class hooks_test extends \advanced_testcase {
     }
 
     /**
+     * Test is_calendar_reminders_enabled returns true by default when not set.
+     */
+    public function test_is_calendar_reminders_enabled_default(): void {
+        $this->resetAfterTest();
+        unset_config('enable_calendar_reminders', 'local_quicknote');
+
+        $this->assertTrue(\local_quicknote\hooks::is_calendar_reminders_enabled());
+    }
+
+    /**
+     * Test is_calendar_reminders_enabled respects explicitly configured values.
+     */
+    public function test_is_calendar_reminders_enabled_configured(): void {
+        $this->resetAfterTest();
+
+        // When set to 0, calendar reminders should be disabled.
+        set_config('enable_calendar_reminders', 0, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::is_calendar_reminders_enabled());
+
+        // When set to 1, calendar reminders should be enabled.
+        set_config('enable_calendar_reminders', 1, 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::is_calendar_reminders_enabled());
+    }
+
+    /**
      * Test sidebar template renders voice dictation elements correctly.
      */
     public function test_sidebar_template_voice_dictation_rendering(): void {

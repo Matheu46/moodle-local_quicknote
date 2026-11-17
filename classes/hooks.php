@@ -221,6 +221,7 @@ class hooks {
             has_capability('local/quicknote:uploadscreenshot', $context);
 
         $enablevoicedictation = self::is_voice_dictation_enabled();
+        $enablecalendarreminders = self::is_calendar_reminders_enabled();
 
         $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
         $maxbytes = (int) get_config('local_quicknote', 'max_bytes');
@@ -236,6 +237,7 @@ class hooks {
             'pagetitle' => $pagetitle,
             'enable_screenshots' => $canuploadscreenshots,
             'enable_voice_dictation' => $enablevoicedictation,
+            'enable_calendar_reminders' => $enablecalendarreminders,
             'max_files_per_note' => $maxfiles,
             'max_bytes' => $maxbytes,
         ]]);
@@ -270,6 +272,11 @@ class hooks {
             'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
             'enablescreenshots' => $canuploadscreenshots,
             'enablevoicedictation' => $enablevoicedictation,
+            'enablecalendarreminders' => $enablecalendarreminders,
+            'reminderlabel' => get_string('note:reminder', 'local_quicknote'),
+            'remindertimelabel' => get_string('note:reminder_time', 'local_quicknote'),
+            'remindersetlabel' => get_string('note:reminder_set', 'local_quicknote'),
+            'reminderremovelabel' => get_string('note:reminder_remove', 'local_quicknote'),
             'voicelabel' => get_string('voice:dictate', 'local_quicknote'),
             'voicestoplabel' => get_string('voice:stop', 'local_quicknote'),
             'voicelisteninglabel' => get_string('voice:listening', 'local_quicknote'),
@@ -305,6 +312,20 @@ class hooks {
      */
     public static function is_voice_dictation_enabled(): bool {
         $enabled = get_config('local_quicknote', 'enable_voice_dictation');
+        if ($enabled === false || $enabled === null || $enabled === '') {
+            return true;
+        }
+
+        return (string) $enabled !== '0';
+    }
+
+    /**
+     * Checks whether calendar reminders are enabled globally.
+     *
+     * @return bool True if calendar reminders are enabled.
+     */
+    public static function is_calendar_reminders_enabled(): bool {
+        $enabled = get_config('local_quicknote', 'enable_calendar_reminders');
         if ($enabled === false || $enabled === null || $enabled === '') {
             return true;
         }

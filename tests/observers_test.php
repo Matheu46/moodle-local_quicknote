@@ -271,4 +271,51 @@ final class observers_test extends \advanced_testcase {
             'courseid' => $course->id,
         ]));
     }
+
+    /**
+     * Test that deleting a calendar event clears the note's reminder reference.
+     */
+    public function test_calendar_event_deleted_clears_note_reminder(): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/calendar/lib.php');
+
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+
+        $eventdata = new \stdClass();
+        $eventdata->name = 'QuickNote: Reminder';
+        $eventdata->description = 'Test reminder';
+        $eventdata->format = FORMAT_HTML;
+        $eventdata->eventtype = 'user';
+        $eventdata->timestart = time() + 3600;
+        $eventdata->timeduration = 0;
+        $eventdata->userid = $user->id;
+        $eventdata->courseid = 0;
+        $eventdata->repeatid = 0;
+
+        $event = \calendar_event::create($eventdata, false);
+
+        $note = (object) [
+            'userid' => $user->id,
+            'courseid' => $course->id,
+            'content' => 'Note with reminder',
+            'timecreated' => time(),
+            'timemodified' => time(),
+            'eventid' => $event->id,
+            'remindertime' => $event->timestart,
+        ];
+        $noteid = $DB->insert_record('local_quicknote_notes', $note);
+
+        // Delete the calendar event via standard calendar API (triggers \core\event\calendar_event_deleted).
+        $event->delete();
+
+        // Verify that the note's eventid and remindertime were cleared by the observer.
+        $updated = $DB->get_record('local_quicknote_notes', ['id' => $noteid], '*', MUST_EXIST);
+        $this->assertNull($updated->eventid);
+        $this->assertNull($updated->remindertime);
+    }
 }

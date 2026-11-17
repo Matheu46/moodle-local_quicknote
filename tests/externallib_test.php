@@ -596,4 +596,297 @@ final class externallib_test extends advanced_testcase {
         $this->assertCount(1, $notes);
         $this->assertEquals('Dashboard note', $notes[0]['content']);
     }
+
+    /**
+     * Test saving a note with a calendar reminder creates an associated event.
+     */
+    public function test_save_note_with_calendar_reminder(): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/calendar/lib.php');
+
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_calendar_reminders', 1, 'local_quicknote');
+
+        $remindertime = time() + 3600;
+        $result = save_note::execute(
+            0,
+            $course->id,
+            'Review topic for tomorrow',
+            'https://example.com',
+            null,
+            null,
+            'Test Page',
+            $remindertime
+        );
+        $result = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $result);
+
+        $this->assertNotEmpty($result['id']);
+        $this->assertEquals($remindertime, $result['remindertime']);
+        $this->assertNotEmpty($result['eventid']);
+
+        $event = \calendar_event::load($result['eventid']);
+        $this->assertNotFalse($event);
+        $this->assertEquals('user', $event->eventtype);
+        $this->assertEquals($user->id, $event->userid);
+        $this->assertEquals($remindertime, $event->timestart);
+        $this->assertStringContainsString('Review topic for tomorrow', $event->name);
+    }
+
+    /**
+     * Test updating and removing a calendar reminder on an existing note.
+     */
+    public function test_update_and_remove_calendar_reminder(): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/calendar/lib.php');
+
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_calendar_reminders', 1, 'local_quicknote');
+
+        $initialtime = time() + 3600;
+        $saved = save_note::execute(
+            0,
+            $course->id,
+            'Initial note',
+            'https://example.com',
+            null,
+            null,
+            null,
+            $initialtime
+        );
+        $saved = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $saved);
+        $eventid = $saved['eventid'];
+
+        // 1. Update reminder time.
+        $newtime = time() + 7200;
+        $updated = save_note::execute(
+            $saved['id'],
+            $course->id,
+            'Updated note text',
+            'https://example.com',
+            null,
+            null,
+            null,
+            $newtime
+        );
+        $updated = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $updated);
+        $this->assertEquals($newtime, $updated['remindertime']);
+        $this->assertEquals($eventid, $updated['eventid']);
+
+        $event = \calendar_event::load($eventid);
+        $this->assertEquals($newtime, $event->timestart);
+
+        // 2. Remove reminder by setting remindertime = 0.
+        $removed = save_note::execute(
+            $saved['id'],
+            $course->id,
+            'Updated note text without reminder',
+            'https://example.com',
+            null,
+            null,
+            null,
+            0
+        );
+        $removed = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $removed);
+        $this->assertEmpty($removed['remindertime']);
+        $this->assertEmpty($removed['eventid']);
+
+        // Check that event is deleted.
+        global $DB;
+        $this->assertFalse($DB->record_exists('event', ['id' => $eventid]));
+    }
+
+    /**
+     * Test deleting a note also removes any associated calendar event.
+     */
+    public function test_delete_note_deletes_calendar_event(): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/calendar/lib.php');
+
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_calendar_reminders', 1, 'local_quicknote');
+
+        $saved = save_note::execute(
+            0,
+            $course->id,
+            'Note to delete',
+            'https://example.com',
+            null,
+            null,
+            null,
+            time() + 3600
+        );
+        $saved = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $saved);
+        $eventid = $saved['eventid'];
+        $this->assertNotEmpty($eventid);
+
+        delete_note::execute($saved['id']);
+
+        $this->assertFalse($DB->record_exists('event', ['id' => $eventid]));
+    }
+
+    /**
+     * Test bulk deleting notes also removes associated calendar events.
+     */
+    public function test_delete_notes_bulk_deletes_calendar_events(): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/calendar/lib.php');
+
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_calendar_reminders', 1, 'local_quicknote');
+
+        $saved1 = save_note::execute(0, $course->id, 'Note 1', '', null, null, null, time() + 3600);
+        $saved1 = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $saved1);
+        $eventid1 = $saved1['eventid'];
+
+        $saved2 = save_note::execute(0, $course->id, 'Note 2', '', null, null, null, time() + 7200);
+        $saved2 = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $saved2);
+        $eventid2 = $saved2['eventid'];
+
+        delete_notes::execute([$saved1['id'], $saved2['id']]);
+
+        $this->assertFalse($DB->record_exists('event', ['id' => $eventid1]));
+        $this->assertFalse($DB->record_exists('event', ['id' => $eventid2]));
+    }
+
+    /**
+     * Test that calendar events are not created when the setting is disabled.
+     */
+    public function test_calendar_reminder_disabled_setting(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_calendar_reminders', 0, 'local_quicknote');
+
+        $saved = save_note::execute(
+            0,
+            $course->id,
+            'Note with reminder disabled',
+            'https://example.com',
+            null,
+            null,
+            null,
+            time() + 3600
+        );
+        $saved = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $saved);
+
+        $this->assertEmpty($saved['eventid']);
+        $this->assertEmpty($saved['remindertime']);
+    }
+
+    /**
+     * Test saving a note with remindertimestr (ISO format) and verifying export fields.
+     */
+    public function test_save_note_with_remindertimestr(): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/calendar/lib.php');
+
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_calendar_reminders', 1, 'local_quicknote');
+
+        $isostr = '2026-11-30T09:45';
+        $saved = save_note::execute(
+            0,
+            $course->id,
+            'Note with ISO reminder',
+            'https://example.com',
+            null,
+            null,
+            null,
+            null,
+            $isostr
+        );
+        $saved = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $saved);
+
+        $this->assertNotEmpty($saved['id']);
+        $this->assertNotEmpty($saved['eventid']);
+        $this->assertNotEmpty($saved['remindertime']);
+        $this->assertEquals($isostr, $saved['remindertimeiso']);
+        $this->assertNotEmpty($saved['remindertimeformatted']);
+
+        $event = \calendar_event::load($saved['eventid']);
+        $this->assertEquals($saved['remindertime'], $event->timestart);
+    }
+
+    /**
+     * Test that get_notes cleans up references if calendar event was removed directly from DB.
+     */
+    public function test_get_notes_cleans_up_orphaned_calendar_event(): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/calendar/lib.php');
+
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_calendar_reminders', 1, 'local_quicknote');
+
+        $saved = save_note::execute(
+            0,
+            $course->id,
+            'Note with soon-to-be orphaned reminder',
+            'https://example.com',
+            null,
+            null,
+            null,
+            time() + 3600
+        );
+        $saved = \core_external\external_api::clean_returnvalue(save_note::execute_returns(), $saved);
+        $eventid = $saved['eventid'];
+        $noteid = $saved['id'];
+        $this->assertNotEmpty($eventid);
+
+        // Simulate event deletion directly in DB (e.g. bypass or race condition).
+        $DB->delete_records('event', ['id' => $eventid]);
+
+        // The get_notes function should detect the missing event, clean the DB, and return note without reminder.
+        $notes = get_notes::execute($course->id);
+        $notes = \core_external\external_api::clean_returnvalue(get_notes::execute_returns(), $notes);
+
+        $this->assertCount(1, $notes);
+        $this->assertEmpty($notes[0]['eventid']);
+        $this->assertEmpty($notes[0]['remindertime']);
+        $this->assertEmpty($notes[0]['remindertimeiso']);
+
+        // Check DB row directly.
+        $dbnote = $DB->get_record('local_quicknote_notes', ['id' => $noteid], '*', MUST_EXIST);
+        $this->assertNull($dbnote->eventid);
+        $this->assertNull($dbnote->remindertime);
+    }
 }

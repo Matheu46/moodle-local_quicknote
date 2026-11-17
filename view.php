@@ -184,6 +184,9 @@ foreach ($noterecords as $record) {
         'pagetitle' => $pagetitle,
         'content' => $record->content,
         'timeupdated' => userdate($record->timemodified, get_string('strftimedatetimeshort', 'langconfig')),
+        'remindertimeformatted' => !empty($record->remindertime) ?
+            userdate($record->remindertime, get_string('strftimedatetimeshort', 'langconfig')) :
+            null,
         'url' => \local_quicknote\util::clean_url($record->url, true, true),
         'quote' => !empty($record->quote) ? $record->quote : null,
         'quoteurl' => \local_quicknote\util::clean_url($record->quoteurl, true, false),

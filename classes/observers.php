@@ -102,4 +102,23 @@ class observers {
             'userid' => $userid,
         ]);
     }
+
+    /**
+     * Clear reminder and event references when a calendar event is deleted.
+     *
+     * @param \core\event\calendar_event_deleted $event The event triggered.
+     */
+    public static function calendar_event_deleted(\core\event\calendar_event_deleted $event): void {
+        global $DB;
+
+        $eventid = (int) $event->objectid;
+        if (!empty($eventid)) {
+            $DB->execute(
+                "UPDATE {local_quicknote_notes}
+                    SET eventid = NULL, remindertime = NULL
+                  WHERE eventid = :eventid",
+                ['eventid' => $eventid]
+            );
+        }
+    }
 }
