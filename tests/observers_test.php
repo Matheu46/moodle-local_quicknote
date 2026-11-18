@@ -271,4 +271,63 @@ final class observers_test extends \advanced_testcase {
             'courseid' => $course->id,
         ]));
     }
+
+    public function test_course_module_deleted(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $page1 = $generator->create_module('page', ['course' => $course->id]);
+        $page2 = $generator->create_module('page', ['course' => $course->id]);
+
+        // Configure module overrides for both pages.
+        $record = new \stdClass();
+        $record->courseid = $course->id;
+        $record->enabled = 1;
+        $record->module_settings = json_encode([
+            $page1->cmid => 0,
+            $page2->cmid => 1,
+        ]);
+        $DB->insert_record('local_quicknote_course', $record);
+
+        // Delete page1 module using core course_delete_module.
+        course_delete_module($page1->cmid);
+
+        // Verify page1 override was removed while page2 override was preserved.
+        $updated = $DB->get_record('local_quicknote_course', ['courseid' => $course->id]);
+        $settings = json_decode($updated->module_settings, true);
+        $this->assertArrayNotHasKey($page1->cmid, $settings);
+        $this->assertArrayHasKey($page2->cmid, $settings);
+        $this->assertEquals(1, $settings[$page2->cmid]);
+
+        // Delete page2 module (last remaining override).
+        course_delete_module($page2->cmid);
+
+        // Verify module_settings is now empty.
+        $updated = $DB->get_record('local_quicknote_course', ['courseid' => $course->id]);
+        $this->assertEmpty($updated->module_settings);
+    }
+
+    public function test_course_module_deleted_without_module_settings(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $page = $generator->create_module('page', ['course' => $course->id]);
+
+        // Create course record with no module settings.
+        $record = new \stdClass();
+        $record->courseid = $course->id;
+        $record->enabled = 1;
+        $record->module_settings = '';
+        $DB->insert_record('local_quicknote_course', $record);
+
+        // Delete page module — should run safely without modifying module_settings.
+        course_delete_module($page->cmid);
+
+        $updated = $DB->get_record('local_quicknote_course', ['courseid' => $course->id]);
+        $this->assertEmpty($updated->module_settings);
+    }
 }
