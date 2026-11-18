@@ -30,6 +30,10 @@ $observers = [
         'callback'    => '\local_quicknote\observers::course_deleted',
     ],
     [
+        'eventname'   => '\core\event\course_module_deleted',
+        'callback'    => '\local_quicknote\observers::course_module_deleted',
+    ],
+    [
         'eventname'   => '\core\event\user_enrolment_deleted',
         'callback'    => '\local_quicknote\observers::user_enrolment_deleted',
     ],

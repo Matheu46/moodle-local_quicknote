@@ -50,14 +50,20 @@ define([
         quotewrapper: '[data-region="note-quote-wrapper"]',
         quote: '[data-region="note-quote"]',
         quotelink: '[data-region="note-quote-link"]',
-        quotetoggle: '[data-action="toggle-quote"]'
+        quotetoggle: '[data-action="toggle-quote"]',
+        voicebutton: '[data-action="voice-dictate"]'
     };
 
     var SAVE_DELAY = 500;
     var MIN_SELECTION_LENGTH = 5;
     var HIGHLIGHT_BUTTON_CLASS = 'local-quicknote__highlight-action';
+    var VOICE_SILENCE_TIMEOUT = 5000;
 
     var state = null;
+    var activeRecognition = null;
+    var activeVoiceNoteKey = null;
+    var activeVoiceBaseText = '';
+    var voiceSilenceTimer = null;
 
     var escapeHtml = function(value) {
         var div = document.createElement('div');
@@ -593,6 +599,268 @@ define([
         }).catch(Notification.exception);
     };
 
+    /**
+     * Returns the SpeechRecognition constructor if available and secure.
+     *
+     * @return {SpeechRecognition|null}
+     */
+    var getSpeechRecognitionClass = function() {
+        if (window.isSecureContext === false) {
+            return null;
+        }
+        return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    };
+
+    /**
+     * Checks whether the current browser environment supports speech recognition.
+     *
+     * @return {boolean}
+     */
+    var isSpeechRecognitionSupported = function() {
+        try {
+            var RecognitionClass = getSpeechRecognitionClass();
+            return typeof RecognitionClass === 'function';
+        } catch (e) {
+            return false;
+        }
+    };
+
+    /**
+     * Announces a message to screen readers via the a11y live region.
+     *
+     * @param {string} message The message to announce.
+     */
+    var announceStatus = function(message) {
+        var announcer = state && state.root ? state.root.querySelector('#local-quicknote-a11y-announcer') : null;
+        if (announcer && message) {
+            announcer.textContent = '';
+            window.setTimeout(function() {
+                announcer.textContent = message;
+            }, 50);
+        }
+    };
+
+    /**
+     * Clears any active voice silence timeout.
+     */
+    var clearVoiceSilenceTimer = function() {
+        if (voiceSilenceTimer) {
+            window.clearTimeout(voiceSilenceTimer);
+            voiceSilenceTimer = null;
+        }
+    };
+
+    /**
+     * Resets the voice silence timeout, stopping recognition after prolonged silence.
+     */
+    var resetVoiceSilenceTimer = function() {
+        clearVoiceSilenceTimer();
+        if (activeRecognition) {
+            voiceSilenceTimer = window.setTimeout(function() {
+                stopVoiceRecognition();
+            }, VOICE_SILENCE_TIMEOUT);
+        }
+    };
+
+    /**
+     * Stops the active voice recognition session and resets UI state.
+     */
+    var stopVoiceRecognition = function() {
+        clearVoiceSilenceTimer();
+
+        if (activeRecognition) {
+            try {
+                activeRecognition.stop();
+            } catch (e) {
+                // Ignore.
+            }
+            activeRecognition = null;
+        }
+
+        if (activeVoiceNoteKey) {
+            var noteEl = getNoteElementByKey(activeVoiceNoteKey);
+            if (noteEl) {
+                var voiceBtn = noteEl.querySelector(SELECTORS.voicebutton);
+                if (voiceBtn) {
+                    voiceBtn.classList.remove('is-recording');
+                    var dictateLabel = (state && state.strings && state.strings.voicelabel) || 'Dictate note';
+                    voiceBtn.setAttribute('title', dictateLabel);
+                    voiceBtn.setAttribute('aria-label', dictateLabel);
+                    voiceBtn.setAttribute('aria-pressed', 'false');
+                }
+            }
+            activeVoiceNoteKey = null;
+            activeVoiceBaseText = '';
+            announceStatus((state && state.strings && state.strings.voiceendedlabel) || 'Dictation ended.');
+        }
+    };
+
+    /**
+     * Starts voice dictation for a specific note.
+     *
+     * @param {Object} note The note object.
+     * @param {HTMLElement} noteEl The note DOM element.
+     */
+    var startVoiceRecognition = function(note, noteEl) {
+        if (!isSpeechRecognitionSupported()) {
+            return;
+        }
+
+        if (activeRecognition) {
+            stopVoiceRecognition();
+        }
+
+        var textarea = noteEl ? noteEl.querySelector(SELECTORS.textarea) : null;
+        var voiceBtn = noteEl ? noteEl.querySelector(SELECTORS.voicebutton) : null;
+        if (!textarea || !voiceBtn) {
+            return;
+        }
+
+        var RecognitionClass = getSpeechRecognitionClass();
+        var recognition = null;
+        try {
+            recognition = new RecognitionClass();
+        } catch (e) {
+            return;
+        }
+
+        var docLang = (document.documentElement.lang || navigator.language || 'en').replace(/_/g, '-');
+        recognition.lang = docLang;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        activeRecognition = recognition;
+        activeVoiceNoteKey = note.clientid;
+        activeVoiceBaseText = textarea.value.trim();
+
+        recognition.onstart = function() {
+            if (activeVoiceNoteKey !== note.clientid) {
+                return;
+            }
+            voiceBtn.classList.add('is-recording');
+            var stopLabel = (state && state.strings && state.strings.voicestoplabel) || 'Stop dictating';
+            voiceBtn.setAttribute('title', stopLabel);
+            voiceBtn.setAttribute('aria-label', stopLabel);
+            voiceBtn.setAttribute('aria-pressed', 'true');
+            resetVoiceSilenceTimer();
+            announceStatus((state && state.strings && state.strings.voicelisteninglabel) || 'Listening...');
+        };
+
+        recognition.onspeechend = function() {
+            if (activeVoiceNoteKey !== note.clientid) {
+                return;
+            }
+            resetVoiceSilenceTimer();
+        };
+
+        recognition.onresult = function(event) {
+            if (activeVoiceNoteKey !== note.clientid) {
+                return;
+            }
+
+            resetVoiceSilenceTimer();
+
+            var sessionFinal = '';
+            var sessionInterim = '';
+
+            for (var i = 0; i < event.results.length; i++) {
+                var item = event.results[i];
+                if (item.isFinal) {
+                    sessionFinal += item[0].transcript + ' ';
+                } else {
+                    sessionInterim += item[0].transcript;
+                }
+            }
+
+            var fullText = activeVoiceBaseText;
+            if (sessionFinal) {
+                fullText = fullText ? (fullText + ' ' + sessionFinal.trim()) : sessionFinal.trim();
+            }
+            if (sessionInterim) {
+                fullText = fullText ? (fullText + ' ' + sessionInterim.trim()) : sessionInterim.trim();
+            }
+
+            textarea.value = fullText;
+            textarea.dispatchEvent(new Event('input', {bubbles: true}));
+        };
+
+        recognition.onerror = function(event) {
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                var permissionDeniedMsg = (state && state.strings && state.strings.voicepermissiondenied) ||
+                    'Microphone access was denied. Please allow microphone permissions in your browser to use voice dictation.';
+                Notification.addNotification({
+                    message: permissionDeniedMsg,
+                    type: 'warning'
+                });
+            }
+            stopVoiceRecognition();
+        };
+
+        recognition.onend = function() {
+            if (activeRecognition === recognition) {
+                stopVoiceRecognition();
+            }
+        };
+
+        try {
+            recognition.start();
+        } catch (e) {
+            stopVoiceRecognition();
+        }
+    };
+
+    /**
+     * Updates the copy button visibility for a note element.
+     *
+     * @param {HTMLElement} noteEl The note container element.
+     * @param {string} content Current content of the note.
+     */
+    var setNoteCopyButton = function(noteEl, content) {
+        var copyBtn = noteEl ? noteEl.querySelector('[data-action="copy-note"]') : null;
+        if (!copyBtn) {
+            return;
+        }
+
+        if (content && content.trim().length > 0) {
+            copyBtn.style.display = '';
+        } else {
+            copyBtn.style.display = 'none';
+        }
+    };
+
+    /**
+     * Updates the voice dictation button state for a note element.
+     *
+     * @param {HTMLElement} noteEl The note container element.
+     * @param {Object} note The note data object.
+     */
+    var setNoteVoiceButton = function(noteEl, note) {
+        var voiceBtn = noteEl ? noteEl.querySelector(SELECTORS.voicebutton) : null;
+        if (!voiceBtn) {
+            return;
+        }
+
+        if (state && state.enableVoiceDictation && isSpeechRecognitionSupported()) {
+            voiceBtn.classList.remove('d-none');
+        } else {
+            voiceBtn.classList.add('d-none');
+        }
+
+        if (activeVoiceNoteKey === note.clientid) {
+            voiceBtn.classList.add('is-recording');
+            var stopLabel = (state && state.strings && state.strings.voicestoplabel) || 'Stop dictating';
+            voiceBtn.setAttribute('title', stopLabel);
+            voiceBtn.setAttribute('aria-label', stopLabel);
+            voiceBtn.setAttribute('aria-pressed', 'true');
+        } else {
+            voiceBtn.classList.remove('is-recording');
+            var dictateLabel = (state && state.strings && state.strings.voicelabel) || 'Dictate note';
+            voiceBtn.setAttribute('title', dictateLabel);
+            voiceBtn.setAttribute('aria-label', dictateLabel);
+            voiceBtn.setAttribute('aria-pressed', 'false');
+        }
+    };
+
     var updateNoteElement = function(note, noteEl, preservecontent) {
         var textarea = noteEl.querySelector(SELECTORS.textarea);
         var currentcontent = preservecontent && textarea ? textarea.value : note.content;
@@ -624,15 +892,8 @@ define([
         renderScreenshots(noteEl, note);
         setNoteQuote(noteEl, note);
         setNoteLocation(noteEl, note.url, note.hasquote, note.pagetitle);
-
-        var copyBtn = noteEl.querySelector('[data-action="copy-note"]');
-        if (copyBtn) {
-            if (currentcontent.trim().length > 0) {
-                copyBtn.style.display = '';
-            } else {
-                copyBtn.style.display = 'none';
-            }
-        }
+        setNoteCopyButton(noteEl, currentcontent);
+        setNoteVoiceButton(noteEl, note);
     };
 
     var createNoteElement = function(note) {
@@ -844,6 +1105,7 @@ define([
             state.root.classList.add('is-open');
         } else {
             state.root.classList.remove('is-open');
+            stopVoiceRecognition();
         }
 
         if (panel) {
@@ -1183,12 +1445,36 @@ define([
             });
         };
 
+        var handleVoiceClick = function(e, voiceBtn) {
+            e.preventDefault();
+            var noteEl = voiceBtn.closest(SELECTORS.note);
+            if (!noteEl) {
+                return;
+            }
+
+            var noteKey = noteEl.getAttribute('data-note-key');
+            var note = getNoteByKey(noteKey);
+            if (!note) {
+                return;
+            }
+
+            if (activeVoiceNoteKey === noteKey) {
+                stopVoiceRecognition();
+            } else {
+                startVoiceRecognition(note, noteEl);
+            }
+        };
+
         var handleDeleteClick = function(deleteBtn) {
             var noteEl = deleteBtn.closest(SELECTORS.note);
             var note = noteEl ? getNoteByKey(noteEl.getAttribute('data-note-key')) : null;
 
             if (!note) {
                 return;
+            }
+
+            if (activeVoiceNoteKey && activeVoiceNoteKey === note.clientid) {
+                stopVoiceRecognition();
             }
 
             if (!note.id) {
@@ -1375,6 +1661,12 @@ define([
                 return;
             }
 
+            var voiceBtn = e.target.closest(SELECTORS.voicebutton);
+            if (voiceBtn) {
+                handleVoiceClick(e, voiceBtn);
+                return;
+            }
+
             var deleteBtn = e.target.closest(SELECTORS.deletebutton);
             if (deleteBtn) {
                 handleDeleteClick(deleteBtn);
@@ -1418,15 +1710,7 @@ define([
                 note.timemodified = Math.floor(Date.now() / 1000);
 
                 var noteEl = textarea.closest(SELECTORS.note);
-                var cBtn = noteEl ? noteEl.querySelector('[data-action="copy-note"]') : null;
-
-                if (cBtn) {
-                    if (note.content.trim().length > 0) {
-                        cBtn.style.display = '';
-                    } else {
-                        cBtn.style.display = 'none';
-                    }
-                }
+                setNoteCopyButton(noteEl, note.content);
 
                 scheduleSave(note);
                 applyFilter();
@@ -1666,6 +1950,10 @@ define([
                 pagetitle: String((config && config.pagetitle) || rootEl.getAttribute('data-pagetitle') || document.title || ''),
                 enableScreenshots: config.hasOwnProperty('enable_screenshots') ?
                     Boolean(config.enable_screenshots) : false,
+                enableVoiceDictation: config.hasOwnProperty('enable_voice_dictation') ?
+                    Boolean(config.enable_voice_dictation) :
+                    (rootEl.getAttribute('data-enablevoicedictation') === '1' ||
+                     rootEl.getAttribute('data-enablevoicedictation') === 'true'),
                 maxFiles: config.hasOwnProperty('max_files_per_note') ? Number(config.max_files_per_note) : 0,
                 maxBytes: config.hasOwnProperty('max_bytes') ? Number(config.max_bytes) : 0,
                 loaded: false,
@@ -1686,7 +1974,12 @@ define([
                     closelabel: rootEl.getAttribute('data-closelabel'),
                     deleteimagelabel: rootEl.getAttribute('data-deleteimagelabel'),
                     uploadingtext: rootEl.getAttribute('data-uploadingtext'),
-                    loadingtext: rootEl.getAttribute('data-loadingtext')
+                    loadingtext: rootEl.getAttribute('data-loadingtext'),
+                    voicelabel: rootEl.getAttribute('data-voicelabel'),
+                    voicestoplabel: rootEl.getAttribute('data-voicestoplabel'),
+                    voicelisteninglabel: rootEl.getAttribute('data-voicelisteninglabel'),
+                    voiceendedlabel: rootEl.getAttribute('data-voiceendedlabel'),
+                    voicepermissiondenied: rootEl.getAttribute('data-voicepermissiondenied')
                 }
             };
 
