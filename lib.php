@@ -143,3 +143,47 @@ function local_quicknote_pluginfile($course, $cm, $context, $filearea, $args, $f
 
     send_stored_file($file, DAYSECS, 0, $forcedownload, $options);
 }
+
+/**
+ * Extend course navigation with a link to the QuickNote usage report.
+ *
+ * Places the link inside the course Reports container when available so it integrates
+ * with the Reports hub and tertiary report selector dropdown.
+ *
+ * @param navigation_node $navigation The course navigation node to extend.
+ * @param stdClass $course The course object.
+ * @param context_course $context The course context.
+ */
+function local_quicknote_extend_navigation_course($navigation, $course, $context) {
+    if ((int) $course->id === (int) SITEID) {
+        return;
+    }
+
+    if (!has_capability('local/quicknote:viewreport', $context)) {
+        return;
+    }
+
+    $url = new moodle_url('/local/quicknote/report.php', ['id' => $course->id]);
+    $title = get_string('report:courseusage', 'local_quicknote');
+    $icon = new pix_icon('i/report', '');
+
+    if ($reportnav = $navigation->find('coursereports', navigation_node::TYPE_CONTAINER)) {
+        $reportnav->add(
+            $title,
+            $url,
+            navigation_node::TYPE_SETTING,
+            null,
+            'local_quicknote_report',
+            $icon
+        );
+    } else {
+        $navigation->add(
+            $title,
+            $url,
+            navigation_node::TYPE_SETTING,
+            null,
+            'local_quicknote_report',
+            $icon
+        );
+    }
+}
