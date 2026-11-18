@@ -220,6 +220,8 @@ class hooks {
         $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
             has_capability('local/quicknote:uploadscreenshot', $context);
 
+        $enablevoicedictation = self::is_voice_dictation_enabled();
+
         $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
         $maxbytes = (int) get_config('local_quicknote', 'max_bytes');
         $rawtitle = trim((string) ($PAGE->title ?: $PAGE->heading));
@@ -233,6 +235,7 @@ class hooks {
             'pagehash' => $pagehash,
             'pagetitle' => $pagetitle,
             'enable_screenshots' => $canuploadscreenshots,
+            'enable_voice_dictation' => $enablevoicedictation,
             'max_files_per_note' => $maxfiles,
             'max_bytes' => $maxbytes,
         ]]);
@@ -266,6 +269,11 @@ class hooks {
             'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
             'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
             'enablescreenshots' => $canuploadscreenshots,
+            'enablevoicedictation' => $enablevoicedictation,
+            'voicelabel' => get_string('voice:dictate', 'local_quicknote'),
+            'voicestoplabel' => get_string('voice:stop', 'local_quicknote'),
+            'voicelisteninglabel' => get_string('voice:listening', 'local_quicknote'),
+            'voiceendedlabel' => get_string('voice:ended', 'local_quicknote'),
         ]);
 
         return $html;
@@ -285,6 +293,20 @@ class hooks {
         if ($enabled === false || $enabled === null || $enabled === '') {
             // Return the default setting defined by the administrator in Site Administration.
             return (bool) get_config('local_quicknote', 'default_enabled');
+        }
+
+        return (string) $enabled !== '0';
+    }
+
+    /**
+     * Checks whether voice dictation is enabled globally.
+     *
+     * @return bool True if voice dictation is enabled.
+     */
+    public static function is_voice_dictation_enabled(): bool {
+        $enabled = get_config('local_quicknote', 'enable_voice_dictation');
+        if ($enabled === false || $enabled === null || $enabled === '') {
+            return true;
         }
 
         return (string) $enabled !== '0';
