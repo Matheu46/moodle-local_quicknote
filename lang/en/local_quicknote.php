@@ -39,7 +39,6 @@ $string['enable_frontpage'] = 'Enable in Frontpage';
 $string['enable_frontpage_desc'] = 'Display QuickNote drawer in the site home page. Notes created here are shared with the Dashboard.';
 $string['enable_screenshots'] = 'Enable screenshots';
 $string['enable_screenshots_desc'] = 'Allow users to paste screenshots (Ctrl+V) directly into their notes. If disabled, only text can be saved.';
-$string['entity_note'] = 'QuickNote';
 $string['enable_voice_dictation'] = 'Enable voice dictation';
 $string['enable_voice_dictation_desc'] = 'Allow users to dictate notes using their browser speech recognition capabilities. When enabled, a microphone button is shown in supported browsers.';
 $string['error:filenotfound'] = 'Screenshot not found.';
