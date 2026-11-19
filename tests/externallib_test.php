@@ -408,11 +408,7 @@ final class externallib_test extends advanced_testcase {
         $res = save_note::execute(0, $course->id, 'Note in course to be disabled', 'https://example.com/1', null, null);
 
         // Disable QuickNote for this course.
-        $record = new \stdClass();
-        $record->courseid = $course->id;
-        $record->enabled = 0;
-        $record->module_settings = '';
-        $DB->insert_record('local_quicknote_course', $record);
+        \local_quicknote\local\course_settings::set_course_enabled($course->id, 0);
 
         // Attempting to bulk delete the note should throw moodle_exception because access is blocked.
         $this->expectException(\moodle_exception::class);
@@ -431,11 +427,7 @@ final class externallib_test extends advanced_testcase {
         $this->setUser($user);
 
         // Disable QuickNote for this course.
-        $record = new \stdClass();
-        $record->courseid = $course->id;
-        $record->enabled = 0;
-        $record->module_settings = '';
-        $DB->insert_record('local_quicknote_course', $record);
+        \local_quicknote\local\course_settings::set_course_enabled($course->id, 0);
 
         // Attempting to use the API should throw an exception.
         $this->expectException(\moodle_exception::class);

@@ -116,6 +116,7 @@ class restore_local_quicknote_plugin extends restore_local_plugin {
             } else {
                 $DB->insert_record('local_quicknote_course', $record);
             }
+            \local_quicknote\local\course_settings::purge_course_cache($courseid);
         }
     }
 }

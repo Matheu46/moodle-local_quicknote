@@ -50,6 +50,7 @@ class observers {
 
         // Remove the per-course configuration.
         $DB->delete_records('local_quicknote_course', ['courseid' => $courseid]);
+        \local_quicknote\local\course_settings::purge_course_cache($courseid);
     }
 
     /**
@@ -58,39 +59,10 @@ class observers {
      * @param \core\event\course_module_deleted $event The event triggered.
      */
     public static function course_module_deleted(\core\event\course_module_deleted $event) {
-        global $DB;
-
-        $cmid = (int) $event->objectid;
-        $courseid = (int) $event->courseid;
-
-        if ($cmid <= 0 || $courseid <= 0) {
-            return;
-        }
-
-        $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
-        if (!$record || empty($record->module_settings)) {
-            return;
-        }
-
-        $settings = json_decode($record->module_settings, true);
-        if (!is_array($settings)) {
-            return;
-        }
-
-        $modified = false;
-        if (array_key_exists($cmid, $settings)) {
-            unset($settings[$cmid]);
-            $modified = true;
-        }
-        if (array_key_exists((string) $cmid, $settings)) {
-            unset($settings[(string) $cmid]);
-            $modified = true;
-        }
-
-        if ($modified) {
-            $record->module_settings = !empty($settings) ? json_encode($settings) : '';
-            $DB->update_record('local_quicknote_course', $record);
-        }
+        \local_quicknote\local\course_settings::delete_module_setting(
+            (int) $event->courseid,
+            (int) $event->objectid
+        );
     }
 
     /**

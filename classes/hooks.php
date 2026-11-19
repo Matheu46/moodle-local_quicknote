@@ -50,11 +50,9 @@ class hooks {
         $enabled = ($globaldefault === false || $globaldefault === null) ? 1 : $globaldefault;
 
         if ($courseid > 0) {
-            global $DB;
-            $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid], 'enabled');
-            $savedvalue = $record ? $record->enabled : false;
-            if ($savedvalue !== false && $savedvalue !== null) {
-                $enabled = $savedvalue;
+            $settings = \local_quicknote\local\course_settings::get_settings($courseid);
+            if ($settings['enabled'] !== null) {
+                $enabled = $settings['enabled'];
             }
         }
 
@@ -75,19 +73,7 @@ class hooks {
 
         $courseid = (int) $data->id;
         $enabled = (int) $data->local_quicknote_enabled;
-
-        global $DB;
-        $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
-        if ($record) {
-            $record->enabled = $enabled;
-            $DB->update_record('local_quicknote_course', $record);
-        } else {
-            $record = new \stdClass();
-            $record->courseid = $courseid;
-            $record->enabled = $enabled;
-            $record->module_settings = '';
-            $DB->insert_record('local_quicknote_course', $record);
-        }
+        \local_quicknote\local\course_settings::set_course_enabled($courseid, $enabled);
     }
 
     /**
@@ -179,22 +165,16 @@ class hooks {
             // Check per-module override.
             $skipatterncheck = false;
             if ($PAGE->cm) {
-                global $DB;
-                $record = $DB->get_record('local_quicknote_course', ['courseid' => $course->id], 'module_settings');
-                $modulesettings = $record ? $record->module_settings : null;
-                if ($modulesettings) {
-                    $modulesettings = json_decode($modulesettings, true);
-                    if (!is_array($modulesettings)) {
-                        $modulesettings = [];
-                    }
-                    if (isset($modulesettings[$PAGE->cm->id])) {
-                        $modulevalue = $modulesettings[$PAGE->cm->id];
-                        if ($modulevalue === 0) {
-                            return '';
-                        }
-                        // If explicitly enabled, skip site-wide pattern check.
-                        $skipatterncheck = true;
-                    }
+                $modulevalue = \local_quicknote\local\course_settings::get_module_setting(
+                    (int) $course->id,
+                    (int) $PAGE->cm->id
+                );
+                if ($modulevalue === 0) {
+                    return '';
+                }
+                if ($modulevalue === 1) {
+                    // If explicitly enabled, skip site-wide pattern check.
+                    $skipatterncheck = true;
                 }
             }
         }
@@ -286,16 +266,7 @@ class hooks {
      * @return bool
      */
     public static function is_enabled_for_course(\stdClass $course): bool {
-        global $DB;
-        $record = $DB->get_record('local_quicknote_course', ['courseid' => $course->id], 'enabled');
-        $enabled = $record ? $record->enabled : false;
-
-        if ($enabled === false || $enabled === null || $enabled === '') {
-            // Return the default setting defined by the administrator in Site Administration.
-            return (bool) get_config('local_quicknote', 'default_enabled');
-        }
-
-        return (string) $enabled !== '0';
+        return \local_quicknote\local\course_settings::is_enabled_for_course((int) $course->id);
     }
 
     /**
