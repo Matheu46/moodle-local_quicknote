@@ -28,6 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 $string['allcourses'] = 'All courses';
 $string['bulkdelete_success'] = '{$a} notes deleted successfully.';
 $string['bulkdeleteconfirm'] = 'Are you sure you want to delete the {$a} selected notes? This action cannot be undone.';
+$string['cachedef_course_settings'] = 'Course and module settings';
 $string['closebulkactions'] = 'Close bulk actions';
 $string['config:active_course'] = 'Activate QuickNote in this course';
 $string['default_enabled'] = 'Enabled by default';
