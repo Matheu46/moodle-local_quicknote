@@ -43,9 +43,9 @@ function local_quicknote_coursemodule_standard_elements($formwrapper, $mform) {
 
     $mform->addElement('header', 'local_quicknote_header', get_string('pluginname', 'local_quicknote'));
     $mform->addElement('select', 'local_quicknote_module', get_string('module:setting', 'local_quicknote'), [
-        '' => get_string('module:default', 'local_quicknote'),
-        '0' => get_string('module:disabled', 'local_quicknote'),
-        '1' => get_string('module:enabled', 'local_quicknote'),
+        '' => get_string('default'),
+        '0' => get_string('disable'),
+        '1' => get_string('enable'),
     ]);
     $mform->setDefault('local_quicknote_module', $current !== null ? (string) $current : '');
 }
