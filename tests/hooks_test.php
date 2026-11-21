@@ -257,4 +257,89 @@ final class hooks_test extends \advanced_testcase {
         $html = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
         $this->assertStringContainsString('data-enablevoicedictation="0"', $html);
     }
+
+    /**
+     * Test local_quicknote_render_navbar_output respects page active status and position settings.
+     */
+    public function test_render_navbar_output(): void {
+        global $PAGE, $CFG;
+        require_once($CFG->dirroot . '/local/quicknote/lib.php');
+        $this->resetAfterTest();
+        $renderer = $PAGE->get_renderer('core');
+
+        // 1. When not active on page, returns empty string regardless of position.
+        \local_quicknote\hooks::set_active_on_page(false);
+        set_config('position', 'navbar', 'local_quicknote');
+        $this->assertEmpty(local_quicknote_render_navbar_output($renderer));
+
+        // 2. When active on page, but position is 'right' (floating only).
+        \local_quicknote\hooks::set_active_on_page(true);
+        set_config('position', 'right', 'local_quicknote');
+        $this->assertEmpty(local_quicknote_render_navbar_output($renderer));
+
+        // 3. When active on page, and position is 'left' (floating only).
+        set_config('position', 'left', 'local_quicknote');
+        $this->assertEmpty(local_quicknote_render_navbar_output($renderer));
+
+        // 4. When active on page, and position is 'navbar' (top navigation bar only).
+        set_config('position', 'navbar', 'local_quicknote');
+        $output = local_quicknote_render_navbar_output($renderer);
+        $this->assertNotEmpty($output);
+        $this->assertStringContainsString('data-action="quicknote-toggle"', $output);
+        $this->assertStringContainsString('local-quicknote__navbar-toggle', $output);
+
+        // 5. When active on page, and position is 'both' (navbar + floating).
+        set_config('position', 'both', 'local_quicknote');
+        $outputboth = local_quicknote_render_navbar_output($renderer);
+        $this->assertNotEmpty($outputboth);
+        $this->assertStringContainsString('data-action="quicknote-toggle"', $outputboth);
+
+        // Clean up static state.
+        \local_quicknote\hooks::set_active_on_page(false);
+    }
+
+    /**
+     * Test sidebar template conditionally renders floating action button based on showfab.
+     */
+    public function test_sidebar_fab_visibility(): void {
+        global $OUTPUT;
+        $this->resetAfterTest();
+
+        $context = [
+            'courseid' => 1,
+            'pageurl' => 'https://example.com',
+            'pagehash' => 'hash123',
+            'pagetitle' => 'Test Page',
+            'positionclass' => 'local-quicknote--right',
+            'showfab' => true,
+            'title' => 'Notes',
+            'togglelabel' => 'Open',
+            'closelabel' => 'Close',
+            'addlabel' => 'Add',
+            'placeholder' => 'Note...',
+            'emptytext' => 'Empty',
+            'savingtext' => 'Saving',
+            'savedtext' => 'Saved',
+            'errortext' => 'Error',
+            'updatedlabel' => 'Updated',
+            'locationlabel' => 'Location',
+            'deleteconfirm' => 'Delete?',
+            'noresultstext' => 'No results',
+            'highlightlabel' => 'Highlight',
+            'enablescreenshots' => false,
+            'enablevoicedictation' => false,
+        ];
+
+        // 1. When showfab is true, floating action button wrapper is rendered.
+        $html = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
+        $this->assertStringContainsString('local-quicknote__fab-wrapper', $html);
+        $this->assertStringContainsString('data-action="toggle"', $html);
+
+        // 2. When showfab is false (e.g. position == 'navbar'), floating buttons are omitted.
+        $context['showfab'] = false;
+        $htmlnofab = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
+        $this->assertStringNotContainsString('local-quicknote__fab-wrapper', $htmlnofab);
+        // The drawer panel itself is still rendered.
+        $this->assertStringContainsString('id="local-quicknote-panel"', $htmlnofab);
+    }
 }

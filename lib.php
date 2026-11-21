@@ -162,3 +162,24 @@ function local_quicknote_extend_navigation_course($navigation, $course, $context
         );
     }
 }
+
+/**
+ * Renders QuickNote toggle button in the top navigation bar.
+ *
+ * @param renderer_base $renderer The renderer.
+ * @return string HTML fragment for the navbar.
+ */
+function local_quicknote_render_navbar_output($renderer): string {
+    if (!\local_quicknote\hooks::is_active_on_page()) {
+        return '';
+    }
+
+    $position = get_config('local_quicknote', 'position');
+    if ($position !== 'navbar' && $position !== 'both') {
+        return '';
+    }
+
+    return $renderer->render_from_template('local_quicknote/navbar_toggle', [
+        'togglelabel' => get_string('navbar_toggle', 'local_quicknote'),
+    ]);
+}

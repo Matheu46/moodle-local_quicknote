@@ -807,3 +807,26 @@
 body.has-local-quicknote-bulk-bar {
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
+
+/* QuickNote Navbar Toggle */
+.local-quicknote__navbar-toggle {
+    background: transparent;
+    border: 0;
+    font-size: 1.15rem;
+    color: var(--bs-navbar-color, var(--text-color, #333));
+    transition: color 0.2s ease;
+}
+
+.local-quicknote__navbar-toggle:hover,
+.local-quicknote__navbar-toggle:focus {
+    background: transparent;
+    background-color: transparent;
+    box-shadow: none;
+    color: var(--bs-primary, var(--primary));
+    outline: none;
+}
+
+.local-quicknote__navbar-toggle.active {
+    color: var(--bs-primary, var(--primary));
+}
+

@@ -60,6 +60,7 @@
     data-voiceendedlabel="{{voiceendedlabel}}"
     data-voicepermissiondenied="{{#str}} voice:permission_denied, local_quicknote {{/str}}"
 >
+    {{#showfab}}
     <div class="local-quicknote__fab-wrapper">
         <button
             type="button"
@@ -89,6 +90,7 @@
             </span>
         </button>
     </div>
+    {{/showfab}}
 
     <aside
         id="local-quicknote-panel"

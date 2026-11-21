@@ -32,6 +32,7 @@ define([
         list: '[data-region="notes-list"]',
         noteTemplate: '[data-region="note-template"]',
         toggle: '[data-action="toggle"]',
+        navbartoggle: '[data-action="quicknote-toggle"]',
         close: '[data-action="close"]',
         add: '[data-action="add"]',
         search: '[data-action="search"]',
@@ -1100,6 +1101,7 @@ define([
     var setOpenState = function(isopen) {
         var panel = state.root.querySelector(SELECTORS.panel);
         var toggle = state.root.querySelector(SELECTORS.toggle);
+        var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
 
         if (isopen) {
             state.root.classList.add('is-open');
@@ -1113,6 +1115,10 @@ define([
         }
         if (toggle) {
             toggle.setAttribute('aria-expanded', isopen ? 'true' : 'false');
+        }
+        if (navbartoggle) {
+            navbartoggle.setAttribute('aria-expanded', isopen ? 'true' : 'false');
+            navbartoggle.classList.toggle('active', isopen);
         }
 
         if (isopen) {
@@ -1361,6 +1367,14 @@ define([
         document.addEventListener('keyup', function(e) {
             if (e.key === 'Escape' && state.root.classList.contains('is-open')) {
                 setOpenState(false);
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            var navToggle = e.target.closest(SELECTORS.navbartoggle);
+            if (navToggle) {
+                e.preventDefault();
+                handleToggleClick();
             }
         });
 
