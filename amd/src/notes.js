@@ -1146,19 +1146,10 @@ define([
         return backdropPromise;
     };
 
-    var setOpenState = function(isopen, options) {
-        options = options || {};
-        var shouldFocusToggle = options.focusToggle !== undefined ? options.focusToggle : true;
+    var syncDrawerElements = function(isopen) {
         var panel = state.root ? state.root.querySelector(SELECTORS.panel) : null;
         var toggle = state.root ? state.root.querySelector(SELECTORS.toggle) : null;
         var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
-
-        if (isopen) {
-            state.root.classList.add('is-open');
-        } else {
-            state.root.classList.remove('is-open');
-            stopVoiceRecognition();
-        }
 
         if (panel) {
             panel.setAttribute('aria-hidden', isopen ? 'false' : 'true');
@@ -1170,6 +1161,68 @@ define([
             navbartoggle.setAttribute('aria-expanded', isopen ? 'true' : 'false');
             navbartoggle.classList.toggle('active', isopen);
         }
+    };
+
+    var showBackdrop = function() {
+        if (!isSmallScreen()) {
+            return;
+        }
+        getBackdrop().then(function(backdrop) {
+            if (backdrop) {
+                backdrop.show();
+                var pageWrapper = document.getElementById('page');
+                if (pageWrapper) {
+                    pageWrapper.style.overflow = 'hidden';
+                }
+            }
+            return backdrop;
+        }).catch(function() {
+            // Ignore.
+        });
+    };
+
+    var hideBackdrop = function() {
+        if (!backdropPromise) {
+            return;
+        }
+        backdropPromise.then(function(backdrop) {
+            if (backdrop && backdrop.isVisible()) {
+                backdrop.hide();
+            }
+            var pageWrapper = document.getElementById('page');
+            if (pageWrapper) {
+                pageWrapper.style.overflow = '';
+            }
+            return backdrop;
+        }).catch(function() {
+            // Ignore.
+        });
+    };
+
+    var focusDrawerToggle = function() {
+        var toggle = state.root ? state.root.querySelector(SELECTORS.toggle) : null;
+        if (toggle) {
+            toggle.focus();
+            return;
+        }
+        var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
+        if (navbartoggle) {
+            navbartoggle.focus();
+        }
+    };
+
+    var setOpenState = function(isopen, options) {
+        options = options || {};
+        var shouldFocusToggle = options.focusToggle !== undefined ? options.focusToggle : true;
+
+        if (isopen) {
+            state.root.classList.add('is-open');
+        } else {
+            state.root.classList.remove('is-open');
+            stopVoiceRecognition();
+        }
+
+        syncDrawerElements(isopen);
 
         if (isopen) {
             // Close Moodle's message drawer if open.
@@ -1177,18 +1230,7 @@ define([
                 PubSub.publish('message-drawer-hide');
             }
 
-            if (isSmallScreen()) {
-                getBackdrop().then(function(backdrop) {
-                    if (backdrop) {
-                        backdrop.show();
-                        var pageWrapper = document.getElementById('page');
-                        if (pageWrapper) {
-                            pageWrapper.style.overflow = 'hidden';
-                        }
-                    }
-                    return backdrop;
-                }).catch(function() {});
-            }
+            showBackdrop();
 
             if (!state.loaded && !state.loading) {
                 loadNotes();
@@ -1197,30 +1239,16 @@ define([
             autogrowAllTextareas();
             updateAllQuoteCollapses();
 
+            var panel = state.root ? state.root.querySelector(SELECTORS.panel) : null;
             var closeBtn = panel ? panel.querySelector(SELECTORS.close) : null;
             if (closeBtn) {
                 closeBtn.focus();
             }
         } else {
-            if (backdropPromise) {
-                backdropPromise.then(function(backdrop) {
-                    if (backdrop && backdrop.isVisible()) {
-                        backdrop.hide();
-                    }
-                    var pageWrapper = document.getElementById('page');
-                    if (pageWrapper) {
-                        pageWrapper.style.overflow = '';
-                    }
-                    return backdrop;
-                }).catch(function() {});
-            }
+            hideBackdrop();
 
             if (shouldFocusToggle) {
-                if (toggle) {
-                    toggle.focus();
-                } else if (navbartoggle) {
-                    navbartoggle.focus();
-                }
+                focusDrawerToggle();
             }
         }
     };
@@ -1522,27 +1550,9 @@ define([
                 updateAllQuoteCollapses();
 
                 if (isSmallScreen()) {
-                    getBackdrop().then(function(backdrop) {
-                        if (backdrop && !backdrop.isVisible()) {
-                            backdrop.show();
-                            var pageWrapper = document.getElementById('page');
-                            if (pageWrapper) {
-                                pageWrapper.style.overflow = 'hidden';
-                            }
-                        }
-                        return backdrop;
-                    }).catch(function() {});
-                } else if (backdropPromise) {
-                    backdropPromise.then(function(backdrop) {
-                        if (backdrop && backdrop.isVisible()) {
-                            backdrop.hide();
-                            var pageWrapper = document.getElementById('page');
-                            if (pageWrapper) {
-                                pageWrapper.style.overflow = '';
-                            }
-                        }
-                        return backdrop;
-                    }).catch(function() {});
+                    showBackdrop();
+                } else {
+                    hideBackdrop();
                 }
             }
         });
@@ -2149,6 +2159,11 @@ define([
 
             state.highlightbutton = createHighlightButton();
             state.highlightselectiontext = '';
+
+            var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
+            if (navbartoggle) {
+                navbartoggle.setAttribute('aria-controls', 'local-quicknote-panel');
+            }
 
             bindEvents();
             watchSameOriginIframes();
