@@ -1199,6 +1199,23 @@ define([
         });
     };
 
+    var closeMessageDrawer = function() {
+        var messageDrawer = document.querySelector('[data-region="right-hand-drawer"]');
+        if (!messageDrawer) {
+            return;
+        }
+        var isMessageDrawerOpen = !messageDrawer.classList.contains('hidden') &&
+            messageDrawer.getAttribute('aria-hidden') !== 'true';
+
+        if (isMessageDrawerOpen) {
+            // Remove data-origin so Moodle's message drawer does not steal focus back to the message toggle button.
+            messageDrawer.removeAttribute('data-origin');
+            if (PubSub && PubSub.publish) {
+                PubSub.publish('message-drawer-hide');
+            }
+        }
+    };
+
     var focusDrawerToggle = function() {
         var toggle = state.root ? state.root.querySelector(SELECTORS.toggle) : null;
         if (toggle) {
@@ -1225,10 +1242,7 @@ define([
         syncDrawerElements(isopen);
 
         if (isopen) {
-            // Close Moodle's message drawer if open.
-            if (PubSub && PubSub.publish) {
-                PubSub.publish('message-drawer-hide');
-            }
+            closeMessageDrawer();
 
             showBackdrop();
 
@@ -1243,6 +1257,13 @@ define([
             var closeBtn = panel ? panel.querySelector(SELECTORS.close) : null;
             if (closeBtn) {
                 closeBtn.focus();
+                setTimeout(function() {
+                    if (state.root && state.root.classList.contains('is-open')) {
+                        if (panel && !panel.contains(document.activeElement)) {
+                            closeBtn.focus();
+                        }
+                    }
+                }, 50);
             }
         } else {
             hideBackdrop();
@@ -1501,21 +1522,6 @@ define([
                     setOpenState(false, {focusToggle: false});
                 }
             }
-        });
-
-        document.addEventListener('focusin', function(e) {
-            if (!isSmallScreen() || !state.root || !state.root.classList.contains('is-open')) {
-                return;
-            }
-            if (e.target.closest(SELECTORS.panel) ||
-                e.target.closest(SELECTORS.toggle) ||
-                e.target.closest(SELECTORS.navbartoggle) ||
-                e.target.closest('[data-action="add-and-open"]') ||
-                e.target.closest('.local-quicknote__lightbox') ||
-                e.target.closest('.modal')) {
-                return;
-            }
-            setOpenState(false, {focusToggle: false});
         });
 
         // Listen to Moodle messaging drawer events to close QuickNote if messages are opened.
