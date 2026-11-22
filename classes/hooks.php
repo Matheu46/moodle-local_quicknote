@@ -32,6 +32,28 @@ use core\hook\output\before_standard_top_of_body_html_generation;
  * @package    local_quicknote
  */
 class hooks {
+    /** @var bool Whether QuickNote UI is active on the current page. */
+    private static bool $isactiveonpage = false;
+
+    /**
+     * Checks whether QuickNote UI is active on the current page.
+     *
+     * @return bool True if active on current page, false otherwise.
+     */
+    public static function is_active_on_page(): bool {
+        return self::$isactiveonpage;
+    }
+
+    /**
+     * Sets whether QuickNote UI is active on the current page (useful for testing).
+     *
+     * @param bool $active Active status.
+     * @return void
+     */
+    public static function set_active_on_page(bool $active): void {
+        self::$isactiveonpage = $active;
+    }
+
     /**
      * Adds QuickNote settings to the course/module edit form using Hook API.
      *
@@ -95,6 +117,8 @@ class hooks {
      */
     public static function get_top_of_body_html(): string {
         global $OUTPUT, $PAGE, $USER;
+
+        self::$isactiveonpage = false;
 
         if (during_initial_install() || (defined('CLI_SCRIPT') && CLI_SCRIPT)) {
             return '';
@@ -224,7 +248,8 @@ class hooks {
         if (empty($position)) {
             $position = 'right';
         }
-        $positionclass = 'local-quicknote--' . $position;
+        $positionclass = 'local-quicknote--' . ($position === 'left' ? 'left' : 'right');
+        $showfab = ($position !== 'navbar');
 
         $html = $OUTPUT->render_from_template('local_quicknote/sidebar', [
             'courseid' => (int) $course->id,
@@ -232,6 +257,7 @@ class hooks {
             'pagehash' => $pagehash,
             'pagetitle' => $pagetitle,
             'positionclass' => $positionclass,
+            'showfab' => $showfab,
             'hasquote' => false,
             'quotetext' => '',
             'title' => get_string('sidebar:title', 'local_quicknote'),
@@ -256,6 +282,7 @@ class hooks {
             'voiceendedlabel' => get_string('voice:ended', 'local_quicknote'),
         ]);
 
+        self::$isactiveonpage = true;
         return $html;
     }
 

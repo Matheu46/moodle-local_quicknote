@@ -103,8 +103,10 @@ if ($hassiteconfig) {
         get_string('position_desc', 'local_quicknote'),
         'right',
         [
-            'right' => get_string('position_right', 'local_quicknote'),
-            'left'  => get_string('position_left', 'local_quicknote'),
+            'right'  => get_string('position_right', 'local_quicknote'),
+            'left'   => get_string('position_left', 'local_quicknote'),
+            'navbar' => get_string('position_navbar', 'local_quicknote'),
+            'both'   => get_string('position_both', 'local_quicknote'),
         ]
     ));
 

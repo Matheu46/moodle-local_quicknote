@@ -24,14 +24,18 @@ define([
     'core/notification',
     'core/str',
     'core/user_date',
-    'local_quicknote/lightbox'
-], function(Repository, Notification, Str, UserDate, Lightbox) {
+    'local_quicknote/lightbox',
+    'core/pubsub',
+    'core/modal_backdrop',
+    'core/templates'
+], function(Repository, Notification, Str, UserDate, Lightbox, PubSub, ModalBackdrop, Templates) {
     var SELECTORS = {
         root: '#local-quicknote-root',
         panel: '[data-region="panel"]',
         list: '[data-region="notes-list"]',
         noteTemplate: '[data-region="note-template"]',
         toggle: '[data-action="toggle"]',
+        navbartoggle: '[data-action="quicknote-toggle"]',
         close: '[data-action="close"]',
         add: '[data-action="add"]',
         search: '[data-action="search"]',
@@ -64,6 +68,18 @@ define([
     var activeVoiceNoteKey = null;
     var activeVoiceBaseText = '';
     var voiceSilenceTimer = null;
+    var backdropPromise = null;
+
+    var isSmallScreen = function() {
+        var width = window.innerWidth;
+        if (document.body) {
+            var rect = document.body.getBoundingClientRect();
+            if (rect && rect.width) {
+                width = rect.x + rect.width;
+            }
+        }
+        return width < 992;
+    };
 
     var escapeHtml = function(value) {
         var div = document.createElement('div');
@@ -1097,9 +1113,124 @@ define([
         renderNotes();
     };
 
-    var setOpenState = function(isopen) {
-        var panel = state.root.querySelector(SELECTORS.panel);
-        var toggle = state.root.querySelector(SELECTORS.toggle);
+    var getBackdrop = function() {
+        if (!backdropPromise) {
+            backdropPromise = Templates.render('core/modal_backdrop', {})
+                .then(function(html) {
+                    return new ModalBackdrop(html);
+                })
+                .then(function(modalBackdrop) {
+                    var panel = state && state.root ? state.root.querySelector(SELECTORS.panel) : null;
+                    var drawerZindex = 1025;
+                    if (panel) {
+                        var parsedZ = parseInt(window.getComputedStyle(panel).zIndex, 10);
+                        if (!isNaN(parsedZ) && parsedZ > 0) {
+                            drawerZindex = parsedZ;
+                        }
+                    }
+                    modalBackdrop.setZIndex(drawerZindex - 1);
+
+                    var attachment = modalBackdrop.getAttachmentPoint();
+                    if (attachment && attachment.length) {
+                        attachment.get(0).addEventListener('click', function(e) {
+                            e.preventDefault();
+                            setOpenState(false, {focusToggle: false});
+                        });
+                    }
+                    return modalBackdrop;
+                })
+                .catch(function() {
+                    return null;
+                });
+        }
+        return backdropPromise;
+    };
+
+    var syncDrawerElements = function(isopen) {
+        var panel = state.root ? state.root.querySelector(SELECTORS.panel) : null;
+        var toggle = state.root ? state.root.querySelector(SELECTORS.toggle) : null;
+        var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
+
+        if (panel) {
+            panel.setAttribute('aria-hidden', isopen ? 'false' : 'true');
+        }
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', isopen ? 'true' : 'false');
+        }
+        if (navbartoggle) {
+            navbartoggle.setAttribute('aria-expanded', isopen ? 'true' : 'false');
+            navbartoggle.classList.toggle('active', isopen);
+        }
+    };
+
+    var showBackdrop = function() {
+        if (!isSmallScreen()) {
+            return;
+        }
+        getBackdrop().then(function(backdrop) {
+            if (backdrop) {
+                backdrop.show();
+                var pageWrapper = document.getElementById('page');
+                if (pageWrapper) {
+                    pageWrapper.style.overflow = 'hidden';
+                }
+            }
+            return backdrop;
+        }).catch(function() {
+            // Ignore.
+        });
+    };
+
+    var hideBackdrop = function() {
+        if (!backdropPromise) {
+            return;
+        }
+        backdropPromise.then(function(backdrop) {
+            if (backdrop && backdrop.isVisible()) {
+                backdrop.hide();
+            }
+            var pageWrapper = document.getElementById('page');
+            if (pageWrapper) {
+                pageWrapper.style.overflow = '';
+            }
+            return backdrop;
+        }).catch(function() {
+            // Ignore.
+        });
+    };
+
+    var closeMessageDrawer = function() {
+        var messageDrawer = document.querySelector('[data-region="right-hand-drawer"]');
+        if (!messageDrawer) {
+            return;
+        }
+        var isMessageDrawerOpen = !messageDrawer.classList.contains('hidden') &&
+            messageDrawer.getAttribute('aria-hidden') !== 'true';
+
+        if (isMessageDrawerOpen) {
+            // Remove data-origin so Moodle's message drawer does not steal focus back to the message toggle button.
+            messageDrawer.removeAttribute('data-origin');
+            if (PubSub && PubSub.publish) {
+                PubSub.publish('message-drawer-hide');
+            }
+        }
+    };
+
+    var focusDrawerToggle = function() {
+        var toggle = state.root ? state.root.querySelector(SELECTORS.toggle) : null;
+        if (toggle) {
+            toggle.focus();
+            return;
+        }
+        var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
+        if (navbartoggle) {
+            navbartoggle.focus();
+        }
+    };
+
+    var setOpenState = function(isopen, options) {
+        options = options || {};
+        var shouldFocusToggle = options.focusToggle !== undefined ? options.focusToggle : true;
 
         if (isopen) {
             state.root.classList.add('is-open');
@@ -1108,14 +1239,13 @@ define([
             stopVoiceRecognition();
         }
 
-        if (panel) {
-            panel.setAttribute('aria-hidden', isopen ? 'false' : 'true');
-        }
-        if (toggle) {
-            toggle.setAttribute('aria-expanded', isopen ? 'true' : 'false');
-        }
+        syncDrawerElements(isopen);
 
         if (isopen) {
+            closeMessageDrawer();
+
+            showBackdrop();
+
             if (!state.loaded && !state.loading) {
                 loadNotes();
             }
@@ -1123,13 +1253,23 @@ define([
             autogrowAllTextareas();
             updateAllQuoteCollapses();
 
+            var panel = state.root ? state.root.querySelector(SELECTORS.panel) : null;
             var closeBtn = panel ? panel.querySelector(SELECTORS.close) : null;
             if (closeBtn) {
                 closeBtn.focus();
+                setTimeout(function() {
+                    if (state.root && state.root.classList.contains('is-open')) {
+                        if (panel && !panel.contains(document.activeElement)) {
+                            closeBtn.focus();
+                        }
+                    }
+                }, 50);
             }
         } else {
-            if (toggle) {
-                toggle.focus();
+            hideBackdrop();
+
+            if (shouldFocusToggle) {
+                focusDrawerToggle();
             }
         }
     };
@@ -1364,6 +1504,40 @@ define([
             }
         });
 
+        document.addEventListener('click', function(e) {
+            var navToggle = e.target.closest(SELECTORS.navbartoggle);
+            if (navToggle) {
+                e.preventDefault();
+                handleToggleClick();
+                return;
+            }
+
+            if (isSmallScreen() && state.root && state.root.classList.contains('is-open')) {
+                // If the click is outside the QuickNote panel, toggle buttons, lightbox and modals, close it.
+                if (!e.target.closest(SELECTORS.panel) &&
+                    !e.target.closest(SELECTORS.toggle) &&
+                    !e.target.closest('[data-action="add-and-open"]') &&
+                    !e.target.closest('.local-quicknote__lightbox') &&
+                    !e.target.closest('.modal')) {
+                    setOpenState(false, {focusToggle: false});
+                }
+            }
+        });
+
+        // Listen to Moodle messaging drawer events to close QuickNote if messages are opened.
+        if (PubSub && PubSub.subscribe) {
+            PubSub.subscribe('message-drawer-show', function() {
+                if (state.root && state.root.classList.contains('is-open')) {
+                    setOpenState(false, {focusToggle: false});
+                }
+            });
+            PubSub.subscribe('message-drawer-toggle', function() {
+                if (state.root && state.root.classList.contains('is-open')) {
+                    setOpenState(false, {focusToggle: false});
+                }
+            });
+        }
+
         document.addEventListener('keydown', function(e) {
             if (e.target.closest('input, textarea, select, [contenteditable="true"]') || e.target.isContentEditable) {
                 return;
@@ -1380,6 +1554,12 @@ define([
         window.addEventListener('resize', function() {
             if (state.root && state.root.classList.contains('is-open')) {
                 updateAllQuoteCollapses();
+
+                if (isSmallScreen()) {
+                    showBackdrop();
+                } else {
+                    hideBackdrop();
+                }
             }
         });
 
@@ -1985,6 +2165,11 @@ define([
 
             state.highlightbutton = createHighlightButton();
             state.highlightselectiontext = '';
+
+            var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
+            if (navbartoggle) {
+                navbartoggle.setAttribute('aria-controls', 'local-quicknote-panel');
+            }
 
             bindEvents();
             watchSameOriginIframes();
