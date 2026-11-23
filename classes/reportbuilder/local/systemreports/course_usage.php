@@ -59,7 +59,7 @@ class course_usage extends system_report {
         // Honour course separate groups mode when the viewer cannot access all groups.
         $this->add_group_restriction($notealias, $courseid);
 
-        $this->add_columns();
+        $this->add_columns($courseid);
         $this->add_filters();
 
         $this->set_downloadable(true, get_string('report:courseusage', 'local_quicknote'));
@@ -146,31 +146,33 @@ class course_usage extends system_report {
 
     /**
      * Add columns to the report (aggregated per page).
+     *
+     * @param int $courseid Target course ID.
      */
-    protected function add_columns(): void {
+    protected function add_columns(int $courseid = 0): void {
         $noteentity = $this->get_entity('note');
         $notealias = $noteentity->get_table_alias('local_quicknote_notes');
+        if ($courseid <= 0) {
+            $courseid = $this->get_parameter('courseid', 0, PARAM_INT);
+        }
 
-        // Page (grouped by pagetitle + canonical URL, linked to the target page).
+        // Page (grouped by canonical URL, linked to the target page).
         $this->add_column((new column(
             'page',
             new lang_string('report:page', 'local_quicknote'),
             $noteentity->get_entity_name()
         ))
             ->set_type(column::TYPE_TEXT)
-            ->add_fields("{$notealias}.pagetitle, {$notealias}.url")
-            ->set_is_sortable(true, ["{$notealias}.pagetitle", "{$notealias}.url"])
-            ->add_callback(static function (?string $pagetitle, stdClass $row): string {
-                $cleanurl = util::clean_url($row->url ?? null, false, true);
-                $label = ($pagetitle !== null && trim($pagetitle) !== '')
-                    ? format_string($pagetitle)
-                    : ($cleanurl !== null ? s($cleanurl) : get_string('report:untitledpage', 'local_quicknote'));
-
-                if ($cleanurl !== null) {
-                    return html_writer::link($cleanurl, $label);
+            ->add_fields("{$notealias}.url, {$notealias}.courseid")
+            ->set_is_sortable(true, ["{$notealias}.url"])
+            ->add_callback(static function (?string $url, stdClass $row) use ($courseid): string {
+                $cid = (int) ($row->courseid ?? $courseid);
+                $pageinfo = util::resolve_course_page_info($url ?? $row->url ?? null, $cid);
+                if ($pageinfo['linkurl'] !== null) {
+                    return html_writer::link($pageinfo['linkurl'], $pageinfo['label']);
                 }
 
-                return $label;
+                return $pageinfo['label'];
             }));
 
         // Total notes count.

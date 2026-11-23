@@ -148,6 +148,14 @@ if ($hassiteconfig) {
         ]
     ));
 
+    // Enable/disable Report Builder datasource.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_reportbuilder',
+        get_string('setting:enable_reportbuilder', 'local_quicknote'),
+        get_string('setting:enable_reportbuilder_desc', 'local_quicknote'),
+        1
+    ));
+
     // Retention settings.
     $settings->add(new admin_setting_heading(
         'local_quicknote/retention_heading',

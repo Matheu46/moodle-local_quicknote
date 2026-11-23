@@ -85,6 +85,31 @@ final class notes_test extends core_reportbuilder_testcase {
     }
 
     /**
+     * Test datasource availability is controlled by admin setting.
+     */
+    public function test_datasource_availability(): void {
+        $this->resetAfterTest();
+
+        // Enabled by default.
+        $this->assertTrue(notes::is_available());
+
+        $datasources = manager::get_report_datasources();
+        $pluginname = get_string('pluginname', 'local_quicknote');
+        $this->assertArrayHasKey(notes::class, $datasources[$pluginname] ?? []);
+
+        // Disabled via setting.
+        set_config('enable_reportbuilder', 0, 'local_quicknote');
+        $this->assertFalse(notes::is_available());
+
+        $datasourcesdisabled = manager::get_report_datasources();
+        $this->assertArrayNotHasKey(notes::class, $datasourcesdisabled[$pluginname] ?? []);
+
+        // Re-enabled via setting.
+        set_config('enable_reportbuilder', 1, 'local_quicknote');
+        $this->assertTrue(notes::is_available());
+    }
+
+    /**
      * Test that private note fields are never exposed as columns, filters, or conditions.
      */
     public function test_privacy_excludes_private_fields(): void {

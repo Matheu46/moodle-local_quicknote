@@ -106,26 +106,29 @@ final class course_usage_test extends \advanced_testcase {
         $student1 = $generator->create_and_enrol($coursea, 'student', ['firstname' => 'HiddenStudentOne']);
         $student2 = $generator->create_and_enrol($coursea, 'student', ['firstname' => 'HiddenStudentTwo']);
 
-        // Page 1 in Course A: 3 notes from 2 distinct users.
+        $page1 = $generator->create_module('page', ['course' => $coursea->id, 'name' => 'Chapter 1']);
+        $page2 = $generator->create_module('page', ['course' => $coursea->id, 'name' => 'Chapter 2']);
+
+        // Page 1 in Course A: 3 notes from 2 distinct users with different student-side page titles.
         $this->create_note([
             'userid' => $student1->id,
             'courseid' => $coursea->id,
-            'pagetitle' => 'Chapter 1',
-            'url' => 'https://example.com/mod/page/view.php?id=10#:~:text=LEAKED',
+            'pagetitle' => 'Chapter 1 - Intro',
+            'url' => 'https://example.com/mod/page/view.php?id=' . $page1->cmid . '#:~:text=LEAKED',
             'timecreated' => 1710000100,
         ]);
         $this->create_note([
             'userid' => $student1->id,
             'courseid' => $coursea->id,
-            'pagetitle' => 'Chapter 1',
-            'url' => 'https://example.com/mod/page/view.php?id=10#:~:text=LEAKED',
+            'pagetitle' => 'Chapter 1 - Section A',
+            'url' => 'https://example.com/mod/page/view.php?id=' . $page1->cmid . '#:~:text=LEAKED',
             'timecreated' => 1710000200,
         ]);
         $this->create_note([
             'userid' => $student2->id,
             'courseid' => $coursea->id,
-            'pagetitle' => 'Chapter 1',
-            'url' => 'https://example.com/mod/page/view.php?id=10#:~:text=LEAKED',
+            'pagetitle' => 'Chapter 1 - Summary',
+            'url' => 'https://example.com/mod/page/view.php?id=' . $page1->cmid . '#:~:text=LEAKED',
             'timecreated' => 1710000300,
         ]);
 
@@ -134,7 +137,7 @@ final class course_usage_test extends \advanced_testcase {
             'userid' => $student2->id,
             'courseid' => $coursea->id,
             'pagetitle' => 'Chapter 2',
-            'url' => 'https://example.com/mod/page/view.php?id=20',
+            'url' => 'https://example.com/mod/page/view.php?id=' . $page2->cmid,
             'timecreated' => 1710000500,
         ]);
 
@@ -183,10 +186,10 @@ final class course_usage_test extends \advanced_testcase {
         $rows = $this->extract_table_rows($output);
         $this->assertCount(2, $rows);
 
-        $this->assertEquals('https://example.com/mod/page/view.php?id=10', $rows[0]['href']);
+        $this->assertEquals('https://example.com/mod/page/view.php?id=' . $page1->cmid, $rows[0]['href']);
         $this->assertEquals(['Chapter 1', '3', '2', userdate(1710000300)], $rows[0]['cells']);
 
-        $this->assertEquals('https://example.com/mod/page/view.php?id=20', $rows[1]['href']);
+        $this->assertEquals('https://example.com/mod/page/view.php?id=' . $page2->cmid, $rows[1]['href']);
         $this->assertEquals(['Chapter 2', '1', '1', userdate(1710000500)], $rows[1]['cells']);
     }
 
@@ -283,17 +286,20 @@ final class course_usage_test extends \advanced_testcase {
         $generator->create_group_member(['groupid' => $group1->id, 'userid' => $student1->id]);
         $generator->create_group_member(['groupid' => $group2->id, 'userid' => $student2->id]);
 
+        $page1 = $generator->create_module('page', ['course' => $course->id, 'name' => 'Group 1 Page']);
+        $page2 = $generator->create_module('page', ['course' => $course->id, 'name' => 'Group 2 Page']);
+
         $this->create_note([
             'userid' => $student1->id,
             'courseid' => $course->id,
             'pagetitle' => 'Group 1 Page',
-            'url' => 'https://example.com/mod/page/view.php?id=1',
+            'url' => 'https://example.com/mod/page/view.php?id=' . $page1->cmid,
         ]);
         $this->create_note([
             'userid' => $student2->id,
             'courseid' => $course->id,
             'pagetitle' => 'Group 2 Page',
-            'url' => 'https://example.com/mod/page/view.php?id=2',
+            'url' => 'https://example.com/mod/page/view.php?id=' . $page2->cmid,
         ]);
 
         // Non-editing teacher in Group 1 sees only Group 1 activity.
@@ -364,5 +370,76 @@ final class course_usage_test extends \advanced_testcase {
         $siteroot = navigation_node::create('Site', null, navigation_node::TYPE_COURSE);
         local_quicknote_extend_navigation_course($siteroot, get_site(), context_course::instance(SITEID));
         $this->assertFalse($siteroot->find('local_quicknote_report', navigation_node::TYPE_SETTING));
+    }
+
+    /**
+     * Test student-controlled page titles and external URLs cannot spoof content or links in report.
+     */
+    public function test_spoofed_pagetitle_and_external_url_neutralized(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $context = context_course::instance($course->id);
+        $teacher = $generator->create_and_enrol($course, 'editingteacher');
+        $student = $generator->create_and_enrol($course, 'student');
+
+        // Legitimate page with spoofed title.
+        $page = $generator->create_module('page', ['course' => $course->id, 'name' => 'Legit Page Name']);
+        $this->create_note([
+            'userid' => $student->id,
+            'courseid' => $course->id,
+            'pagetitle' => 'ATTACKER SPOOFED TITLE',
+            'url' => 'https://example.com/mod/page/view.php?id=' . $page->cmid,
+        ]);
+
+        // Arbitrary same-site URL with social engineering title (Finding 5 POC).
+        $this->create_note([
+            'userid' => $student->id,
+            'courseid' => $course->id,
+            'pagetitle' => 'ACTION REQUIRED: re-confirm your teacher profile here',
+            'url' => 'https://example.com/user/edit.php',
+        ]);
+
+        $this->setUser($teacher);
+        $PAGE->set_url('/local/quicknote/report.php', ['id' => $course->id]);
+
+        $report = system_report_factory::create(
+            course_usage::class,
+            $context,
+            'local_quicknote',
+            '',
+            0,
+            ['courseid' => $course->id]
+        );
+        $output = $report->output();
+
+        // Attacker-supplied titles must never appear.
+        $this->assertStringNotContainsString('ATTACKER SPOOFED TITLE', $output);
+        $this->assertStringNotContainsString('ACTION REQUIRED', $output);
+
+        // Official activity name must be shown for the course activity.
+        $this->assertStringContainsString('Legit Page Name', $output);
+
+        // The non-course URL must be rendered as plain text without link.
+        $rows = $this->extract_table_rows($output);
+        $usereditrow = null;
+        $legitrow = null;
+        foreach ($rows as $row) {
+            if (in_array('/user/edit.php', $row['cells'], true)) {
+                $usereditrow = $row;
+            }
+            if (in_array('Legit Page Name', $row['cells'], true)) {
+                $legitrow = $row;
+            }
+        }
+
+        $this->assertNotNull($legitrow);
+        $this->assertNotEmpty($legitrow['href']);
+        $this->assertStringContainsString('id=' . $page->cmid, $legitrow['href']);
+
+        $this->assertNotNull($usereditrow);
+        $this->assertEmpty($usereditrow['href']);
     }
 }
