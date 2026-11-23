@@ -104,6 +104,31 @@ final class externallib_test extends advanced_testcase {
         save_note::execute($noteid, $course2->id, 'Update in wrong course', 'https://example.com');
     }
 
+    public function test_save_note_content_length_limit(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        // Note within hard limit (MAX_CONTENT_LENGTH) succeeds.
+        $validcontent = str_repeat('a', save_note::MAX_CONTENT_LENGTH);
+        $res = save_note::execute(0, $course->id, $validcontent, 'https://example.com/page');
+        $this->assertNotEmpty($res['id']);
+
+        // Note exceeding limit throws exception.
+        $toolongcontent = str_repeat('a', save_note::MAX_CONTENT_LENGTH + 1);
+        try {
+            save_note::execute(0, $course->id, $toolongcontent, 'https://example.com/page');
+            $this->fail('Expected contenttoolong exception was not thrown.');
+        } catch (\moodle_exception $e) {
+            $this->assertEquals('error:contenttoolong', $e->errorcode);
+        }
+    }
+
     public function test_save_and_get_note_with_complex_fragment_url(): void {
         global $CFG;
         $this->resetAfterTest();
@@ -523,6 +548,48 @@ final class externallib_test extends advanced_testcase {
 
         $this->expectException(\required_capability_exception::class);
         \local_quicknote\external\upload_screenshot::execute($noteid, 'test2.gif', 'image/gif', $gif);
+    }
+
+    public function test_upload_screenshot_quota_exceeded(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_screenshots', 1, 'local_quicknote');
+
+        $result = save_note::execute(0, $course->id, 'Note 1', 'https://example.com');
+        $noteid1 = $result['id'];
+
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+
+        // First upload succeeds with default quota.
+        $upload1 = \local_quicknote\external\upload_screenshot::execute($noteid1, 'test1.gif', 'image/gif', $gif);
+        $this->assertNotEmpty($upload1['id']);
+
+        // Set user_quota to a value smaller than current usage.
+        set_config('user_quota', 10, 'local_quicknote');
+
+        $result2 = save_note::execute(0, $course->id, 'Note 2', 'https://example.com');
+        $noteid2 = $result2['id'];
+
+        // Second upload should throw quotaexceeded exception.
+        try {
+            \local_quicknote\external\upload_screenshot::execute($noteid2, 'test2.gif', 'image/gif', $gif);
+            $this->fail('Expected quotaexceeded exception was not thrown.');
+        } catch (\moodle_exception $e) {
+            $this->assertEquals('error:quotaexceeded', $e->errorcode);
+        }
+
+        // Setting quota to 0 (unlimited) should allow uploading again.
+        set_config('user_quota', 0, 'local_quicknote');
+        $upload2 = \local_quicknote\external\upload_screenshot::execute($noteid2, 'test2.gif', 'image/gif', $gif);
+        $this->assertNotEmpty($upload2['id']);
     }
 
     public function test_dashboard_notes(): void {

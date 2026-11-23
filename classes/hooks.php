@@ -249,6 +249,7 @@ class hooks {
             'pagetitle' => $pagetitle,
             'positionclass' => $positionclass,
             'showfab' => $showfab,
+            'maxcontentlength' => \local_quicknote\external\save_note::MAX_CONTENT_LENGTH,
             'hasquote' => false,
             'quotetext' => '',
             'title' => get_string('sidebar:title', 'local_quicknote'),

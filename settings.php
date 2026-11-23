@@ -96,6 +96,22 @@ if ($hassiteconfig) {
         ]
     ));
 
+    // Maximum total screenshot storage per user.
+    $settings->add(new admin_setting_configselect(
+        'local_quicknote/user_quota',
+        get_string('user_quota', 'local_quicknote'),
+        get_string('user_quota_desc', 'local_quicknote'),
+        20971520, // 20 MB default.
+        [
+            10485760  => '10 MB',
+            20971520  => '20 MB',
+            52428800  => '50 MB',
+            104857600 => '100 MB',
+            209715200 => '200 MB',
+            0         => get_string('user_quota_unlimited', 'local_quicknote'),
+        ]
+    ));
+
     // Adds position option.
     $settings->add(new admin_setting_configselect(
         'local_quicknote/position',
