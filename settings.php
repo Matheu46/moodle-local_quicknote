@@ -115,7 +115,7 @@ if ($hassiteconfig) {
         'local_quicknote/disabled_pagetypes',
         get_string('setting:disabled_pagetypes', 'local_quicknote'),
         get_string('setting:disabled_pagetypes_desc', 'local_quicknote'),
-        ''
+        "mod-quiz-attempt\n"
     ));
 
     // Adds notes per page option.

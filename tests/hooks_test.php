@@ -365,4 +365,37 @@ final class hooks_test extends \advanced_testcase {
         set_config('version', $currentversion + 1, 'local_quicknote');
         $this->assertFalse(\local_quicknote\hooks::plugin_needs_upgrading());
     }
+
+    /**
+     * Test is_pagetype_disabled with default patterns.
+     */
+    public function test_is_pagetype_disabled_default(): void {
+        $this->resetAfterTest();
+        unset_config('disabled_pagetypes', 'local_quicknote');
+
+        // By default, mod-quiz-attempt should be disabled.
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+
+        // Other pages should not be disabled.
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-view'));
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('course-view-topics'));
+    }
+
+    /**
+     * Test is_pagetype_disabled with custom patterns and empty override.
+     */
+    public function test_is_pagetype_disabled_custom(): void {
+        $this->resetAfterTest();
+
+        // Custom wildcard patterns.
+        set_config('disabled_pagetypes', "mod-assign-*\nmod-forum-view", 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-assign-view'));
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-assign-grading'));
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-forum-view'));
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+
+        // When admin intentionally clears the setting to empty string, nothing is disabled.
+        set_config('disabled_pagetypes', '', 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+    }
 }
