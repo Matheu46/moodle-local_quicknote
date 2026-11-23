@@ -17,10 +17,11 @@
 namespace local_quicknote;
 
 use advanced_testcase;
-use local_quicknote\external\delete_notes;
-use local_quicknote\external\save_note;
-use local_quicknote\external\get_notes;
 use local_quicknote\external\delete_note;
+use local_quicknote\external\delete_notes;
+use local_quicknote\external\delete_screenshot;
+use local_quicknote\external\get_notes;
+use local_quicknote\external\save_note;
 
 /**
  * External library tests for local_quicknote.
@@ -410,9 +411,53 @@ final class externallib_test extends advanced_testcase {
         // Disable QuickNote for this course.
         \local_quicknote\local\course_settings::set_course_enabled($course->id, 0);
 
-        // Attempting to bulk delete the note should throw moodle_exception because access is blocked.
-        $this->expectException(\moodle_exception::class);
-        delete_notes::execute([$res['id']]);
+        // Owner should still be able to delete their own note even if course disabled QuickNote.
+        $deleteresult = delete_notes::execute([$res['id']]);
+        $deleteresult = \core_external\external_api::clean_returnvalue(delete_notes::execute_returns(), $deleteresult);
+        $this->assertTrue($deleteresult['success']);
+        $this->assertEquals([$res['id']], $deleteresult['deletedids']);
+        $this->assertEquals(0, $DB->count_records('local_quicknote_notes', ['id' => $res['id']]));
+    }
+
+    public function test_delete_note_and_screenshot_unenrolled_user(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        $res = save_note::execute(0, $course->id, 'Note by student to be unenrolled', 'https://example.com/1', null, null);
+        $noteid = $res['id'];
+
+        // Add screenshot.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        $note = $DB->get_record('local_quicknote_notes', ['id' => $noteid]);
+        $storedfile = \local_quicknote\local\screenshot_manager::create($note, 'test.gif', 'image/gif', $gif);
+
+        // Enable preservation so note is kept on unenrolment.
+        set_config('preserve_on_unenrol', 1, 'local_quicknote');
+
+        // Unenrol student manually.
+        $enrol = $DB->get_record('enrol', ['courseid' => $course->id, 'enrol' => 'manual']);
+        $plugin = enrol_get_plugin('manual');
+        $plugin->unenrol_user($enrol, $user->id);
+
+        $this->assertFalse(is_enrolled(\context_course::instance($course->id), $user->id));
+
+        // Owner should still be able to delete their screenshot.
+        $delpic = delete_screenshot::execute($noteid, $storedfile['id']);
+        $delpic = \core_external\external_api::clean_returnvalue(delete_screenshot::execute_returns(), $delpic);
+        $this->assertTrue($delpic['deleted']);
+
+        // Owner should still be able to delete their note.
+        $delres = delete_note::execute($noteid);
+        $delres = \core_external\external_api::clean_returnvalue(delete_note::execute_returns(), $delres);
+        $this->assertTrue($delres['deleted']);
+        $this->assertEquals(0, $DB->count_records('local_quicknote_notes', ['id' => $noteid]));
     }
 
     public function test_disabled_course(): void {
