@@ -328,4 +328,65 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
         ]);
         $this->assertEquals(0, $filescountafter);
     }
+
+    /**
+     * Test privacy operations for general notes stored under SITEID (front page course context).
+     */
+    public function test_general_notes_site_context(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+        $sitecontext = \context_course::instance(SITEID);
+
+        // Create a general note associated with SITEID.
+        $record = (object) [
+            'userid' => $user->id,
+            'courseid' => SITEID,
+            'content' => 'General note on dashboard',
+            'url' => 'https://example.com/my',
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+        $record->id = $DB->insert_record('local_quicknote_notes', $record);
+
+        // Add a screenshot to the general note.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record, 'general.gif', 'image/gif', $gif);
+
+        // 1. Verify get_contexts_for_userid returns front page course context.
+        $contextlist = provider::get_contexts_for_userid($user->id);
+        $this->assertCount(1, $contextlist);
+        $this->assertEquals($sitecontext->id, $contextlist->current()->id);
+
+        // 2. Verify get_users_in_context for front page course context.
+        $userlist = new userlist($sitecontext, 'local_quicknote');
+        provider::get_users_in_context($userlist);
+        $this->assertEquals([$user->id], $userlist->get_userids());
+
+        // 3. Verify export_user_data exports general note and screenshot.
+        $approvedcontextlist = new approved_contextlist($user, 'local_quicknote', [$sitecontext->id]);
+        $writer = writer::with_context($sitecontext);
+        $this->assertFalse($writer->has_any_data());
+
+        provider::export_user_data($approvedcontextlist);
+
+        $subcontext = [get_string('pluginname', 'local_quicknote'), $record->id];
+        $data = $writer->get_data($subcontext);
+        $this->assertNotNull($data);
+        $this->assertEquals('General note on dashboard', $data->content);
+
+        $files = $writer->get_files($subcontext);
+        $this->assertCount(1, $files);
+
+        // 4. Verify delete_data_for_user removes general note and its files.
+        provider::delete_data_for_user($approvedcontextlist);
+        $this->assertEquals(0, $DB->count_records('local_quicknote_notes', ['userid' => $user->id]));
+        $this->assertEquals(0, $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record->id,
+        ]));
+    }
 }
