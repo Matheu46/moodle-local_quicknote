@@ -64,7 +64,7 @@
                     <select name="coursefilter" id="coursefilter" class="form-select">
                         <option value="0">{{allcourses}}</option>
                         {{#courses}}
-                            <option value="{{id}}" {{#selected}}selected{{/selected}}>{{fullname}}</option>
+                            <option value="{{id}}" {{#selected}}selected{{/selected}}>{{{fullname}}}</option>
                         {{/courses}}
                     </select>
                 </div>
@@ -113,9 +113,9 @@
                         <input type="checkbox" class="form-check-input local-quicknote-card-select" data-id="{{id}}" aria-label="{{#str}} selectnote, local_quicknote {{/str}}">
                     </div>
                     <div class="min-w-0 flex-grow-1 overflow-hidden">
-                        <div class="text-truncate" title="{{coursefullname}}">{{coursefullname}}</div>
+                        <div class="text-truncate" title="{{{coursefullname}}}">{{{coursefullname}}}</div>
                         {{#pagetitle}}
-                        <div class="small text-muted fw-normal text-truncate" title="{{pagetitle}}">{{pagetitle}}</div>
+                        <div class="small text-muted fw-normal text-truncate" title="{{{pagetitle}}}">{{{pagetitle}}}</div>
                         {{/pagetitle}}
                     </div>
                 </div>

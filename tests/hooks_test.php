@@ -398,4 +398,52 @@ final class hooks_test extends \advanced_testcase {
         set_config('disabled_pagetypes', '', 'local_quicknote');
         $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
     }
+
+    /**
+     * Test view template renders pre-formatted strings without double escaping.
+     */
+    public function test_view_template_does_not_double_escape_formatted_strings(): void {
+        global $OUTPUT;
+        $this->resetAfterTest();
+
+        // The format_string() function produces HTML entities like &amp; for '&'.
+        $formattedcourse = format_string('Math & Physics');
+        $formattedpage = format_string('Atoms & Molecules');
+
+        $context = [
+            'filterbycourse' => 'Filter by course',
+            'allcourses' => 'All courses',
+            'courses' => [
+                [
+                    'id' => 10,
+                    'fullname' => $formattedcourse,
+                    'selected' => false,
+                ],
+            ],
+            'notes' => [
+                [
+                    'id' => 1,
+                    'coursefullname' => $formattedcourse,
+                    'pagetitle' => $formattedpage,
+                    'content' => 'Sample note with special chars: 1 < 2 & 3 > 0',
+                    'timeupdated' => 'Today',
+                    'url' => 'https://example.com',
+                    'quote' => null,
+                ],
+            ],
+        ];
+
+        $html = $OUTPUT->render_from_template('local_quicknote/view', $context);
+
+        // Course filter option should not be double-escaped.
+        $this->assertStringContainsString('<option value="10" >' . $formattedcourse . '</option>', $html);
+        $this->assertStringNotContainsString('&amp;amp;', $html);
+
+        // Course full name and page title on cards should not be double-escaped.
+        $this->assertStringContainsString('title="' . $formattedcourse . '">' . $formattedcourse . '</div>', $html);
+        $this->assertStringContainsString('title="' . $formattedpage . '">' . $formattedpage . '</div>', $html);
+
+        // User note content MUST be escaped for XSS safety.
+        $this->assertStringContainsString('&lt; 2 &amp; 3 &gt;', $html);
+    }
 }
