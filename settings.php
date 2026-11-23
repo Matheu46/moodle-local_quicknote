@@ -132,5 +132,28 @@ if ($hassiteconfig) {
         ]
     ));
 
+    // Retention settings.
+    $settings->add(new admin_setting_heading(
+        'local_quicknote/retention_heading',
+        get_string('retention_heading', 'local_quicknote'),
+        get_string('retention_heading_desc', 'local_quicknote')
+    ));
+
+    // Preserve notes when course is deleted.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/preserve_on_course_delete',
+        get_string('preserve_on_course_delete', 'local_quicknote'),
+        get_string('preserve_on_course_delete_desc', 'local_quicknote'),
+        0
+    ));
+
+    // Preserve notes when user is unenrolled.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/preserve_on_unenrol',
+        get_string('preserve_on_unenrol', 'local_quicknote'),
+        get_string('preserve_on_unenrol_desc', 'local_quicknote'),
+        0
+    ));
+
     $ADMIN->add('localplugins', $settings);
 }

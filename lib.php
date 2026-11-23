@@ -100,7 +100,16 @@ function local_quicknote_pluginfile($course, $cm, $context, $filearea, $args, $f
         return false;
     }
 
-    \local_quicknote\util::validate_note_access((int) $note->courseid);
+    if ((int) $note->courseid === (int) SITEID) {
+        \local_quicknote\util::validate_note_access(SITEID);
+    } else {
+        try {
+            \local_quicknote\util::validate_note_access((int) $note->courseid);
+        } catch (\moodle_exception $e) {
+            // Note owner viewing their own note in Notes Center even if unenrolled or course deleted.
+            require_capability('local/quicknote:use', \context_system::instance());
+        }
+    }
 
     $filename = array_pop($args);
     $filepath = '/' . ($args ? implode('/', $args) . '/' : '');
