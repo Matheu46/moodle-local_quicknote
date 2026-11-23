@@ -342,4 +342,27 @@ final class hooks_test extends \advanced_testcase {
         // The drawer panel itself is still rendered.
         $this->assertStringContainsString('id="local-quicknote-panel"', $htmlnofab);
     }
+
+    /**
+     * Test plugin_needs_upgrading logic.
+     */
+    public function test_plugin_needs_upgrading(): void {
+        $this->resetAfterTest();
+
+        $plugin = new \stdClass();
+        require(__DIR__ . '/../version.php');
+        $currentversion = (int) $plugin->version;
+
+        // When installed version matches disk version, no upgrade needed.
+        set_config('version', $currentversion, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::plugin_needs_upgrading());
+
+        // When installed version is lower, upgrade is needed.
+        set_config('version', $currentversion - 1, 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::plugin_needs_upgrading());
+
+        // When installed version is higher (e.g. dev branch), no upgrade needed.
+        set_config('version', $currentversion + 1, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::plugin_needs_upgrading());
+    }
 }

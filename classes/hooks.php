@@ -124,16 +124,16 @@ class hooks {
             return '';
         }
 
-        if (moodle_needs_upgrading()) {
-            return '';
-        }
-
         $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print'];
         if (isset($PAGE->pagelayout) && in_array($PAGE->pagelayout, $excludedlayouts)) {
             return '';
         }
 
         if (!isloggedin() || isguestuser()) {
+            return '';
+        }
+
+        if (self::plugin_needs_upgrading()) {
             return '';
         }
 
@@ -308,5 +308,21 @@ class hooks {
         }
 
         return (string) $enabled !== '0';
+    }
+
+    /**
+     * Checks whether the local_quicknote plugin itself has pending schema upgrades.
+     *
+     * @return bool True if an upgrade is pending for this plugin.
+     */
+    public static function plugin_needs_upgrading(): bool {
+        $installed = (int) get_config('local_quicknote', 'version');
+        if ($installed <= 0) {
+            return false;
+        }
+
+        $plugin = new \stdClass();
+        require(__DIR__ . '/../version.php');
+        return ($installed < (int) $plugin->version);
     }
 }
