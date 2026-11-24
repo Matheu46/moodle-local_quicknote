@@ -124,16 +124,20 @@ class hooks {
             return '';
         }
 
-        if (moodle_needs_upgrading()) {
-            return '';
-        }
-
-        $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print'];
+        $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print', 'secure'];
         if (isset($PAGE->pagelayout) && in_array($PAGE->pagelayout, $excludedlayouts)) {
             return '';
         }
 
+        if (!$PAGE->get_popup_notification_allowed()) {
+            return '';
+        }
+
         if (!isloggedin() || isguestuser()) {
+            return '';
+        }
+
+        if (self::plugin_needs_upgrading()) {
             return '';
         }
 
@@ -204,21 +208,8 @@ class hooks {
         }
 
         // Check site-wide page type patterns (unless overridden by an explicit per-module enable).
-        if (empty($skipatterncheck)) {
-            $disabledpatterns = get_config('local_quicknote', 'disabled_pagetypes');
-            if (!empty($disabledpatterns)) {
-                $patterns = explode("\n", $disabledpatterns);
-                $pagetype = $PAGE->pagetype;
-                foreach ($patterns as $pattern) {
-                    $pattern = trim($pattern);
-                    if ($pattern === '') {
-                        continue;
-                    }
-                    if (fnmatch($pattern, $pagetype)) {
-                        return '';
-                    }
-                }
-            }
+        if (empty($skipatterncheck) && self::is_pagetype_disabled($PAGE->pagetype)) {
+            return '';
         }
 
         $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
@@ -258,6 +249,7 @@ class hooks {
             'pagetitle' => $pagetitle,
             'positionclass' => $positionclass,
             'showfab' => $showfab,
+            'maxcontentlength' => \local_quicknote\external\save_note::MAX_CONTENT_LENGTH,
             'hasquote' => false,
             'quotetext' => '',
             'title' => get_string('sidebar:title', 'local_quicknote'),
@@ -308,5 +300,54 @@ class hooks {
         }
 
         return (string) $enabled !== '0';
+    }
+
+    /**
+     * Checks whether the local_quicknote plugin itself has pending schema upgrades.
+     *
+     * @return bool True if an upgrade is pending for this plugin.
+     */
+    public static function plugin_needs_upgrading(): bool {
+        $installed = (int) get_config('local_quicknote', 'version');
+        if ($installed <= 0) {
+            return false;
+        }
+
+        $plugin = new \stdClass();
+        require(__DIR__ . '/../version.php');
+        return ($installed < (int) $plugin->version);
+    }
+
+    /**
+     * Checks whether a page type matches the disabled page type patterns.
+     *
+     * @param string $pagetype The page type to check (e.g. $PAGE->pagetype).
+     * @param string|null $patterns Optional patterns override for testing.
+     * @return bool True if the page type is disabled.
+     */
+    public static function is_pagetype_disabled(string $pagetype, ?string $patterns = null): bool {
+        if ($patterns === null) {
+            $patterns = get_config('local_quicknote', 'disabled_pagetypes');
+            if ($patterns === false) {
+                $patterns = "mod-quiz-attempt\n";
+            }
+        }
+
+        if (empty($patterns)) {
+            return false;
+        }
+
+        $patternlines = explode("\n", $patterns);
+        foreach ($patternlines as $pattern) {
+            $pattern = trim($pattern);
+            if ($pattern === '') {
+                continue;
+            }
+            if (fnmatch($pattern, $pagetype)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

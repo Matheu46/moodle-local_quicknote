@@ -27,14 +27,27 @@ use local_quicknote\reportbuilder\local\entities\note;
 /**
  * QuickNote usage datasource for Moodle Report Builder.
  *
- * Provides usage reporting across courses and site-wide without exposing
- * private note contents or quoted text.
+ * Provides administrative and institutional usage reporting across courses and site-wide
+ * (such as note timestamps, page locations, and author user details for engagement metrics)
+ * without exposing private note contents or quoted text.
  *
  * @package     local_quicknote
  * @copyright   2026 Matheus Mathias
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class notes extends datasource {
+    /**
+     * Whether the datasource is available on the site.
+     *
+     * Controlled by the administrator setting local_quicknote/enable_reportbuilder.
+     *
+     * @return bool
+     */
+    public static function is_available(): bool {
+        $enabled = get_config('local_quicknote', 'enable_reportbuilder');
+        return $enabled === false || !empty($enabled);
+    }
+
     /**
      * Return user friendly name of the report source.
      *

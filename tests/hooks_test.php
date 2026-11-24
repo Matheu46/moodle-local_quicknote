@@ -342,4 +342,108 @@ final class hooks_test extends \advanced_testcase {
         // The drawer panel itself is still rendered.
         $this->assertStringContainsString('id="local-quicknote-panel"', $htmlnofab);
     }
+
+    /**
+     * Test plugin_needs_upgrading logic.
+     */
+    public function test_plugin_needs_upgrading(): void {
+        $this->resetAfterTest();
+
+        $plugin = new \stdClass();
+        require(__DIR__ . '/../version.php');
+        $currentversion = (int) $plugin->version;
+
+        // When installed version matches disk version, no upgrade needed.
+        set_config('version', $currentversion, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::plugin_needs_upgrading());
+
+        // When installed version is lower, upgrade is needed.
+        set_config('version', $currentversion - 1, 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::plugin_needs_upgrading());
+
+        // When installed version is higher (e.g. dev branch), no upgrade needed.
+        set_config('version', $currentversion + 1, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::plugin_needs_upgrading());
+    }
+
+    /**
+     * Test is_pagetype_disabled with default patterns.
+     */
+    public function test_is_pagetype_disabled_default(): void {
+        $this->resetAfterTest();
+        unset_config('disabled_pagetypes', 'local_quicknote');
+
+        // By default, mod-quiz-attempt should be disabled.
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+
+        // Other pages should not be disabled.
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-view'));
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('course-view-topics'));
+    }
+
+    /**
+     * Test is_pagetype_disabled with custom patterns and empty override.
+     */
+    public function test_is_pagetype_disabled_custom(): void {
+        $this->resetAfterTest();
+
+        // Custom wildcard patterns.
+        set_config('disabled_pagetypes', "mod-assign-*\nmod-forum-view", 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-assign-view'));
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-assign-grading'));
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-forum-view'));
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+
+        // When admin intentionally clears the setting to empty string, nothing is disabled.
+        set_config('disabled_pagetypes', '', 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+    }
+
+    /**
+     * Test view template renders pre-formatted strings without double escaping.
+     */
+    public function test_view_template_does_not_double_escape_formatted_strings(): void {
+        global $OUTPUT;
+        $this->resetAfterTest();
+
+        // The format_string() function produces HTML entities like &amp; for '&'.
+        $formattedcourse = format_string('Math & Physics');
+        $formattedpage = format_string('Atoms & Molecules');
+
+        $context = [
+            'filterbycourse' => 'Filter by course',
+            'allcourses' => 'All courses',
+            'courses' => [
+                [
+                    'id' => 10,
+                    'fullname' => $formattedcourse,
+                    'selected' => false,
+                ],
+            ],
+            'notes' => [
+                [
+                    'id' => 1,
+                    'coursefullname' => $formattedcourse,
+                    'pagetitle' => $formattedpage,
+                    'content' => 'Sample note with special chars: 1 < 2 & 3 > 0',
+                    'timeupdated' => 'Today',
+                    'url' => 'https://example.com',
+                    'quote' => null,
+                ],
+            ],
+        ];
+
+        $html = $OUTPUT->render_from_template('local_quicknote/view', $context);
+
+        // Course filter option should not be double-escaped.
+        $this->assertStringContainsString('<option value="10" >' . $formattedcourse . '</option>', $html);
+        $this->assertStringNotContainsString('&amp;amp;', $html);
+
+        // Course full name and page title on cards should not be double-escaped.
+        $this->assertStringContainsString('title="' . $formattedcourse . '">' . $formattedcourse . '</div>', $html);
+        $this->assertStringContainsString('title="' . $formattedpage . '">' . $formattedpage . '</div>', $html);
+
+        // User note content MUST be escaped for XSS safety.
+        $this->assertStringContainsString('&lt; 2 &amp; 3 &gt;', $html);
+    }
 }

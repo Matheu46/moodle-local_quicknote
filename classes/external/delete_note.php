@@ -16,7 +16,7 @@
 
 namespace local_quicknote\external;
 
-use context_course;
+use context_system;
 use invalid_parameter_exception;
 
 /**
@@ -51,13 +51,15 @@ class delete_note extends \core_external\external_api {
             'noteid' => $noteid,
         ]);
 
+        $context = context_system::instance();
+        self::validate_context($context);
+        require_capability('local/quicknote:use', $context);
+
         $note = $DB->get_record('local_quicknote_notes', ['id' => $params['noteid']]);
 
         if (!$note || (int) $note->userid !== (int) $USER->id) {
             throw new invalid_parameter_exception('Note not found or you do not have permission to delete it.');
         }
-
-        \local_quicknote\util::validate_note_access((int) $note->courseid);
 
         \local_quicknote\local\screenshot_manager::delete_for_note((int) $note->id);
 

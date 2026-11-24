@@ -72,16 +72,14 @@ class provider implements
     public static function get_contexts_for_userid(int $userid): contextlist {
         $contextlist = new contextlist();
 
-        // Notes are associated with courses. If courseid is 0, they are associated with the system context.
+        // Notes are associated with courses (including front page / SITEID for general notes).
         $sql = "SELECT c.id
                   FROM {context} c
-                  JOIN {local_quicknote_notes} qn ON (c.instanceid = qn.courseid AND c.contextlevel = :courselevel)
-                                                  OR (qn.courseid = 0 AND c.id = :systemcontextid)
+                  JOIN {local_quicknote_notes} qn ON c.instanceid = qn.courseid AND c.contextlevel = :courselevel
                  WHERE qn.userid = :userid";
 
         $params = [
             'courselevel' => CONTEXT_COURSE,
-            'systemcontextid' => context_system::instance()->id,
             'userid' => $userid,
         ];
 
@@ -109,12 +107,10 @@ class provider implements
 
         $sql = "SELECT qn.*, c.id AS contextid
                   FROM {local_quicknote_notes} qn
-                  JOIN {context} c ON (c.instanceid = qn.courseid AND c.contextlevel = :courselevel)
-                                   OR (qn.courseid = 0 AND c.id = :systemcontextid)
+                  JOIN {context} c ON c.instanceid = qn.courseid AND c.contextlevel = :courselevel
                  WHERE qn.userid = :userid AND c.id $contextsql";
 
         $params['courselevel'] = CONTEXT_COURSE;
-        $params['systemcontextid'] = context_system::instance()->id;
 
         $notes = $DB->get_recordset_sql($sql, $params);
         $fs = get_file_storage();
@@ -167,9 +163,6 @@ class provider implements
                 ['courseid' => $context->instanceid]
             );
             $DB->delete_records('local_quicknote_notes', ['courseid' => $context->instanceid]);
-        } else if ($context->id == context_system::instance()->id) {
-            \local_quicknote\local\screenshot_manager::delete_for_select('courseid = 0');
-            $DB->delete_records('local_quicknote_notes', ['courseid' => 0]);
         }
     }
 
@@ -186,15 +179,11 @@ class provider implements
         }
 
         $userid = $contextlist->get_user()->id;
-        $systemcontextid = context_system::instance()->id;
         $courseids = [];
-        $deletesystem = false;
 
         foreach ($contextlist->get_contexts() as $context) {
             if ($context->contextlevel == CONTEXT_COURSE) {
                 $courseids[] = $context->instanceid;
-            } else if ($context->id == $systemcontextid) {
-                $deletesystem = true;
             }
         }
 
@@ -204,14 +193,6 @@ class provider implements
             $select = "userid = :userid AND courseid $insql";
             \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
             $DB->delete_records_select('local_quicknote_notes', $select, $params);
-        }
-
-        if ($deletesystem) {
-            \local_quicknote\local\screenshot_manager::delete_for_select(
-                'userid = :userid AND courseid = 0',
-                ['userid' => $userid]
-            );
-            $DB->delete_records('local_quicknote_notes', ['userid' => $userid, 'courseid' => 0]);
         }
     }
 
@@ -229,11 +210,6 @@ class provider implements
                      WHERE courseid = :courseid";
             $params = ['courseid' => $context->instanceid];
             $userlist->add_from_sql('userid', $sql, $params);
-        } else if ($context->id == context_system::instance()->id) {
-            $sql = "SELECT userid
-                      FROM {local_quicknote_notes}
-                     WHERE courseid = 0";
-            $userlist->add_from_sql('userid', $sql, []);
         }
     }
 
@@ -252,15 +228,9 @@ class provider implements
             return;
         }
 
-        [$usersql, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
-
         if ($context->contextlevel == CONTEXT_COURSE) {
+            [$usersql, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
             $params = ['courseid' => $context->instanceid] + $userparams;
-            $select = "courseid = :courseid AND userid $usersql";
-            \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
-            $DB->delete_records_select('local_quicknote_notes', $select, $params);
-        } else if ($context->id == context_system::instance()->id) {
-            $params = ['courseid' => 0] + $userparams;
             $select = "courseid = :courseid AND userid $usersql";
             \local_quicknote\local\screenshot_manager::delete_for_select($select, $params);
             $DB->delete_records_select('local_quicknote_notes', $select, $params);

@@ -16,6 +16,7 @@
 
 namespace local_quicknote\external;
 
+use context_system;
 use invalid_parameter_exception;
 
 /**
@@ -52,6 +53,10 @@ class delete_notes extends \core_external\external_api {
             'noteids' => $noteids,
         ]);
 
+        $context = context_system::instance();
+        self::validate_context($context);
+        require_capability('local/quicknote:use', $context);
+
         $ids = $params['noteids'];
         if (empty($ids)) {
             return [
@@ -66,7 +71,6 @@ class delete_notes extends \core_external\external_api {
         $validids = [];
         foreach ($notes as $note) {
             if ((int) $note->userid === (int) $USER->id) {
-                \local_quicknote\util::validate_note_access((int) $note->courseid);
                 $validids[] = (int) $note->id;
             }
         }

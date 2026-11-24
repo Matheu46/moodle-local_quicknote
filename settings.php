@@ -96,6 +96,22 @@ if ($hassiteconfig) {
         ]
     ));
 
+    // Maximum total screenshot storage per user.
+    $settings->add(new admin_setting_configselect(
+        'local_quicknote/user_quota',
+        get_string('user_quota', 'local_quicknote'),
+        get_string('user_quota_desc', 'local_quicknote'),
+        20971520, // 20 MB default.
+        [
+            10485760  => '10 MB',
+            20971520  => '20 MB',
+            52428800  => '50 MB',
+            104857600 => '100 MB',
+            209715200 => '200 MB',
+            0         => get_string('user_quota_unlimited', 'local_quicknote'),
+        ]
+    ));
+
     // Adds position option.
     $settings->add(new admin_setting_configselect(
         'local_quicknote/position',
@@ -115,7 +131,7 @@ if ($hassiteconfig) {
         'local_quicknote/disabled_pagetypes',
         get_string('setting:disabled_pagetypes', 'local_quicknote'),
         get_string('setting:disabled_pagetypes_desc', 'local_quicknote'),
-        ''
+        "mod-quiz-attempt\n"
     ));
 
     // Adds notes per page option.
@@ -130,6 +146,14 @@ if ($hassiteconfig) {
             48 => '48',
             0  => get_string('all', 'core'),
         ]
+    ));
+
+    // Enable/disable Report Builder datasource.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_reportbuilder',
+        get_string('setting:enable_reportbuilder', 'local_quicknote'),
+        get_string('setting:enable_reportbuilder_desc', 'local_quicknote'),
+        1
     ));
 
     // Retention settings.
