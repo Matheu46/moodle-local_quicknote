@@ -1,5 +1,39 @@
 # Moodle plugin: local_quicknote
 
+## v0.15.0 (2026-11-23)
+
+- **Voice Dictation (Speech-to-Text)**:
+  - Added native speech recognition support allowing learners to dictate notes hands-free using their browser's Web Speech API.
+  - Added microphone toggle button inside the note textarea with animated recording indicators.
+  - Added accessible live screen reader announcements (`aria-live`) for dictation status (listening, ended, error/permission denied).
+  - Added administrative setting `enable_voice_dictation` to toggle voice dictation site-wide.
+- **Report Builder & Teacher Usage Reports**:
+  - Implemented custom Moodle Report Builder datasource (`local_quicknote\reportbuilder\datasource\notes`) with `note` entity columns (note ID, scope, page title, URL, boolean quotation indicator `hasquote`, author identity, timestamps, and screenshot counters), filters, and conditions.
+  - Protected student privacy by design: private note content and quotation text are never exposed in reports.
+  - Added course usage report (`course_usage.php`) accessible by instructors from the course secondary navigation menu, displaying aggregated note metrics and canonical page locations securely resolved against core course activities (supporting modules, forum topics, book chapters, lesson pages, and wiki pages).
+  - Added capability `local/quicknote:viewreport` for teachers and managers.
+  - Added composite database indexes on `{local_quicknote_notes}` (`userid, courseid` and `courseid, timecreated`) for fast query execution on large datasets.
+  - Added administrative setting `enable_reportbuilder` to control Report Builder datasource availability via `is_available()`.
+- **Course & Module Settings Management with Caching**:
+  - Implemented dedicated settings service (`local_quicknote\local\course_settings`) with Moodle Universal Cache (MUC) application cache (`local_quicknote/course_settings`), eliminating redundant database queries on page loads.
+  - Updated module settings options to use standard core language strings (`enabled`, `disabled`, `default`), clarifying that disabling QuickNote applies to all users in that activity.
+  - Tied cache invalidation to course and module settings form submissions, course restores, and deletions.
+- **Navigation & Navbar Integration**:
+  - Added administrative option (`position` setting) to display the QuickNote toggle button directly in Moodle's top navigation bar (`navbar_toggle.mustache`) as an alternative to the floating action button (FAB).
+  - Added responsive modal backdrop for the sidebar drawer on small screens, automatically closing the panel on outside clicks or when Moodle's messaging drawer opens.
+  - Improved panel z-index handling and focus management on mobile devices.
+- **Data Retention & Lifelong Note Preservation**:
+  - Added administrative retention settings (`keep_notes_on_unenroll` and `keep_notes_on_course_delete`) allowing institutions to preserve student notes when a user is unenrolled or when a course is deleted.
+  - Automatically migrates preserved notes and screenshots to General Notes (`courseid = SITEID`) and clears course-specific URLs, ensuring learners retain access to their study materials throughout their academic journey.
+- **Security, Performance & MDL Shield Audit Hardening**:
+  - *Performance:* Replaced expensive full-site `moodle_needs_upgrading()` check on page renders with a lightweight cached version check.
+  - *Orphaned Notes Access:* Ensured users can always view and delete their own notes and screenshots from the Notes Center, even if unenrolled or if QuickNote has been disabled in the course.
+  - *Storage Quotas & Content Limits:* Introduced user screenshot storage quota (`local_quicknote/user_storage_quota`, default 50 MB) and enforced 20,000-character note content limits to mitigate resource exhaustion and denial of service.
+  - *Assessment Integrity:* Automatically excluded the QuickNote drawer from secure exam window layouts (`secure` layout) and quiz attempts (`mod-quiz-attempt`) via a new configurable page type pattern setting (`disabled_pagetypes`).
+  - *Template Escaping:* Fixed double-escaping (`&amp;amp;`) for `format_string()` outputs in Notes Center filter dropdown and card headers by rendering safe strings with triple mustache tags `{{{ }}}`.
+  - *Privacy API Compliance:* Cleaned up dead branches and unsupported `courseid = 0` queries in `provider.php`, fully aligning General Notes with the front page course context (`SITEID`) and adding unit tests.
+  - *External Services Cleanliness:* Removed unused `$services` definition in `db/services.php`, keeping the admin web services interface clean and free of false scanner warnings.
+
 ## v0.14.1 (2026-11-11)
 
 - **Security & Authorization Hardening**:
