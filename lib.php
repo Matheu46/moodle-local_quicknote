@@ -139,7 +139,7 @@ function local_quicknote_extend_navigation_course($navigation, $course, $context
     }
 
     $url = new moodle_url('/local/quicknote/report.php', ['id' => $course->id]);
-    $title = get_string('report:courseusage', 'local_quicknote');
+    $title = get_string('report:usage', 'local_quicknote');
     $icon = new pix_icon('i/report', '');
 
     if ($reportnav = $navigation->find('coursereports', navigation_node::TYPE_CONTAINER)) {

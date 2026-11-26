@@ -41,7 +41,7 @@ require_login($course);
 $context = context_course::instance($course->id);
 require_capability('local/quicknote:viewreport', $context);
 
-$reportname = get_string('report:courseusage', 'local_quicknote');
+$reportname = get_string('report:usage', 'local_quicknote');
 
 $PAGE->set_url('/local/quicknote/report.php', ['id' => $course->id]);
 $PAGE->set_pagelayout('report');
