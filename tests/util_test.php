@@ -293,4 +293,85 @@ final class util_test extends advanced_testcase {
         $this->assertNull(\local_quicknote\util::clean_page_title(null, $course));
         $this->assertNull(\local_quicknote\util::clean_page_title('   ', $course));
     }
+
+    public function test_resolve_course_page_info(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $course1 = $generator->create_course(['fullname' => 'Course 101']);
+        $course2 = $generator->create_course(['fullname' => 'Course 202']);
+
+        $page1 = $generator->create_module('page', ['course' => $course1->id, 'name' => 'Lesson Alpha']);
+        $page2 = $generator->create_module('page', ['course' => $course2->id, 'name' => 'Lesson Beta']);
+
+        // 1. Valid course module in target course.
+        $validurl = 'https://example.com/mod/page/view.php?id=' . $page1->cmid . '&extra=1#:~:text=hi';
+        $info = \local_quicknote\util::resolve_course_page_info($validurl, (int) $course1->id);
+        $this->assertEquals('Lesson Alpha', $info['label']);
+        $this->assertEquals('https://example.com/mod/page/view.php?extra=1&id=' . $page1->cmid, $info['linkurl']);
+
+        // 2. Course module belonging to another course.
+        $crossurl = 'https://example.com/mod/page/view.php?id=' . $page2->cmid;
+        $crossinfo = \local_quicknote\util::resolve_course_page_info($crossurl, (int) $course1->id);
+        $this->assertEquals('/mod/page/view.php', $crossinfo['label']);
+        $this->assertNull($crossinfo['linkurl']);
+
+        // 3. Course main page.
+        $courseurl = 'https://example.com/course/view.php?id=' . $course1->id;
+        $courseinfo = \local_quicknote\util::resolve_course_page_info($courseurl, (int) $course1->id);
+        $this->assertEquals('Course 101', $courseinfo['label']);
+        $this->assertEquals($courseurl, $courseinfo['linkurl']);
+
+        // 4. Same-site arbitrary page (e.g. /user/edit.php).
+        $userurl = 'https://example.com/user/edit.php';
+        $userinfo = \local_quicknote\util::resolve_course_page_info($userurl, (int) $course1->id);
+        $this->assertEquals('/user/edit.php', $userinfo['label']);
+        $this->assertNull($userinfo['linkurl']);
+
+        // 5. Forum discussion in course (shows forum name and discussion topic).
+        $forum = $generator->create_module('forum', ['course' => $course1->id, 'name' => 'General News']);
+        $discussion = $generator->get_plugin_generator('mod_forum')->create_discussion([
+            'course' => $course1->id,
+            'forum' => $forum->id,
+            'userid' => 2,
+            'name' => 'First Topic',
+        ]);
+        $forumurl = 'https://example.com/mod/forum/discuss.php?d=' . $discussion->id;
+        $foruminfo = \local_quicknote\util::resolve_course_page_info($forumurl, (int) $course1->id);
+        $this->assertEquals('General News > First Topic', $foruminfo['label']);
+        $this->assertEquals($forumurl, $foruminfo['linkurl']);
+
+        // 6. Module page with anchor fragment.
+        $anchorurl = 'https://example.com/mod/page/view.php?id=' . $page1->cmid . '#part2';
+        $anchorinfo = \local_quicknote\util::resolve_course_page_info($anchorurl, (int) $course1->id);
+        $this->assertEquals('Lesson Alpha (#part2)', $anchorinfo['label']);
+        $this->assertEquals($anchorurl, $anchorinfo['linkurl']);
+
+        // 7. Course section URL.
+        $sectionurl = 'https://example.com/course/view.php?id=' . $course1->id . '&section=1';
+        $sectioninfo = \local_quicknote\util::resolve_course_page_info($sectionurl, (int) $course1->id);
+        $this->assertEquals('Course 101 (' . get_string('section') . ' 1)', $sectioninfo['label']);
+        $this->assertEquals($sectionurl, $sectioninfo['linkurl']);
+
+        // 8. Book chapters.
+        $book = $generator->create_module('book', ['course' => $course1->id, 'name' => 'Study Guide']);
+        $bookgenerator = $generator->get_plugin_generator('mod_book');
+        $chap1 = $bookgenerator->create_chapter(['bookid' => $book->id, 'title' => 'Welcome']);
+        $chap2 = $bookgenerator->create_chapter(['bookid' => $book->id, 'title' => 'Getting Started']);
+
+        $chap1url = 'https://example.com/mod/book/view.php?chapterid=' . $chap1->id . '&id=' . $book->cmid;
+        $chap2url = 'https://example.com/mod/book/view.php?chapterid=' . $chap2->id . '&id=' . $book->cmid;
+
+        $chap1info = \local_quicknote\util::resolve_course_page_info($chap1url, (int) $course1->id);
+        $chap2info = \local_quicknote\util::resolve_course_page_info($chap2url, (int) $course1->id);
+
+        $this->assertEquals('Study Guide > Welcome', $chap1info['label']);
+        $this->assertEquals('Study Guide > Getting Started', $chap2info['label']);
+        $this->assertEquals($chap1url, $chap1info['linkurl']);
+        $this->assertEquals($chap2url, $chap2info['linkurl']);
+
+        // 9. Empty / null / invalid URL.
+        $emptyinfo = \local_quicknote\util::resolve_course_page_info(null, (int) $course1->id);
+        $this->assertEquals(get_string('report:untitledpage', 'local_quicknote'), $emptyinfo['label']);
+        $this->assertNull($emptyinfo['linkurl']);
+    }
 }

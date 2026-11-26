@@ -24,14 +24,18 @@ define([
     'core/notification',
     'core/str',
     'core/user_date',
-    'local_quicknote/lightbox'
-], function(Repository, Notification, Str, UserDate, Lightbox) {
+    'local_quicknote/lightbox',
+    'core/pubsub',
+    'core/modal_backdrop',
+    'core/templates'
+], function(Repository, Notification, Str, UserDate, Lightbox, PubSub, ModalBackdrop, Templates) {
     var SELECTORS = {
         root: '#local-quicknote-root',
         panel: '[data-region="panel"]',
         list: '[data-region="notes-list"]',
         noteTemplate: '[data-region="note-template"]',
         toggle: '[data-action="toggle"]',
+        navbartoggle: '[data-action="quicknote-toggle"]',
         close: '[data-action="close"]',
         add: '[data-action="add"]',
         search: '[data-action="search"]',
@@ -50,14 +54,32 @@ define([
         quotewrapper: '[data-region="note-quote-wrapper"]',
         quote: '[data-region="note-quote"]',
         quotelink: '[data-region="note-quote-link"]',
-        quotetoggle: '[data-action="toggle-quote"]'
+        quotetoggle: '[data-action="toggle-quote"]',
+        voicebutton: '[data-action="voice-dictate"]'
     };
 
     var SAVE_DELAY = 500;
     var MIN_SELECTION_LENGTH = 5;
     var HIGHLIGHT_BUTTON_CLASS = 'local-quicknote__highlight-action';
+    var VOICE_SILENCE_TIMEOUT = 5000;
 
     var state = null;
+    var activeRecognition = null;
+    var activeVoiceNoteKey = null;
+    var activeVoiceBaseText = '';
+    var voiceSilenceTimer = null;
+    var backdropPromise = null;
+
+    var isSmallScreen = function() {
+        var width = window.innerWidth;
+        if (document.body) {
+            var rect = document.body.getBoundingClientRect();
+            if (rect && rect.width) {
+                width = rect.x + rect.width;
+            }
+        }
+        return width < 992;
+    };
 
     var escapeHtml = function(value) {
         var div = document.createElement('div');
@@ -593,6 +615,268 @@ define([
         }).catch(Notification.exception);
     };
 
+    /**
+     * Returns the SpeechRecognition constructor if available and secure.
+     *
+     * @return {SpeechRecognition|null}
+     */
+    var getSpeechRecognitionClass = function() {
+        if (window.isSecureContext === false) {
+            return null;
+        }
+        return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    };
+
+    /**
+     * Checks whether the current browser environment supports speech recognition.
+     *
+     * @return {boolean}
+     */
+    var isSpeechRecognitionSupported = function() {
+        try {
+            var RecognitionClass = getSpeechRecognitionClass();
+            return typeof RecognitionClass === 'function';
+        } catch (e) {
+            return false;
+        }
+    };
+
+    /**
+     * Announces a message to screen readers via the a11y live region.
+     *
+     * @param {string} message The message to announce.
+     */
+    var announceStatus = function(message) {
+        var announcer = state && state.root ? state.root.querySelector('#local-quicknote-a11y-announcer') : null;
+        if (announcer && message) {
+            announcer.textContent = '';
+            window.setTimeout(function() {
+                announcer.textContent = message;
+            }, 50);
+        }
+    };
+
+    /**
+     * Clears any active voice silence timeout.
+     */
+    var clearVoiceSilenceTimer = function() {
+        if (voiceSilenceTimer) {
+            window.clearTimeout(voiceSilenceTimer);
+            voiceSilenceTimer = null;
+        }
+    };
+
+    /**
+     * Resets the voice silence timeout, stopping recognition after prolonged silence.
+     */
+    var resetVoiceSilenceTimer = function() {
+        clearVoiceSilenceTimer();
+        if (activeRecognition) {
+            voiceSilenceTimer = window.setTimeout(function() {
+                stopVoiceRecognition();
+            }, VOICE_SILENCE_TIMEOUT);
+        }
+    };
+
+    /**
+     * Stops the active voice recognition session and resets UI state.
+     */
+    var stopVoiceRecognition = function() {
+        clearVoiceSilenceTimer();
+
+        if (activeRecognition) {
+            try {
+                activeRecognition.stop();
+            } catch (e) {
+                // Ignore.
+            }
+            activeRecognition = null;
+        }
+
+        if (activeVoiceNoteKey) {
+            var noteEl = getNoteElementByKey(activeVoiceNoteKey);
+            if (noteEl) {
+                var voiceBtn = noteEl.querySelector(SELECTORS.voicebutton);
+                if (voiceBtn) {
+                    voiceBtn.classList.remove('is-recording');
+                    var dictateLabel = (state && state.strings && state.strings.voicelabel) || 'Dictate note';
+                    voiceBtn.setAttribute('title', dictateLabel);
+                    voiceBtn.setAttribute('aria-label', dictateLabel);
+                    voiceBtn.setAttribute('aria-pressed', 'false');
+                }
+            }
+            activeVoiceNoteKey = null;
+            activeVoiceBaseText = '';
+            announceStatus((state && state.strings && state.strings.voiceendedlabel) || 'Dictation ended.');
+        }
+    };
+
+    /**
+     * Starts voice dictation for a specific note.
+     *
+     * @param {Object} note The note object.
+     * @param {HTMLElement} noteEl The note DOM element.
+     */
+    var startVoiceRecognition = function(note, noteEl) {
+        if (!isSpeechRecognitionSupported()) {
+            return;
+        }
+
+        if (activeRecognition) {
+            stopVoiceRecognition();
+        }
+
+        var textarea = noteEl ? noteEl.querySelector(SELECTORS.textarea) : null;
+        var voiceBtn = noteEl ? noteEl.querySelector(SELECTORS.voicebutton) : null;
+        if (!textarea || !voiceBtn) {
+            return;
+        }
+
+        var RecognitionClass = getSpeechRecognitionClass();
+        var recognition = null;
+        try {
+            recognition = new RecognitionClass();
+        } catch (e) {
+            return;
+        }
+
+        var docLang = (document.documentElement.lang || navigator.language || 'en').replace(/_/g, '-');
+        recognition.lang = docLang;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        activeRecognition = recognition;
+        activeVoiceNoteKey = note.clientid;
+        activeVoiceBaseText = textarea.value.trim();
+
+        recognition.onstart = function() {
+            if (activeVoiceNoteKey !== note.clientid) {
+                return;
+            }
+            voiceBtn.classList.add('is-recording');
+            var stopLabel = (state && state.strings && state.strings.voicestoplabel) || 'Stop dictating';
+            voiceBtn.setAttribute('title', stopLabel);
+            voiceBtn.setAttribute('aria-label', stopLabel);
+            voiceBtn.setAttribute('aria-pressed', 'true');
+            resetVoiceSilenceTimer();
+            announceStatus((state && state.strings && state.strings.voicelisteninglabel) || 'Listening...');
+        };
+
+        recognition.onspeechend = function() {
+            if (activeVoiceNoteKey !== note.clientid) {
+                return;
+            }
+            resetVoiceSilenceTimer();
+        };
+
+        recognition.onresult = function(event) {
+            if (activeVoiceNoteKey !== note.clientid) {
+                return;
+            }
+
+            resetVoiceSilenceTimer();
+
+            var sessionFinal = '';
+            var sessionInterim = '';
+
+            for (var i = 0; i < event.results.length; i++) {
+                var item = event.results[i];
+                if (item.isFinal) {
+                    sessionFinal += item[0].transcript + ' ';
+                } else {
+                    sessionInterim += item[0].transcript;
+                }
+            }
+
+            var fullText = activeVoiceBaseText;
+            if (sessionFinal) {
+                fullText = fullText ? (fullText + ' ' + sessionFinal.trim()) : sessionFinal.trim();
+            }
+            if (sessionInterim) {
+                fullText = fullText ? (fullText + ' ' + sessionInterim.trim()) : sessionInterim.trim();
+            }
+
+            textarea.value = fullText;
+            textarea.dispatchEvent(new Event('input', {bubbles: true}));
+        };
+
+        recognition.onerror = function(event) {
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                var permissionDeniedMsg = (state && state.strings && state.strings.voicepermissiondenied) ||
+                    'Microphone access was denied. Please allow microphone permissions in your browser to use voice dictation.';
+                Notification.addNotification({
+                    message: permissionDeniedMsg,
+                    type: 'warning'
+                });
+            }
+            stopVoiceRecognition();
+        };
+
+        recognition.onend = function() {
+            if (activeRecognition === recognition) {
+                stopVoiceRecognition();
+            }
+        };
+
+        try {
+            recognition.start();
+        } catch (e) {
+            stopVoiceRecognition();
+        }
+    };
+
+    /**
+     * Updates the copy button visibility for a note element.
+     *
+     * @param {HTMLElement} noteEl The note container element.
+     * @param {string} content Current content of the note.
+     */
+    var setNoteCopyButton = function(noteEl, content) {
+        var copyBtn = noteEl ? noteEl.querySelector('[data-action="copy-note"]') : null;
+        if (!copyBtn) {
+            return;
+        }
+
+        if (content && content.trim().length > 0) {
+            copyBtn.style.display = '';
+        } else {
+            copyBtn.style.display = 'none';
+        }
+    };
+
+    /**
+     * Updates the voice dictation button state for a note element.
+     *
+     * @param {HTMLElement} noteEl The note container element.
+     * @param {Object} note The note data object.
+     */
+    var setNoteVoiceButton = function(noteEl, note) {
+        var voiceBtn = noteEl ? noteEl.querySelector(SELECTORS.voicebutton) : null;
+        if (!voiceBtn) {
+            return;
+        }
+
+        if (state && state.enableVoiceDictation && isSpeechRecognitionSupported()) {
+            voiceBtn.classList.remove('d-none');
+        } else {
+            voiceBtn.classList.add('d-none');
+        }
+
+        if (activeVoiceNoteKey === note.clientid) {
+            voiceBtn.classList.add('is-recording');
+            var stopLabel = (state && state.strings && state.strings.voicestoplabel) || 'Stop dictating';
+            voiceBtn.setAttribute('title', stopLabel);
+            voiceBtn.setAttribute('aria-label', stopLabel);
+            voiceBtn.setAttribute('aria-pressed', 'true');
+        } else {
+            voiceBtn.classList.remove('is-recording');
+            var dictateLabel = (state && state.strings && state.strings.voicelabel) || 'Dictate note';
+            voiceBtn.setAttribute('title', dictateLabel);
+            voiceBtn.setAttribute('aria-label', dictateLabel);
+            voiceBtn.setAttribute('aria-pressed', 'false');
+        }
+    };
+
     var updateNoteElement = function(note, noteEl, preservecontent) {
         var textarea = noteEl.querySelector(SELECTORS.textarea);
         var currentcontent = preservecontent && textarea ? textarea.value : note.content;
@@ -624,15 +908,8 @@ define([
         renderScreenshots(noteEl, note);
         setNoteQuote(noteEl, note);
         setNoteLocation(noteEl, note.url, note.hasquote, note.pagetitle);
-
-        var copyBtn = noteEl.querySelector('[data-action="copy-note"]');
-        if (copyBtn) {
-            if (currentcontent.trim().length > 0) {
-                copyBtn.style.display = '';
-            } else {
-                copyBtn.style.display = 'none';
-            }
-        }
+        setNoteCopyButton(noteEl, currentcontent);
+        setNoteVoiceButton(noteEl, note);
     };
 
     var createNoteElement = function(note) {
@@ -655,7 +932,7 @@ define([
     var renderLoadingState = function() {
         var loadingText = state.strings.loadingtext || 'Loading...';
         getList().innerHTML = '<div class="local-quicknote__loading text-center p-3 text-muted">' +
-            '<i class="fa fa-circle-o-notch fa-spin fa-fw me-1" aria-hidden="true"></i> ' +
+            '<i class="fa fa-circle-o-notch fa-spin fa-fw mr-1" aria-hidden="true"></i> ' +
             escapeHtml(loadingText) + '</div>';
     };
 
@@ -836,15 +1113,43 @@ define([
         renderNotes();
     };
 
-    var setOpenState = function(isopen) {
-        var panel = state.root.querySelector(SELECTORS.panel);
-        var toggle = state.root.querySelector(SELECTORS.toggle);
+    var getBackdrop = function() {
+        if (!backdropPromise) {
+            backdropPromise = Templates.render('core/modal_backdrop', {})
+                .then(function(html) {
+                    return new ModalBackdrop(html);
+                })
+                .then(function(modalBackdrop) {
+                    var panel = state && state.root ? state.root.querySelector(SELECTORS.panel) : null;
+                    var drawerZindex = 1025;
+                    if (panel) {
+                        var parsedZ = parseInt(window.getComputedStyle(panel).zIndex, 10);
+                        if (!isNaN(parsedZ) && parsedZ > 0) {
+                            drawerZindex = parsedZ;
+                        }
+                    }
+                    modalBackdrop.setZIndex(drawerZindex - 1);
 
-        if (isopen) {
-            state.root.classList.add('is-open');
-        } else {
-            state.root.classList.remove('is-open');
+                    var attachment = modalBackdrop.getAttachmentPoint();
+                    if (attachment && attachment.length) {
+                        attachment.get(0).addEventListener('click', function(e) {
+                            e.preventDefault();
+                            setOpenState(false, {focusToggle: false});
+                        });
+                    }
+                    return modalBackdrop;
+                })
+                .catch(function() {
+                    return null;
+                });
         }
+        return backdropPromise;
+    };
+
+    var syncDrawerElements = function(isopen) {
+        var panel = state.root ? state.root.querySelector(SELECTORS.panel) : null;
+        var toggle = state.root ? state.root.querySelector(SELECTORS.toggle) : null;
+        var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
 
         if (panel) {
             panel.setAttribute('aria-hidden', isopen ? 'false' : 'true');
@@ -852,8 +1157,95 @@ define([
         if (toggle) {
             toggle.setAttribute('aria-expanded', isopen ? 'true' : 'false');
         }
+        if (navbartoggle) {
+            navbartoggle.setAttribute('aria-expanded', isopen ? 'true' : 'false');
+            navbartoggle.classList.toggle('active', isopen);
+        }
+    };
+
+    var showBackdrop = function() {
+        if (!isSmallScreen()) {
+            return;
+        }
+        getBackdrop().then(function(backdrop) {
+            if (backdrop) {
+                backdrop.show();
+                var pageWrapper = document.getElementById('page');
+                if (pageWrapper) {
+                    pageWrapper.style.overflow = 'hidden';
+                }
+            }
+            return backdrop;
+        }).catch(function() {
+            // Ignore.
+        });
+    };
+
+    var hideBackdrop = function() {
+        if (!backdropPromise) {
+            return;
+        }
+        backdropPromise.then(function(backdrop) {
+            if (backdrop && backdrop.isVisible()) {
+                backdrop.hide();
+            }
+            var pageWrapper = document.getElementById('page');
+            if (pageWrapper) {
+                pageWrapper.style.overflow = '';
+            }
+            return backdrop;
+        }).catch(function() {
+            // Ignore.
+        });
+    };
+
+    var closeMessageDrawer = function() {
+        var messageDrawer = document.querySelector('[data-region="right-hand-drawer"]');
+        if (!messageDrawer) {
+            return;
+        }
+        var isMessageDrawerOpen = !messageDrawer.classList.contains('hidden') &&
+            messageDrawer.getAttribute('aria-hidden') !== 'true';
+
+        if (isMessageDrawerOpen) {
+            // Remove data-origin so Moodle's message drawer does not steal focus back to the message toggle button.
+            messageDrawer.removeAttribute('data-origin');
+            if (PubSub && PubSub.publish) {
+                PubSub.publish('message-drawer-hide');
+            }
+        }
+    };
+
+    var focusDrawerToggle = function() {
+        var toggle = state.root ? state.root.querySelector(SELECTORS.toggle) : null;
+        if (toggle) {
+            toggle.focus();
+            return;
+        }
+        var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
+        if (navbartoggle) {
+            navbartoggle.focus();
+        }
+    };
+
+    var setOpenState = function(isopen, options) {
+        options = options || {};
+        var shouldFocusToggle = options.focusToggle !== undefined ? options.focusToggle : true;
 
         if (isopen) {
+            state.root.classList.add('is-open');
+        } else {
+            state.root.classList.remove('is-open');
+            stopVoiceRecognition();
+        }
+
+        syncDrawerElements(isopen);
+
+        if (isopen) {
+            closeMessageDrawer();
+
+            showBackdrop();
+
             if (!state.loaded && !state.loading) {
                 loadNotes();
             }
@@ -861,13 +1253,23 @@ define([
             autogrowAllTextareas();
             updateAllQuoteCollapses();
 
+            var panel = state.root ? state.root.querySelector(SELECTORS.panel) : null;
             var closeBtn = panel ? panel.querySelector(SELECTORS.close) : null;
             if (closeBtn) {
                 closeBtn.focus();
+                setTimeout(function() {
+                    if (state.root && state.root.classList.contains('is-open')) {
+                        if (panel && !panel.contains(document.activeElement)) {
+                            closeBtn.focus();
+                        }
+                    }
+                }, 50);
             }
         } else {
-            if (toggle) {
-                toggle.focus();
+            hideBackdrop();
+
+            if (shouldFocusToggle) {
+                focusDrawerToggle();
             }
         }
     };
@@ -1102,6 +1504,40 @@ define([
             }
         });
 
+        document.addEventListener('click', function(e) {
+            var navToggle = e.target.closest(SELECTORS.navbartoggle);
+            if (navToggle) {
+                e.preventDefault();
+                handleToggleClick();
+                return;
+            }
+
+            if (isSmallScreen() && state.root && state.root.classList.contains('is-open')) {
+                // If the click is outside the QuickNote panel, toggle buttons, lightbox and modals, close it.
+                if (!e.target.closest(SELECTORS.panel) &&
+                    !e.target.closest(SELECTORS.toggle) &&
+                    !e.target.closest('[data-action="add-and-open"]') &&
+                    !e.target.closest('.local-quicknote__lightbox') &&
+                    !e.target.closest('.modal')) {
+                    setOpenState(false, {focusToggle: false});
+                }
+            }
+        });
+
+        // Listen to Moodle messaging drawer events to close QuickNote if messages are opened.
+        if (PubSub && PubSub.subscribe) {
+            PubSub.subscribe('message-drawer-show', function() {
+                if (state.root && state.root.classList.contains('is-open')) {
+                    setOpenState(false, {focusToggle: false});
+                }
+            });
+            PubSub.subscribe('message-drawer-toggle', function() {
+                if (state.root && state.root.classList.contains('is-open')) {
+                    setOpenState(false, {focusToggle: false});
+                }
+            });
+        }
+
         document.addEventListener('keydown', function(e) {
             if (e.target.closest('input, textarea, select, [contenteditable="true"]') || e.target.isContentEditable) {
                 return;
@@ -1118,6 +1554,12 @@ define([
         window.addEventListener('resize', function() {
             if (state.root && state.root.classList.contains('is-open')) {
                 updateAllQuoteCollapses();
+
+                if (isSmallScreen()) {
+                    showBackdrop();
+                } else {
+                    hideBackdrop();
+                }
             }
         });
 
@@ -1183,12 +1625,36 @@ define([
             });
         };
 
+        var handleVoiceClick = function(e, voiceBtn) {
+            e.preventDefault();
+            var noteEl = voiceBtn.closest(SELECTORS.note);
+            if (!noteEl) {
+                return;
+            }
+
+            var noteKey = noteEl.getAttribute('data-note-key');
+            var note = getNoteByKey(noteKey);
+            if (!note) {
+                return;
+            }
+
+            if (activeVoiceNoteKey === noteKey) {
+                stopVoiceRecognition();
+            } else {
+                startVoiceRecognition(note, noteEl);
+            }
+        };
+
         var handleDeleteClick = function(deleteBtn) {
             var noteEl = deleteBtn.closest(SELECTORS.note);
             var note = noteEl ? getNoteByKey(noteEl.getAttribute('data-note-key')) : null;
 
             if (!note) {
                 return;
+            }
+
+            if (activeVoiceNoteKey && activeVoiceNoteKey === note.clientid) {
+                stopVoiceRecognition();
             }
 
             if (!note.id) {
@@ -1375,6 +1841,12 @@ define([
                 return;
             }
 
+            var voiceBtn = e.target.closest(SELECTORS.voicebutton);
+            if (voiceBtn) {
+                handleVoiceClick(e, voiceBtn);
+                return;
+            }
+
             var deleteBtn = e.target.closest(SELECTORS.deletebutton);
             if (deleteBtn) {
                 handleDeleteClick(deleteBtn);
@@ -1418,15 +1890,7 @@ define([
                 note.timemodified = Math.floor(Date.now() / 1000);
 
                 var noteEl = textarea.closest(SELECTORS.note);
-                var cBtn = noteEl ? noteEl.querySelector('[data-action="copy-note"]') : null;
-
-                if (cBtn) {
-                    if (note.content.trim().length > 0) {
-                        cBtn.style.display = '';
-                    } else {
-                        cBtn.style.display = 'none';
-                    }
-                }
+                setNoteCopyButton(noteEl, note.content);
 
                 scheduleSave(note);
                 applyFilter();
@@ -1666,6 +2130,10 @@ define([
                 pagetitle: String((config && config.pagetitle) || rootEl.getAttribute('data-pagetitle') || document.title || ''),
                 enableScreenshots: config.hasOwnProperty('enable_screenshots') ?
                     Boolean(config.enable_screenshots) : false,
+                enableVoiceDictation: config.hasOwnProperty('enable_voice_dictation') ?
+                    Boolean(config.enable_voice_dictation) :
+                    (rootEl.getAttribute('data-enablevoicedictation') === '1' ||
+                     rootEl.getAttribute('data-enablevoicedictation') === 'true'),
                 maxFiles: config.hasOwnProperty('max_files_per_note') ? Number(config.max_files_per_note) : 0,
                 maxBytes: config.hasOwnProperty('max_bytes') ? Number(config.max_bytes) : 0,
                 loaded: false,
@@ -1686,12 +2154,22 @@ define([
                     closelabel: rootEl.getAttribute('data-closelabel'),
                     deleteimagelabel: rootEl.getAttribute('data-deleteimagelabel'),
                     uploadingtext: rootEl.getAttribute('data-uploadingtext'),
-                    loadingtext: rootEl.getAttribute('data-loadingtext')
+                    loadingtext: rootEl.getAttribute('data-loadingtext'),
+                    voicelabel: rootEl.getAttribute('data-voicelabel'),
+                    voicestoplabel: rootEl.getAttribute('data-voicestoplabel'),
+                    voicelisteninglabel: rootEl.getAttribute('data-voicelisteninglabel'),
+                    voiceendedlabel: rootEl.getAttribute('data-voiceendedlabel'),
+                    voicepermissiondenied: rootEl.getAttribute('data-voicepermissiondenied')
                 }
             };
 
             state.highlightbutton = createHighlightButton();
             state.highlightselectiontext = '';
+
+            var navbartoggle = document.querySelector(SELECTORS.navbartoggle);
+            if (navbartoggle) {
+                navbartoggle.setAttribute('aria-controls', 'local-quicknote-panel');
+            }
 
             bindEvents();
             watchSameOriginIframes();

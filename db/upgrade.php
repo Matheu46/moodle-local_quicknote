@@ -160,5 +160,21 @@ function xmldb_local_quicknote_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026110300, 'local', 'quicknote');
     }
 
+    if ($oldversion < 2026111800) {
+        $table = new xmldb_table('local_quicknote_notes');
+
+        $coursecreatedindex = new xmldb_index('coursecreated_ix', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'timecreated']);
+        if (!$dbman->index_exists($table, $coursecreatedindex)) {
+            $dbman->add_index($table, $coursecreatedindex);
+        }
+
+        $timecreatedindex = new xmldb_index('timecreated_ix', XMLDB_INDEX_NOTUNIQUE, ['timecreated']);
+        if (!$dbman->index_exists($table, $timecreatedindex)) {
+            $dbman->add_index($table, $timecreatedindex);
+        }
+
+        upgrade_plugin_savepoint(true, 2026111800, 'local', 'quicknote');
+    }
+
     return true;
 }

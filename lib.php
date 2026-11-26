@@ -37,20 +37,15 @@ function local_quicknote_coursemodule_standard_elements($formwrapper, $mform) {
         $course = method_exists($formwrapper, 'get_course') ? $formwrapper->get_course() : null;
         $courseid = $course ? (int)$course->id : 0;
         if ($courseid > 0) {
-            global $DB;
-            $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
-            $settingsjson = $record ? $record->module_settings : null;
-            $settings = $settingsjson ? json_decode($settingsjson, true) : [];
-            $settings = is_array($settings) ? $settings : [];
-            $current = $settings[$cmid] ?? null;
+            $current = \local_quicknote\local\course_settings::get_module_setting($courseid, $cmid);
         }
     }
 
     $mform->addElement('header', 'local_quicknote_header', get_string('pluginname', 'local_quicknote'));
     $mform->addElement('select', 'local_quicknote_module', get_string('module:setting', 'local_quicknote'), [
-        '' => get_string('module:default', 'local_quicknote'),
-        '0' => get_string('module:disabled', 'local_quicknote'),
-        '1' => get_string('module:enabled', 'local_quicknote'),
+        '' => get_string('default'),
+        '0' => get_string('disable'),
+        '1' => get_string('enable'),
     ]);
     $mform->setDefault('local_quicknote_module', $current !== null ? (string) $current : '');
 }
@@ -65,50 +60,14 @@ function local_quicknote_coursemodule_standard_elements($formwrapper, $mform) {
 function local_quicknote_coursemodule_edit_post_actions($data, $course) {
     $cmid = !empty($data->coursemodule) ? (int)$data->coursemodule : (!empty($data->update) ? (int)$data->update : 0);
     if ($cmid > 0 && isset($data->local_quicknote_module)) {
-        $courseid = $course->id;
-
-        global $DB;
-        $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
-        $settingsjson = $record ? $record->module_settings : null;
-        $settings = $settingsjson ? json_decode($settingsjson, true) : [];
-        $settings = is_array($settings) ? $settings : [];
-
-        if ($data->local_quicknote_module === '' || $data->local_quicknote_module === false) {
-            unset($settings[$cmid]);
-        } else {
-            $settings[$cmid] = (int) $data->local_quicknote_module;
-        }
-
-        $json = json_encode($settings);
-        if ($record) {
-            $record->module_settings = $json;
-            $DB->update_record('local_quicknote_course', $record);
-        } else {
-            $record = new \stdClass();
-            $record->courseid = $courseid;
-            $record->enabled = null;
-            $record->module_settings = $json;
-            $DB->insert_record('local_quicknote_course', $record);
-        }
+        $courseid = (int) $course->id;
+        $value = ($data->local_quicknote_module === '' || $data->local_quicknote_module === false)
+            ? null
+            : (int) $data->local_quicknote_module;
+        \local_quicknote\local\course_settings::set_module_setting($courseid, $cmid, $value);
     }
 
     return $data;
-}
-
-/**
- * Legacy callback to inject the QuickNote UI in Moodle < 4.4.
- * In Moodle 4.4+, this is handled by the Hooks API (db/hooks.php).
- *
- * @return string HTML to inject.
- */
-function local_quicknote_before_standard_top_of_body_html() {
-    // If the new Hook class exists, Moodle 4.4+ Hooks API will handle it.
-    if (class_exists(\core\hook\output\before_standard_top_of_body_html_generation::class)) {
-        return '';
-    }
-
-    // Otherwise, generate and return the HTML for older Moodle versions.
-    return \local_quicknote\hooks::get_top_of_body_html();
 }
 
 /**
@@ -141,7 +100,7 @@ function local_quicknote_pluginfile($course, $cm, $context, $filearea, $args, $f
         return false;
     }
 
-    \local_quicknote\util::validate_note_access((int) $note->courseid);
+    require_capability('local/quicknote:use', \context_system::instance());
 
     $filename = array_pop($args);
     $filepath = '/' . ($args ? implode('/', $args) . '/' : '');
@@ -158,4 +117,69 @@ function local_quicknote_pluginfile($course, $cm, $context, $filearea, $args, $f
     }
 
     send_stored_file($file, DAYSECS, 0, $forcedownload, $options);
+}
+
+/**
+ * Extend course navigation with a link to the QuickNote usage report.
+ *
+ * Places the link inside the course Reports container when available so it integrates
+ * with the Reports hub and tertiary report selector dropdown.
+ *
+ * @param navigation_node $navigation The course navigation node to extend.
+ * @param stdClass $course The course object.
+ * @param context_course $context The course context.
+ */
+function local_quicknote_extend_navigation_course($navigation, $course, $context) {
+    if ((int) $course->id === (int) SITEID) {
+        return;
+    }
+
+    if (!has_capability('local/quicknote:viewreport', $context)) {
+        return;
+    }
+
+    $url = new moodle_url('/local/quicknote/report.php', ['id' => $course->id]);
+    $title = get_string('report:courseusage', 'local_quicknote');
+    $icon = new pix_icon('i/report', '');
+
+    if ($reportnav = $navigation->find('coursereports', navigation_node::TYPE_CONTAINER)) {
+        $reportnav->add(
+            $title,
+            $url,
+            navigation_node::TYPE_SETTING,
+            null,
+            'local_quicknote_report',
+            $icon
+        );
+    } else {
+        $navigation->add(
+            $title,
+            $url,
+            navigation_node::TYPE_SETTING,
+            null,
+            'local_quicknote_report',
+            $icon
+        );
+    }
+}
+
+/**
+ * Renders QuickNote toggle button in the top navigation bar.
+ *
+ * @param renderer_base $renderer The renderer.
+ * @return string HTML fragment for the navbar.
+ */
+function local_quicknote_render_navbar_output($renderer): string {
+    if (!\local_quicknote\hooks::is_active_on_page()) {
+        return '';
+    }
+
+    $position = get_config('local_quicknote', 'position');
+    if ($position !== 'navbar' && $position !== 'both') {
+        return '';
+    }
+
+    return $renderer->render_from_template('local_quicknote/navbar_toggle', [
+        'togglelabel' => get_string('navbar_toggle', 'local_quicknote'),
+    ]);
 }

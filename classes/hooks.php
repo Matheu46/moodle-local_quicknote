@@ -32,6 +32,28 @@ use core\hook\output\before_standard_top_of_body_html_generation;
  * @package    local_quicknote
  */
 class hooks {
+    /** @var bool Whether QuickNote UI is active on the current page. */
+    private static bool $isactiveonpage = false;
+
+    /**
+     * Checks whether QuickNote UI is active on the current page.
+     *
+     * @return bool True if active on current page, false otherwise.
+     */
+    public static function is_active_on_page(): bool {
+        return self::$isactiveonpage;
+    }
+
+    /**
+     * Sets whether QuickNote UI is active on the current page (useful for testing).
+     *
+     * @param bool $active Active status.
+     * @return void
+     */
+    public static function set_active_on_page(bool $active): void {
+        self::$isactiveonpage = $active;
+    }
+
     /**
      * Adds QuickNote settings to the course/module edit form using Hook API.
      *
@@ -50,11 +72,9 @@ class hooks {
         $enabled = ($globaldefault === false || $globaldefault === null) ? 1 : $globaldefault;
 
         if ($courseid > 0) {
-            global $DB;
-            $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid], 'enabled');
-            $savedvalue = $record ? $record->enabled : false;
-            if ($savedvalue !== false && $savedvalue !== null) {
-                $enabled = $savedvalue;
+            $settings = \local_quicknote\local\course_settings::get_settings($courseid);
+            if ($settings['enabled'] !== null) {
+                $enabled = $settings['enabled'];
             }
         }
 
@@ -75,19 +95,7 @@ class hooks {
 
         $courseid = (int) $data->id;
         $enabled = (int) $data->local_quicknote_enabled;
-
-        global $DB;
-        $record = $DB->get_record('local_quicknote_course', ['courseid' => $courseid]);
-        if ($record) {
-            $record->enabled = $enabled;
-            $DB->update_record('local_quicknote_course', $record);
-        } else {
-            $record = new \stdClass();
-            $record->courseid = $courseid;
-            $record->enabled = $enabled;
-            $record->module_settings = '';
-            $DB->insert_record('local_quicknote_course', $record);
-        }
+        \local_quicknote\local\course_settings::set_course_enabled($courseid, $enabled);
     }
 
     /**
@@ -110,20 +118,26 @@ class hooks {
     public static function get_top_of_body_html(): string {
         global $OUTPUT, $PAGE, $USER;
 
+        self::$isactiveonpage = false;
+
         if (during_initial_install() || (defined('CLI_SCRIPT') && CLI_SCRIPT)) {
             return '';
         }
 
-        if (moodle_needs_upgrading()) {
-            return '';
-        }
-
-        $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print'];
+        $excludedlayouts = ['popup', 'frametop', 'maintenance', 'print', 'secure'];
         if (isset($PAGE->pagelayout) && in_array($PAGE->pagelayout, $excludedlayouts)) {
             return '';
         }
 
+        if (!$PAGE->get_popup_notification_allowed()) {
+            return '';
+        }
+
         if (!isloggedin() || isguestuser()) {
+            return '';
+        }
+
+        if (self::plugin_needs_upgrading()) {
             return '';
         }
 
@@ -179,46 +193,29 @@ class hooks {
             // Check per-module override.
             $skipatterncheck = false;
             if ($PAGE->cm) {
-                global $DB;
-                $record = $DB->get_record('local_quicknote_course', ['courseid' => $course->id], 'module_settings');
-                $modulesettings = $record ? $record->module_settings : null;
-                if ($modulesettings) {
-                    $modulesettings = json_decode($modulesettings, true);
-                    if (!is_array($modulesettings)) {
-                        $modulesettings = [];
-                    }
-                    if (isset($modulesettings[$PAGE->cm->id])) {
-                        $modulevalue = $modulesettings[$PAGE->cm->id];
-                        if ($modulevalue === 0) {
-                            return '';
-                        }
-                        // If explicitly enabled, skip site-wide pattern check.
-                        $skipatterncheck = true;
-                    }
+                $modulevalue = \local_quicknote\local\course_settings::get_module_setting(
+                    (int) $course->id,
+                    (int) $PAGE->cm->id
+                );
+                if ($modulevalue === 0) {
+                    return '';
+                }
+                if ($modulevalue === 1) {
+                    // If explicitly enabled, skip site-wide pattern check.
+                    $skipatterncheck = true;
                 }
             }
         }
 
         // Check site-wide page type patterns (unless overridden by an explicit per-module enable).
-        if (empty($skipatterncheck)) {
-            $disabledpatterns = get_config('local_quicknote', 'disabled_pagetypes');
-            if (!empty($disabledpatterns)) {
-                $patterns = explode("\n", $disabledpatterns);
-                $pagetype = $PAGE->pagetype;
-                foreach ($patterns as $pattern) {
-                    $pattern = trim($pattern);
-                    if ($pattern === '') {
-                        continue;
-                    }
-                    if (fnmatch($pattern, $pagetype)) {
-                        return '';
-                    }
-                }
-            }
+        if (empty($skipatterncheck) && self::is_pagetype_disabled($PAGE->pagetype)) {
+            return '';
         }
 
         $canuploadscreenshots = (bool) get_config('local_quicknote', 'enable_screenshots') &&
             has_capability('local/quicknote:uploadscreenshot', $context);
+
+        $enablevoicedictation = self::is_voice_dictation_enabled();
 
         $maxfiles = (int) get_config('local_quicknote', 'max_files_per_note');
         $maxbytes = (int) get_config('local_quicknote', 'max_bytes');
@@ -233,6 +230,7 @@ class hooks {
             'pagehash' => $pagehash,
             'pagetitle' => $pagetitle,
             'enable_screenshots' => $canuploadscreenshots,
+            'enable_voice_dictation' => $enablevoicedictation,
             'max_files_per_note' => $maxfiles,
             'max_bytes' => $maxbytes,
         ]]);
@@ -241,7 +239,8 @@ class hooks {
         if (empty($position)) {
             $position = 'right';
         }
-        $positionclass = 'local-quicknote--' . $position;
+        $positionclass = 'local-quicknote--' . ($position === 'left' ? 'left' : 'right');
+        $showfab = ($position !== 'navbar');
 
         $html = $OUTPUT->render_from_template('local_quicknote/sidebar', [
             'courseid' => (int) $course->id,
@@ -249,6 +248,8 @@ class hooks {
             'pagehash' => $pagehash,
             'pagetitle' => $pagetitle,
             'positionclass' => $positionclass,
+            'showfab' => $showfab,
+            'maxcontentlength' => \local_quicknote\external\save_note::MAX_CONTENT_LENGTH,
             'hasquote' => false,
             'quotetext' => '',
             'title' => get_string('sidebar:title', 'local_quicknote'),
@@ -266,8 +267,14 @@ class hooks {
             'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
             'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
             'enablescreenshots' => $canuploadscreenshots,
+            'enablevoicedictation' => $enablevoicedictation,
+            'voicelabel' => get_string('voice:dictate', 'local_quicknote'),
+            'voicestoplabel' => get_string('voice:stop', 'local_quicknote'),
+            'voicelisteninglabel' => get_string('voice:listening', 'local_quicknote'),
+            'voiceendedlabel' => get_string('voice:ended', 'local_quicknote'),
         ]);
 
+        self::$isactiveonpage = true;
         return $html;
     }
 
@@ -278,15 +285,69 @@ class hooks {
      * @return bool
      */
     public static function is_enabled_for_course(\stdClass $course): bool {
-        global $DB;
-        $record = $DB->get_record('local_quicknote_course', ['courseid' => $course->id], 'enabled');
-        $enabled = $record ? $record->enabled : false;
+        return \local_quicknote\local\course_settings::is_enabled_for_course((int) $course->id);
+    }
 
+    /**
+     * Checks whether voice dictation is enabled globally.
+     *
+     * @return bool True if voice dictation is enabled.
+     */
+    public static function is_voice_dictation_enabled(): bool {
+        $enabled = get_config('local_quicknote', 'enable_voice_dictation');
         if ($enabled === false || $enabled === null || $enabled === '') {
-            // Return the default setting defined by the administrator in Site Administration.
-            return (bool) get_config('local_quicknote', 'default_enabled');
+            return true;
         }
 
         return (string) $enabled !== '0';
+    }
+
+    /**
+     * Checks whether the local_quicknote plugin itself has pending schema upgrades.
+     *
+     * @return bool True if an upgrade is pending for this plugin.
+     */
+    public static function plugin_needs_upgrading(): bool {
+        $installed = (int) get_config('local_quicknote', 'version');
+        if ($installed <= 0) {
+            return false;
+        }
+
+        $plugin = new \stdClass();
+        require(__DIR__ . '/../version.php');
+        return ($installed < (int) $plugin->version);
+    }
+
+    /**
+     * Checks whether a page type matches the disabled page type patterns.
+     *
+     * @param string $pagetype The page type to check (e.g. $PAGE->pagetype).
+     * @param string|null $patterns Optional patterns override for testing.
+     * @return bool True if the page type is disabled.
+     */
+    public static function is_pagetype_disabled(string $pagetype, ?string $patterns = null): bool {
+        if ($patterns === null) {
+            $patterns = get_config('local_quicknote', 'disabled_pagetypes');
+            if ($patterns === false) {
+                $patterns = "mod-quiz-attempt\n";
+            }
+        }
+
+        if (empty($patterns)) {
+            return false;
+        }
+
+        $patternlines = explode("\n", $patterns);
+        foreach ($patternlines as $pattern) {
+            $pattern = trim($pattern);
+            if ($pattern === '') {
+                continue;
+            }
+            if (fnmatch($pattern, $pagetype)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

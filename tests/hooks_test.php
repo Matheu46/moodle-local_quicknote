@@ -181,4 +181,269 @@ final class hooks_test extends \advanced_testcase {
         $settings = json_decode($record->module_settings, true);
         $this->assertArrayNotHasKey($page->cmid, $settings);
     }
+
+    /**
+     * Test is_voice_dictation_enabled returns true by default when not set.
+     */
+    public function test_is_voice_dictation_enabled_default(): void {
+        $this->resetAfterTest();
+        unset_config('enable_voice_dictation', 'local_quicknote');
+
+        $this->assertTrue(\local_quicknote\hooks::is_voice_dictation_enabled());
+    }
+
+    /**
+     * Test is_voice_dictation_enabled respects explicitly configured values.
+     */
+    public function test_is_voice_dictation_enabled_configured(): void {
+        $this->resetAfterTest();
+
+        // When set to 0, voice dictation should be disabled.
+        set_config('enable_voice_dictation', 0, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::is_voice_dictation_enabled());
+
+        // When set to 1, voice dictation should be enabled.
+        set_config('enable_voice_dictation', 1, 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::is_voice_dictation_enabled());
+    }
+
+    /**
+     * Test sidebar template renders voice dictation elements correctly.
+     */
+    public function test_sidebar_template_voice_dictation_rendering(): void {
+        global $OUTPUT;
+        $this->resetAfterTest();
+
+        $context = [
+            'courseid' => 1,
+            'pageurl' => 'https://example.com/test',
+            'pagehash' => 'dummyhash',
+            'pagetitle' => 'Test Page',
+            'positionclass' => 'local-quicknote--right',
+            'title' => get_string('sidebar:title', 'local_quicknote'),
+            'togglelabel' => get_string('sidebar:toggle', 'local_quicknote'),
+            'closelabel' => get_string('sidebar:close', 'local_quicknote'),
+            'addlabel' => get_string('note:add', 'local_quicknote'),
+            'placeholder' => get_string('note:placeholder', 'local_quicknote'),
+            'emptytext' => get_string('note:empty', 'local_quicknote'),
+            'savingtext' => get_string('note:saving', 'local_quicknote'),
+            'savedtext' => get_string('note:saved', 'local_quicknote'),
+            'errortext' => get_string('note:error', 'local_quicknote'),
+            'updatedlabel' => get_string('note:updated', 'local_quicknote'),
+            'locationlabel' => get_string('note:location', 'local_quicknote'),
+            'deleteconfirm' => get_string('note:delete_confirm', 'local_quicknote'),
+            'noresultstext' => get_string('search:noresultstext', 'local_quicknote'),
+            'highlightlabel' => get_string('select:highlightlabel', 'local_quicknote'),
+            'enablescreenshots' => false,
+            'enablevoicedictation' => true,
+            'voicelabel' => get_string('voice:dictate', 'local_quicknote'),
+            'voicestoplabel' => get_string('voice:stop', 'local_quicknote'),
+            'voicelisteninglabel' => get_string('voice:listening', 'local_quicknote'),
+            'voiceendedlabel' => get_string('voice:ended', 'local_quicknote'),
+        ];
+
+        // 1. Render with voice dictation enabled.
+        $html = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
+
+        $this->assertStringContainsString('data-enablevoicedictation="1"', $html);
+        $this->assertStringContainsString('data-action="voice-dictate"', $html);
+        $this->assertStringContainsString('id="local-quicknote-a11y-announcer"', $html);
+        $this->assertStringContainsString('aria-live="polite"', $html);
+        $this->assertStringContainsString('aria-pressed="false"', $html);
+        $this->assertStringContainsString('local-quicknote__voice-btn', $html);
+
+        // 2. Render with voice dictation disabled.
+        $context['enablevoicedictation'] = false;
+        $html = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
+        $this->assertStringContainsString('data-enablevoicedictation="0"', $html);
+    }
+
+    /**
+     * Test local_quicknote_render_navbar_output respects page active status and position settings.
+     */
+    public function test_render_navbar_output(): void {
+        global $PAGE, $CFG;
+        require_once($CFG->dirroot . '/local/quicknote/lib.php');
+        $this->resetAfterTest();
+        $renderer = $PAGE->get_renderer('core');
+
+        // 1. When not active on page, returns empty string regardless of position.
+        \local_quicknote\hooks::set_active_on_page(false);
+        set_config('position', 'navbar', 'local_quicknote');
+        $this->assertEmpty(local_quicknote_render_navbar_output($renderer));
+
+        // 2. When active on page, but position is 'right' (floating only).
+        \local_quicknote\hooks::set_active_on_page(true);
+        set_config('position', 'right', 'local_quicknote');
+        $this->assertEmpty(local_quicknote_render_navbar_output($renderer));
+
+        // 3. When active on page, and position is 'left' (floating only).
+        set_config('position', 'left', 'local_quicknote');
+        $this->assertEmpty(local_quicknote_render_navbar_output($renderer));
+
+        // 4. When active on page, and position is 'navbar' (top navigation bar only).
+        set_config('position', 'navbar', 'local_quicknote');
+        $output = local_quicknote_render_navbar_output($renderer);
+        $this->assertNotEmpty($output);
+        $this->assertStringContainsString('data-action="quicknote-toggle"', $output);
+        $this->assertStringContainsString('local-quicknote__navbar-toggle', $output);
+
+        // 5. When active on page, and position is 'both' (navbar + floating).
+        set_config('position', 'both', 'local_quicknote');
+        $outputboth = local_quicknote_render_navbar_output($renderer);
+        $this->assertNotEmpty($outputboth);
+        $this->assertStringContainsString('data-action="quicknote-toggle"', $outputboth);
+
+        // Clean up static state.
+        \local_quicknote\hooks::set_active_on_page(false);
+    }
+
+    /**
+     * Test sidebar template conditionally renders floating action button based on showfab.
+     */
+    public function test_sidebar_fab_visibility(): void {
+        global $OUTPUT;
+        $this->resetAfterTest();
+
+        $context = [
+            'courseid' => 1,
+            'pageurl' => 'https://example.com',
+            'pagehash' => 'hash123',
+            'pagetitle' => 'Test Page',
+            'positionclass' => 'local-quicknote--right',
+            'showfab' => true,
+            'title' => 'Notes',
+            'togglelabel' => 'Open',
+            'closelabel' => 'Close',
+            'addlabel' => 'Add',
+            'placeholder' => 'Note...',
+            'emptytext' => 'Empty',
+            'savingtext' => 'Saving',
+            'savedtext' => 'Saved',
+            'errortext' => 'Error',
+            'updatedlabel' => 'Updated',
+            'locationlabel' => 'Location',
+            'deleteconfirm' => 'Delete?',
+            'noresultstext' => 'No results',
+            'highlightlabel' => 'Highlight',
+            'enablescreenshots' => false,
+            'enablevoicedictation' => false,
+        ];
+
+        // 1. When showfab is true, floating action button wrapper is rendered.
+        $html = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
+        $this->assertStringContainsString('local-quicknote__fab-wrapper', $html);
+        $this->assertStringContainsString('data-action="toggle"', $html);
+
+        // 2. When showfab is false (e.g. position == 'navbar'), floating buttons are omitted.
+        $context['showfab'] = false;
+        $htmlnofab = $OUTPUT->render_from_template('local_quicknote/sidebar', $context);
+        $this->assertStringNotContainsString('local-quicknote__fab-wrapper', $htmlnofab);
+        // The drawer panel itself is still rendered.
+        $this->assertStringContainsString('id="local-quicknote-panel"', $htmlnofab);
+    }
+
+    /**
+     * Test plugin_needs_upgrading logic.
+     */
+    public function test_plugin_needs_upgrading(): void {
+        $this->resetAfterTest();
+
+        $plugin = new \stdClass();
+        require(__DIR__ . '/../version.php');
+        $currentversion = (int) $plugin->version;
+
+        // When installed version matches disk version, no upgrade needed.
+        set_config('version', $currentversion, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::plugin_needs_upgrading());
+
+        // When installed version is lower, upgrade is needed.
+        set_config('version', $currentversion - 1, 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::plugin_needs_upgrading());
+
+        // When installed version is higher (e.g. dev branch), no upgrade needed.
+        set_config('version', $currentversion + 1, 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::plugin_needs_upgrading());
+    }
+
+    /**
+     * Test is_pagetype_disabled with default patterns.
+     */
+    public function test_is_pagetype_disabled_default(): void {
+        $this->resetAfterTest();
+        unset_config('disabled_pagetypes', 'local_quicknote');
+
+        // By default, mod-quiz-attempt should be disabled.
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+
+        // Other pages should not be disabled.
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-view'));
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('course-view-topics'));
+    }
+
+    /**
+     * Test is_pagetype_disabled with custom patterns and empty override.
+     */
+    public function test_is_pagetype_disabled_custom(): void {
+        $this->resetAfterTest();
+
+        // Custom wildcard patterns.
+        set_config('disabled_pagetypes', "mod-assign-*\nmod-forum-view", 'local_quicknote');
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-assign-view'));
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-assign-grading'));
+        $this->assertTrue(\local_quicknote\hooks::is_pagetype_disabled('mod-forum-view'));
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+
+        // When admin intentionally clears the setting to empty string, nothing is disabled.
+        set_config('disabled_pagetypes', '', 'local_quicknote');
+        $this->assertFalse(\local_quicknote\hooks::is_pagetype_disabled('mod-quiz-attempt'));
+    }
+
+    /**
+     * Test view template renders pre-formatted strings without double escaping.
+     */
+    public function test_view_template_does_not_double_escape_formatted_strings(): void {
+        global $OUTPUT;
+        $this->resetAfterTest();
+
+        // The format_string() function produces HTML entities like &amp; for '&'.
+        $formattedcourse = format_string('Math & Physics');
+        $formattedpage = format_string('Atoms & Molecules');
+
+        $context = [
+            'filterbycourse' => 'Filter by course',
+            'allcourses' => 'All courses',
+            'courses' => [
+                [
+                    'id' => 10,
+                    'fullname' => $formattedcourse,
+                    'selected' => false,
+                ],
+            ],
+            'notes' => [
+                [
+                    'id' => 1,
+                    'coursefullname' => $formattedcourse,
+                    'pagetitle' => $formattedpage,
+                    'content' => 'Sample note with special chars: 1 < 2 & 3 > 0',
+                    'timeupdated' => 'Today',
+                    'url' => 'https://example.com',
+                    'quote' => null,
+                ],
+            ],
+        ];
+
+        $html = $OUTPUT->render_from_template('local_quicknote/view', $context);
+
+        // Course filter option should not be double-escaped.
+        $this->assertStringContainsString('<option value="10" >' . $formattedcourse . '</option>', $html);
+        $this->assertStringNotContainsString('&amp;amp;', $html);
+
+        // Course full name and page title on cards should not be double-escaped.
+        $this->assertStringContainsString('title="' . $formattedcourse . '">' . $formattedcourse . '</div>', $html);
+        $this->assertStringContainsString('title="' . $formattedpage . '">' . $formattedpage . '</div>', $html);
+
+        // User note content MUST be escaped for XSS safety.
+        $this->assertStringContainsString('&lt; 2 &amp; 3 &gt;', $html);
+    }
 }

@@ -59,6 +59,14 @@ if ($hassiteconfig) {
         0
     ));
 
+    // Enable/disable voice dictation.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_voice_dictation',
+        get_string('enable_voice_dictation', 'local_quicknote'),
+        get_string('enable_voice_dictation_desc', 'local_quicknote'),
+        1
+    ));
+
     // Maximum screenshot file size.
     $settings->add(new admin_setting_configselect(
         'local_quicknote/max_bytes',
@@ -88,6 +96,22 @@ if ($hassiteconfig) {
         ]
     ));
 
+    // Maximum total screenshot storage per user.
+    $settings->add(new admin_setting_configselect(
+        'local_quicknote/user_quota',
+        get_string('user_quota', 'local_quicknote'),
+        get_string('user_quota_desc', 'local_quicknote'),
+        20971520, // 20 MB default.
+        [
+            10485760  => '10 MB',
+            20971520  => '20 MB',
+            52428800  => '50 MB',
+            104857600 => '100 MB',
+            209715200 => '200 MB',
+            0         => get_string('user_quota_unlimited', 'local_quicknote'),
+        ]
+    ));
+
     // Adds position option.
     $settings->add(new admin_setting_configselect(
         'local_quicknote/position',
@@ -95,8 +119,10 @@ if ($hassiteconfig) {
         get_string('position_desc', 'local_quicknote'),
         'right',
         [
-            'right' => get_string('position_right', 'local_quicknote'),
-            'left'  => get_string('position_left', 'local_quicknote'),
+            'right'  => get_string('position_right', 'local_quicknote'),
+            'left'   => get_string('position_left', 'local_quicknote'),
+            'navbar' => get_string('position_navbar', 'local_quicknote'),
+            'both'   => get_string('position_both', 'local_quicknote'),
         ]
     ));
 
@@ -105,7 +131,7 @@ if ($hassiteconfig) {
         'local_quicknote/disabled_pagetypes',
         get_string('setting:disabled_pagetypes', 'local_quicknote'),
         get_string('setting:disabled_pagetypes_desc', 'local_quicknote'),
-        ''
+        "mod-quiz-attempt\n"
     ));
 
     // Adds notes per page option.
@@ -120,6 +146,37 @@ if ($hassiteconfig) {
             48 => '48',
             0  => get_string('all', 'core'),
         ]
+    ));
+
+    // Enable/disable Report Builder datasource.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/enable_reportbuilder',
+        get_string('setting:enable_reportbuilder', 'local_quicknote'),
+        get_string('setting:enable_reportbuilder_desc', 'local_quicknote'),
+        1
+    ));
+
+    // Retention settings.
+    $settings->add(new admin_setting_heading(
+        'local_quicknote/retention_heading',
+        get_string('retention_heading', 'local_quicknote'),
+        get_string('retention_heading_desc', 'local_quicknote')
+    ));
+
+    // Preserve notes when course is deleted.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/preserve_on_course_delete',
+        get_string('preserve_on_course_delete', 'local_quicknote'),
+        get_string('preserve_on_course_delete_desc', 'local_quicknote'),
+        0
+    ));
+
+    // Preserve notes when user is unenrolled.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_quicknote/preserve_on_unenrol',
+        get_string('preserve_on_unenrol', 'local_quicknote'),
+        get_string('preserve_on_unenrol_desc', 'local_quicknote'),
+        0
     ));
 
     $ADMIN->add('localplugins', $settings);

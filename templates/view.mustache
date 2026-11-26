@@ -64,7 +64,7 @@
                     <select name="coursefilter" id="coursefilter" class="custom-select form-select">
                         <option value="0">{{allcourses}}</option>
                         {{#courses}}
-                            <option value="{{id}}" {{#selected}}selected{{/selected}}>{{fullname}}</option>
+                            <option value="{{id}}" {{#selected}}selected{{/selected}}>{{{fullname}}}</option>
                         {{/courses}}
                     </select>
                 </div>
@@ -115,16 +115,16 @@
                         <input type="checkbox" class="form-check-input local-quicknote-card-select" data-id="{{id}}" aria-label="{{#str}} selectnote, local_quicknote {{/str}}">
                     </div>
                     <div class="min-w-0 flex-grow-1 overflow-hidden">
-                        <div class="text-truncate" title="{{coursefullname}}">{{coursefullname}}</div>
+                        <div class="text-truncate" title="{{{coursefullname}}}">{{{coursefullname}}}</div>
                         {{#pagetitle}}
-                        <div class="small text-muted fw-normal text-truncate" title="{{pagetitle}}">{{pagetitle}}</div>
+                        <div class="small text-muted font-weight-normal text-truncate" title="{{{pagetitle}}}">{{{pagetitle}}}</div>
                         {{/pagetitle}}
                     </div>
                 </div>
                 <div class="card-body local-quicknote-center__card-body">
                     {{#quote}}
-                    <blockquote class="blockquote border-start border-primary ps-3 mb-3 local-quicknote-center__quote" id="quicknote-quote-{{id}}">
-                        <p class="mb-0 fst-italic text-muted local-quicknote-center__quote-text">{{quote}}</p>
+                    <blockquote class="blockquote border-left border-primary pl-3 mb-3 local-quicknote-center__quote" id="quicknote-quote-{{id}}">
+                        <p class="mb-0 font-italic text-muted local-quicknote-center__quote-text">{{quote}}</p>
                         <button
                             type="button"
                             class="local-quicknote-center__quote-toggle"
@@ -137,7 +137,7 @@
                         >{{#str}} quote:more, local_quicknote {{/str}}</button>
                         {{#quoteurl}}
                         <div class="mt-2">
-                            <a href="{{quoteurl}}" target="_blank" rel="noopener" class="local-quicknote-center__quote-link"><i class="fa fa-external-link me-1" aria-hidden="true"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
+                            <a href="{{quoteurl}}" target="_blank" rel="noopener" class="local-quicknote-center__quote-link"><i class="fa fa-external-link mr-1" aria-hidden="true"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
                         </div>
                         {{/quoteurl}}
                     </blockquote>
@@ -145,7 +145,7 @@
                     {{^quote}}
                         {{#url}}
                         <div class="mb-3">
-                            <a href="{{url}}" target="_blank" rel="noopener" class="local-quicknote-center__quote-link"><i class="fa fa-external-link me-1" aria-hidden="true"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
+                            <a href="{{url}}" target="_blank" rel="noopener" class="local-quicknote-center__quote-link"><i class="fa fa-external-link mr-1" aria-hidden="true"></i>{{#str}} note:viewintext, local_quicknote {{/str}}</a>
                         </div>
                         {{/url}}
                     {{/quote}}

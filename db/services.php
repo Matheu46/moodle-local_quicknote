@@ -78,17 +78,3 @@ $functions = [
         'loginrequired' => true,
     ],
 ];
-
-$services = [
-    'Local quicknote AJAX services' => [
-        'functions' => [
-            'local_quicknote_save_note',
-            'local_quicknote_get_notes',
-            'local_quicknote_delete_note',
-            'local_quicknote_upload_screenshot',
-            'local_quicknote_delete_screenshot',
-        ],
-        'restrictedusers' => 0,
-        'enabled' => 1,
-    ],
-];

@@ -29,6 +29,9 @@ use local_quicknote\local\screenshot_manager;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class save_note extends \core_external\external_api {
+    /** @var int Maximum characters allowed in a single note (sanity ceiling). */
+    public const MAX_CONTENT_LENGTH = 20000;
+
     /**
      * Define the parameters for execute().
      *
@@ -97,11 +100,15 @@ class save_note extends \core_external\external_api {
             throw new \invalid_parameter_exception('Invalid URL scheme provided.');
         }
 
+        if (core_text::strlen($params['content']) > self::MAX_CONTENT_LENGTH) {
+            throw new \moodle_exception('error:contenttoolong', 'local_quicknote', '', self::MAX_CONTENT_LENGTH);
+        }
+
         $now = time();
         $record = (object) [
             'userid' => $USER->id,
             'courseid' => $course->id,
-            'content' => core_text::substr($params['content'], 0, 20000),
+            'content' => $params['content'],
             'url' => core_text::substr($cleanurl ?? '', 0, 255),
             'pagehash' => \local_quicknote\util::calculate_page_hash($cleanurl),
             'timemodified' => $now,

@@ -17,10 +17,11 @@
 namespace local_quicknote;
 
 use advanced_testcase;
-use local_quicknote\external\delete_notes;
-use local_quicknote\external\save_note;
-use local_quicknote\external\get_notes;
 use local_quicknote\external\delete_note;
+use local_quicknote\external\delete_notes;
+use local_quicknote\external\delete_screenshot;
+use local_quicknote\external\get_notes;
+use local_quicknote\external\save_note;
 
 /**
  * External library tests for local_quicknote.
@@ -101,6 +102,31 @@ final class externallib_test extends advanced_testcase {
         $this->expectExceptionMessage('The note does not belong to the provided course.');
 
         save_note::execute($noteid, $course2->id, 'Update in wrong course', 'https://example.com');
+    }
+
+    public function test_save_note_content_length_limit(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        // Note within hard limit (MAX_CONTENT_LENGTH) succeeds.
+        $validcontent = str_repeat('a', save_note::MAX_CONTENT_LENGTH);
+        $res = save_note::execute(0, $course->id, $validcontent, 'https://example.com/page');
+        $this->assertNotEmpty($res['id']);
+
+        // Note exceeding limit throws exception.
+        $toolongcontent = str_repeat('a', save_note::MAX_CONTENT_LENGTH + 1);
+        try {
+            save_note::execute(0, $course->id, $toolongcontent, 'https://example.com/page');
+            $this->fail('Expected contenttoolong exception was not thrown.');
+        } catch (\moodle_exception $e) {
+            $this->assertEquals('error:contenttoolong', $e->errorcode);
+        }
     }
 
     public function test_save_and_get_note_with_complex_fragment_url(): void {
@@ -408,15 +434,55 @@ final class externallib_test extends advanced_testcase {
         $res = save_note::execute(0, $course->id, 'Note in course to be disabled', 'https://example.com/1', null, null);
 
         // Disable QuickNote for this course.
-        $record = new \stdClass();
-        $record->courseid = $course->id;
-        $record->enabled = 0;
-        $record->module_settings = '';
-        $DB->insert_record('local_quicknote_course', $record);
+        \local_quicknote\local\course_settings::set_course_enabled($course->id, 0);
 
-        // Attempting to bulk delete the note should throw moodle_exception because access is blocked.
-        $this->expectException(\moodle_exception::class);
-        delete_notes::execute([$res['id']]);
+        // Owner should still be able to delete their own note even if course disabled QuickNote.
+        $deleteresult = delete_notes::execute([$res['id']]);
+        $deleteresult = \core_external\external_api::clean_returnvalue(delete_notes::execute_returns(), $deleteresult);
+        $this->assertTrue($deleteresult['success']);
+        $this->assertEquals([$res['id']], $deleteresult['deletedids']);
+        $this->assertEquals(0, $DB->count_records('local_quicknote_notes', ['id' => $res['id']]));
+    }
+
+    public function test_delete_note_and_screenshot_unenrolled_user(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        $res = save_note::execute(0, $course->id, 'Note by student to be unenrolled', 'https://example.com/1', null, null);
+        $noteid = $res['id'];
+
+        // Add screenshot.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        $note = $DB->get_record('local_quicknote_notes', ['id' => $noteid]);
+        $storedfile = \local_quicknote\local\screenshot_manager::create($note, 'test.gif', 'image/gif', $gif);
+
+        // Enable preservation so note is kept on unenrolment.
+        set_config('preserve_on_unenrol', 1, 'local_quicknote');
+
+        // Unenrol student manually.
+        $enrol = $DB->get_record('enrol', ['courseid' => $course->id, 'enrol' => 'manual']);
+        $plugin = enrol_get_plugin('manual');
+        $plugin->unenrol_user($enrol, $user->id);
+
+        $this->assertFalse(is_enrolled(\context_course::instance($course->id), $user->id));
+
+        // Owner should still be able to delete their screenshot.
+        $delpic = delete_screenshot::execute($noteid, $storedfile['id']);
+        $delpic = \core_external\external_api::clean_returnvalue(delete_screenshot::execute_returns(), $delpic);
+        $this->assertTrue($delpic['deleted']);
+
+        // Owner should still be able to delete their note.
+        $delres = delete_note::execute($noteid);
+        $delres = \core_external\external_api::clean_returnvalue(delete_note::execute_returns(), $delres);
+        $this->assertTrue($delres['deleted']);
+        $this->assertEquals(0, $DB->count_records('local_quicknote_notes', ['id' => $noteid]));
     }
 
     public function test_disabled_course(): void {
@@ -431,11 +497,7 @@ final class externallib_test extends advanced_testcase {
         $this->setUser($user);
 
         // Disable QuickNote for this course.
-        $record = new \stdClass();
-        $record->courseid = $course->id;
-        $record->enabled = 0;
-        $record->module_settings = '';
-        $DB->insert_record('local_quicknote_course', $record);
+        \local_quicknote\local\course_settings::set_course_enabled($course->id, 0);
 
         // Attempting to use the API should throw an exception.
         $this->expectException(\moodle_exception::class);
@@ -486,6 +548,48 @@ final class externallib_test extends advanced_testcase {
 
         $this->expectException(\required_capability_exception::class);
         \local_quicknote\external\upload_screenshot::execute($noteid, 'test2.gif', 'image/gif', $gif);
+    }
+
+    public function test_upload_screenshot_quota_exceeded(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+
+        $generator->enrol_user($user->id, $course->id, 'student');
+        $this->setUser($user);
+
+        set_config('enable_screenshots', 1, 'local_quicknote');
+
+        $result = save_note::execute(0, $course->id, 'Note 1', 'https://example.com');
+        $noteid1 = $result['id'];
+
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+
+        // First upload succeeds with default quota.
+        $upload1 = \local_quicknote\external\upload_screenshot::execute($noteid1, 'test1.gif', 'image/gif', $gif);
+        $this->assertNotEmpty($upload1['id']);
+
+        // Set user_quota to a value smaller than current usage.
+        set_config('user_quota', 10, 'local_quicknote');
+
+        $result2 = save_note::execute(0, $course->id, 'Note 2', 'https://example.com');
+        $noteid2 = $result2['id'];
+
+        // Second upload should throw quotaexceeded exception.
+        try {
+            \local_quicknote\external\upload_screenshot::execute($noteid2, 'test2.gif', 'image/gif', $gif);
+            $this->fail('Expected quotaexceeded exception was not thrown.');
+        } catch (\moodle_exception $e) {
+            $this->assertEquals('error:quotaexceeded', $e->errorcode);
+        }
+
+        // Setting quota to 0 (unlimited) should allow uploading again.
+        set_config('user_quota', 0, 'local_quicknote');
+        $upload2 = \local_quicknote\external\upload_screenshot::execute($noteid2, 'test2.gif', 'image/gif', $gif);
+        $this->assertNotEmpty($upload2['id']);
     }
 
     public function test_dashboard_notes(): void {

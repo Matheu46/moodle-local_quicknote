@@ -36,6 +36,9 @@ final class screenshot_manager {
     /** @var int Default maximum number of screenshots allowed per note. */
     public const DEFAULT_MAX_FILES_PER_NOTE = 3;
 
+    /** @var int Default total storage quota per user in bytes (20 MB). */
+    public const DEFAULT_USER_QUOTA = 20971520;
+
     /** @var array<string, string> Supported MIME types and extensions. */
     private const TYPES = [
         'image/png' => 'png',
@@ -95,6 +98,30 @@ final class screenshot_manager {
         }
         if (count($files) >= $maxfiles) {
             throw new \moodle_exception('error:maxfiles', 'local_quicknote');
+        }
+
+        $userquota = get_config('local_quicknote', 'user_quota');
+        if ($userquota === false) {
+            $userquota = self::DEFAULT_USER_QUOTA;
+        }
+        $userquota = (int) $userquota;
+        if ($userquota > 0) {
+            global $DB;
+            $used = (int) $DB->get_field_sql(
+                "SELECT COALESCE(SUM(filesize), 0)
+                   FROM {files}
+                  WHERE component = 'local_quicknote'
+                    AND filearea = :filearea
+                    AND userid = :userid",
+                [
+                    'filearea' => self::FILEAREA,
+                    'userid' => (int) $note->userid,
+                ]
+            );
+            if ($used + strlen($content) > $userquota) {
+                $quotamb = round($userquota / 1048576, 2) . ' MB';
+                throw new \moodle_exception('error:quotaexceeded', 'local_quicknote', '', $quotamb);
+            }
         }
 
         $basename = clean_param(pathinfo($filename, PATHINFO_FILENAME), PARAM_FILE);

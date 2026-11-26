@@ -305,4 +305,204 @@ class util {
         $title = \core_text::substr($title, 0, 255);
         return $title !== '' ? $title : null;
     }
+
+    /**
+     * Resolves a trusted server-side display label and link URL for a note within a specific course.
+     *
+     * Ensures that teacher reports do not display untrusted student-controlled page titles or link
+     * to arbitrary same-site or external URLs.
+     *
+     * @param string|null $url The note URL to resolve.
+     * @param int $courseid The course ID.
+     * @return array Array with keys:
+     *               - 'label' (string): Human-readable server-resolved page title or canonical path.
+     *               - 'linkurl' (string|null): Validated target URL inside this course, or null if not linkable.
+     */
+    public static function resolve_course_page_info(?string $url, int $courseid): array {
+        global $DB;
+
+        $cleanurl = self::clean_url($url, false, true);
+        if ($cleanurl === null || $cleanurl === '') {
+            return [
+                'label' => get_string('report:untitledpage', 'local_quicknote'),
+                'linkurl' => null,
+            ];
+        }
+
+        $canonical = self::canonicalise_url($cleanurl);
+        if ($canonical === '') {
+            return [
+                'label' => get_string('report:untitledpage', 'local_quicknote'),
+                'linkurl' => null,
+            ];
+        }
+
+        // Extract fragment anchor (e.g. #intro) from clean URL if present.
+        $fragment = '';
+        $hashpos = strpos($cleanurl, '#');
+        if ($hashpos !== false) {
+            $fragment = substr($cleanurl, $hashpos + 1);
+        }
+
+        $parts = parse_url($canonical);
+        $path = $parts['path'] ?? '';
+        $query = [];
+        if (!empty($parts['query'])) {
+            parse_str($parts['query'], $query);
+        }
+
+        // 1. Course activity / module URL (e.g. /mod/page/view.php?id=123).
+        if (preg_match('#^/mod/([^/]+)/#', $path)) {
+            $cmid = (int) ($query['id'] ?? $query['cmid'] ?? 0);
+            if ($cmid > 0 && $courseid > 0) {
+                try {
+                    $modinfo = get_fast_modinfo($courseid);
+                    $cm = $modinfo->get_cm($cmid);
+                    if ($cm && (int) $cm->course === (int) $courseid) {
+                        $label = $cm->get_formatted_name();
+
+                        // Resolve subpage / chapter / page details for known modules.
+                        if ($cm->modname === 'book' && !empty($query['chapterid'])) {
+                            $chapter = $DB->get_record('book_chapters', [
+                                'id' => (int) $query['chapterid'],
+                                'bookid' => $cm->instance,
+                            ], 'id, title');
+                            if ($chapter && !empty($chapter->title)) {
+                                $label .= ' > ' . format_string($chapter->title);
+                            } else {
+                                $label .= ' (' . get_string('report:chapter', 'local_quicknote', (int) $query['chapterid']) . ')';
+                            }
+                        } else if ($cm->modname === 'lesson' && !empty($query['pageid'])) {
+                            $lessonpage = $DB->get_record('lesson_pages', [
+                                'id' => (int) $query['pageid'],
+                                'lessonid' => $cm->instance,
+                            ], 'id, title');
+                            if ($lessonpage && !empty($lessonpage->title)) {
+                                $label .= ' > ' . format_string($lessonpage->title);
+                            } else {
+                                $label .= ' (' . get_string('page') . ' ' . (int) $query['pageid'] . ')';
+                            }
+                        } else if ($cm->modname === 'wiki' && !empty($query['pageid'])) {
+                            $wikipage = $DB->get_record('wiki_pages', [
+                                'id' => (int) $query['pageid'],
+                            ], 'id, title');
+                            if ($wikipage && !empty($wikipage->title)) {
+                                $label .= ' > ' . format_string($wikipage->title);
+                            }
+                        } else if ($cm->modname === 'quiz') {
+                            if (strpos($path, '/mod/quiz/review.php') !== false) {
+                                $label .= ' (' . get_string('review', 'mod_quiz') . ')';
+                            } else if (strpos($path, '/mod/quiz/attempt.php') !== false) {
+                                $label .= ' (' . get_string('attempt', 'mod_quiz') . ')';
+                            }
+                        } else if (isset($query['page']) && is_numeric($query['page']) && (int) $query['page'] > 0) {
+                            $label .= ' (' . get_string('page') . ' ' . (int) $query['page'] . ')';
+                        }
+
+                        if ($fragment !== '') {
+                            $label .= ' (#' . s($fragment) . ')';
+                        }
+                        return [
+                            'label' => $label,
+                            'linkurl' => $cleanurl,
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    $cm = null;
+                }
+            } else if ($path === '/mod/forum/discuss.php' && !empty($query['d']) && $courseid > 0) {
+                $disc = $DB->get_record('forum_discussions', ['id' => (int) $query['d']], 'id, forum, course, name');
+                if ($disc && (int) $disc->course === (int) $courseid) {
+                    try {
+                        $modinfo = get_fast_modinfo($courseid);
+                        $cm = $modinfo->instances['forum'][$disc->forum] ?? null;
+                        $forumname = $cm ? $cm->get_formatted_name() : get_string('pluginname', 'mod_forum');
+                        $label = $forumname . ' > ' . format_string($disc->name);
+                        if ($fragment !== '') {
+                            $label .= ' (#' . s($fragment) . ')';
+                        }
+                        return [
+                            'label' => $label,
+                            'linkurl' => $cleanurl,
+                        ];
+                    } catch (\Exception $e) {
+                        $label = null;
+                    }
+                }
+            }
+
+            // A /mod/ path that cannot be resolved to an active module in this course.
+            return [
+                'label' => s($path),
+                'linkurl' => null,
+            ];
+        }
+
+        // 2. Course main page or section (e.g. /course/view.php?id=5).
+        if ($path === '/course/view.php' || $path === '/course/section.php') {
+            $urlcourseid = (int) ($query['id'] ?? 0);
+            if ($path === '/course/section.php' && $urlcourseid > 0) {
+                $section = $DB->get_record('course_sections', ['id' => $urlcourseid], 'id, course, section, name');
+                if ($section && (int) $section->course === (int) $courseid) {
+                    $course = $DB->get_record('course', ['id' => $courseid]);
+                    $coursename = $course ? format_string($course->fullname) : get_string('course');
+                    $sectionname = $section->name ?
+                        format_string($section->name) : (get_string('section') . ' ' . $section->section);
+                    $label = $coursename . ' (' . $sectionname . ')';
+                    if ($fragment !== '') {
+                        $label .= ' (#' . s($fragment) . ')';
+                    }
+                    return [
+                        'label' => $label,
+                        'linkurl' => $cleanurl,
+                    ];
+                }
+            } else if ($urlcourseid === $courseid || ($urlcourseid === 0 && !empty($query['name']))) {
+                $course = $DB->get_record('course', ['id' => $courseid]);
+                $coursename = $course ? format_string($course->fullname) : get_string('course');
+                $sectionnum = isset($query['section']) ? (int) $query['section'] : null;
+                if ($sectionnum !== null && $sectionnum > 0) {
+                    try {
+                        $modinfo = get_fast_modinfo($courseid);
+                        $sectioninfo = $modinfo->get_section_info($sectionnum);
+                        $sectionname = ($sectioninfo && $sectioninfo->name) ?
+                            format_string($sectioninfo->name) : (get_string('section') . ' ' . $sectionnum);
+                    } catch (\Exception $e) {
+                        $sectionname = get_string('section') . ' ' . $sectionnum;
+                    }
+                    $coursename .= ' (' . $sectionname . ')';
+                }
+                if ($fragment !== '') {
+                    $coursename .= ' (#' . s($fragment) . ')';
+                }
+                return [
+                    'label' => $coursename,
+                    'linkurl' => $cleanurl,
+                ];
+            }
+        }
+
+        // 3. Known course subpages with id matching $courseid (e.g. /grade/report/..., /user/index.php).
+        $firstsegment = explode('/', trim($path, '/'))[0] ?? '';
+        if (in_array($firstsegment, ['grade', 'group', 'user', 'badges', 'report', 'analytics', 'enrol'], true)) {
+            $urlcourseid = (int) ($query['id'] ?? $query['course'] ?? $query['courseid'] ?? 0);
+            if ($urlcourseid === $courseid) {
+                $label = s($path);
+                if ($fragment !== '') {
+                    $label .= ' (#' . s($fragment) . ')';
+                }
+                return [
+                    'label' => $label,
+                    'linkurl' => $cleanurl,
+                ];
+            }
+        }
+
+        // 4. Any other URL (e.g. external, other courses, user profile, admin settings).
+        // Untrusted student pagetitle is suppressed and link is omitted to prevent content spoofing.
+        return [
+            'label' => s($path ?: $cleanurl),
+            'linkurl' => null,
+        ];
+    }
 }

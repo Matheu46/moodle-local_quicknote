@@ -67,6 +67,57 @@ final class observers_test extends \advanced_testcase {
         $this->assertEquals(0, $filescountafter);
     }
 
+    public function test_course_deleted_preserved(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        set_config('preserve_on_course_delete', 1, 'local_quicknote');
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course(['fullname' => 'Physics 101']);
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+
+        $record = (object) [
+            'userid' => $user->id,
+            'courseid' => $course->id,
+            'content' => 'Important physics note',
+            'quote' => 'Newton laws',
+            'quoteurl' => 'http://example.com/course/view.php?id=' . $course->id . '#:~:text=laws',
+            'url' => 'http://example.com/course/view.php?id=' . $course->id,
+            'pagetitle' => 'Mechanics Section',
+            'pagehash' => 'somehash123',
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+        $record->id = $DB->insert_record('local_quicknote_notes', $record);
+
+        // Add screenshot.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record, 'physics.gif', 'image/gif', $gif);
+
+        // Delete course.
+        delete_course($course->id, false);
+
+        // Verify notes in old courseid are gone, but migrated to SITEID.
+        $this->assertEquals(0, $DB->count_records('local_quicknote_notes', ['courseid' => $course->id]));
+        $migratednote = $DB->get_record('local_quicknote_notes', ['id' => $record->id]);
+        $this->assertNotEmpty($migratednote);
+        $this->assertEquals(SITEID, $migratednote->courseid);
+        $this->assertEquals('', $migratednote->url);
+        $this->assertEquals('', $migratednote->quoteurl);
+        $this->assertEquals('', $migratednote->pagehash);
+        $this->assertEquals('[Physics 101] Mechanics Section', $migratednote->pagetitle);
+
+        // Screenshots should be preserved.
+        $filescountafter = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record->id,
+        ]);
+        $this->assertGreaterThan(0, $filescountafter);
+    }
+
     public function test_user_deleted(): void {
         global $DB;
         $this->resetAfterTest();
@@ -152,6 +203,99 @@ final class observers_test extends \advanced_testcase {
             'itemid' => $record->id,
         ]);
         $this->assertEquals(0, $filescountafter);
+    }
+
+    public function test_user_enrolment_deleted_preserved(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        set_config('preserve_on_unenrol', 1, 'local_quicknote');
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+
+        $record = (object) [
+            'userid' => $user->id,
+            'courseid' => $course->id,
+            'content' => 'Note by enrolled user to preserve',
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+        $record->id = $DB->insert_record('local_quicknote_notes', $record);
+
+        // Add screenshot.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record, 'enrol.gif', 'image/gif', $gif);
+
+        // Unenrol user.
+        $enrol = $DB->get_record('enrol', ['courseid' => $course->id, 'enrol' => 'manual']);
+        $plugin = enrol_get_plugin('manual');
+        $plugin->unenrol_user($enrol, $user->id);
+
+        // Verify notes and screenshots are preserved under the courseid.
+        $this->assertEquals(1, $DB->count_records('local_quicknote_notes', [
+            'userid' => $user->id,
+            'courseid' => $course->id,
+        ]));
+        $filescountafter = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record->id,
+        ]);
+        $this->assertGreaterThan(0, $filescountafter);
+    }
+
+    public function test_user_enrolment_deleted_skipped_when_course_deletion_in_progress(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        // Enable course delete preservation, but keep unenrol preservation disabled (0).
+        set_config('preserve_on_course_delete', 1, 'local_quicknote');
+        set_config('preserve_on_unenrol', 0, 'local_quicknote');
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $generator->enrol_user($user->id, $course->id, 'student');
+
+        $record = (object) [
+            'userid' => $user->id,
+            'courseid' => $course->id,
+            'content' => 'Note should survive unenrolment during course deletion',
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+        $record->id = $DB->insert_record('local_quicknote_notes', $record);
+
+        // Add screenshot.
+        $gif = base64_encode(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        \local_quicknote\local\screenshot_manager::create($record, 'survive.gif', 'image/gif', $gif);
+
+        // Mark course deletion in progress (as Moodle does via before_course_deleted hook during delete_course()).
+        \local_quicknote\observers::mark_course_deleting((int) $course->id);
+
+        try {
+            // Unenrol user.
+            $enrol = $DB->get_record('enrol', ['courseid' => $course->id, 'enrol' => 'manual']);
+            $plugin = enrol_get_plugin('manual');
+            $plugin->unenrol_user($enrol, $user->id);
+        } finally {
+            \local_quicknote\observers::clear_course_deleting((int) $course->id);
+        }
+
+        // Notes and screenshots must still exist because course deletion is in progress.
+        $this->assertEquals(1, $DB->count_records('local_quicknote_notes', [
+            'userid' => $user->id,
+            'courseid' => $course->id,
+        ]));
+        $filescountafter = $DB->count_records('files', [
+            'component' => 'local_quicknote',
+            'filearea' => 'screenshot',
+            'itemid' => $record->id,
+        ]);
+        $this->assertGreaterThan(0, $filescountafter);
     }
 
     public function test_user_enrolment_deleted_multiple_enrolments(): void {
@@ -270,5 +414,58 @@ final class observers_test extends \advanced_testcase {
             'userid' => $user->id,
             'courseid' => $course->id,
         ]));
+    }
+
+    public function test_course_module_deleted(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $page1 = $generator->create_module('page', ['course' => $course->id]);
+        $page2 = $generator->create_module('page', ['course' => $course->id]);
+
+        // Configure module overrides for both pages.
+        \local_quicknote\local\course_settings::set_course_enabled($course->id, 1);
+        \local_quicknote\local\course_settings::set_module_setting($course->id, $page1->cmid, 0);
+        \local_quicknote\local\course_settings::set_module_setting($course->id, $page2->cmid, 1);
+
+        // Delete page1 module using core course_delete_module.
+        course_delete_module($page1->cmid);
+
+        // Verify page1 override was removed while page2 override was preserved.
+        $updated = $DB->get_record('local_quicknote_course', ['courseid' => $course->id]);
+        $settings = json_decode($updated->module_settings, true);
+        $this->assertArrayNotHasKey($page1->cmid, $settings);
+        $this->assertArrayHasKey($page2->cmid, $settings);
+        $this->assertEquals(1, $settings[$page2->cmid]);
+        $this->assertNull(\local_quicknote\local\course_settings::get_module_setting($course->id, $page1->cmid));
+        $this->assertEquals(1, \local_quicknote\local\course_settings::get_module_setting($course->id, $page2->cmid));
+
+        // Delete page2 module (last remaining override).
+        course_delete_module($page2->cmid);
+
+        // Verify module_settings is now empty in DB and cache.
+        $updated = $DB->get_record('local_quicknote_course', ['courseid' => $course->id]);
+        $this->assertEmpty(json_decode($updated->module_settings, true));
+        $this->assertNull(\local_quicknote\local\course_settings::get_module_setting($course->id, $page2->cmid));
+    }
+
+    public function test_course_module_deleted_without_module_settings(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $page = $generator->create_module('page', ['course' => $course->id]);
+
+        // Create course record with no module settings.
+        \local_quicknote\local\course_settings::set_course_enabled($course->id, 1);
+
+        // Delete page module — should run safely without modifying module_settings.
+        course_delete_module($page->cmid);
+
+        $updated = $DB->get_record('local_quicknote_course', ['courseid' => $course->id]);
+        $this->assertEmpty($updated->module_settings);
     }
 }
