@@ -1,6 +1,6 @@
 # Moodle plugin: local_quicknote
 
-## v45-0.15.0 (2026-11-25)
+## v45-0.15.0 (2026-11-26)
 
 - **Moodle 4.5 LTS Requirement**:
   - Updated minimum requirement of the `MOODLE_405_STABLE` branch to Moodle 4.5 LTS (`2024100700`), removing obsolete Moodle < 4.4 fallback callbacks and aligning with Moodle 4.5 namespaced core APIs (`core\lang_string`, `core\output\html_writer`, `core_cache`, Hooks API, and Report Builder).
@@ -36,6 +36,8 @@
   - *Template Escaping:* Fixed double-escaping (`&amp;amp;`) for `format_string()` outputs in Notes Center filter dropdown and card headers by rendering safe strings with triple mustache tags `{{{ }}}`.
   - *Privacy API Compliance:* Cleaned up dead branches and unsupported `courseid = 0` queries in `provider.php`, fully aligning General Notes with the front page course context (`SITEID`) and adding unit tests.
   - *External Services Cleanliness:* Removed unused `$services` definition in `db/services.php`, keeping the admin web services interface clean and free of false scanner warnings.
+- **Language & Terminology Standardization**:
+  - Aligned English language strings with Moodle sentence case and UI conventions (`Enable on Dashboard`, `Enable on Site home`, `General notes`, `notes center`, `Use QuickNote`, `Search my notes...`).
 
 ## v45-0.14.1 (2026-11-13)
 
