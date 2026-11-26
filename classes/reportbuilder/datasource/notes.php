@@ -54,7 +54,7 @@ class notes extends datasource {
      * @return string
      */
     public static function get_name(): string {
-        return get_string('report:notesusage', 'local_quicknote');
+        return get_string('report:usage', 'local_quicknote');
     }
 
     /**

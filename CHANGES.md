@@ -1,5 +1,12 @@
 # Moodle plugin: local_quicknote
 
+## v0.15.1 (2026-11-26)
+
+- **Language & Terminology Standardization**:
+  - Unified duplicate "QuickNote usage" strings (report:courseusage and report:notesusage) into a single report:usage language string used across both the course usage report and the Report Builder datasource.
+  - Standardized UI terminology on drawer (replacing legacy panel and notes icon references in settings and toggle labels).
+  - Aligned English language strings with Moodle sentence case and UI conventions (Enable on Dashboard, Enable on Site home, General notes, notes center, Use QuickNote, Search my notes...).
+
 ## v0.15.0 (2026-11-23)
 
 - **Voice Dictation (Speech-to-Text)**:

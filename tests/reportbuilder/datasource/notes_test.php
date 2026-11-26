@@ -79,7 +79,7 @@ final class notes_test extends core_reportbuilder_testcase {
         $this->assertArrayHasKey($pluginname, $datasources);
         $this->assertArrayHasKey(notes::class, $datasources[$pluginname]);
         $this->assertEquals(
-            get_string('report:notesusage', 'local_quicknote'),
+            get_string('report:usage', 'local_quicknote'),
             $datasources[$pluginname][notes::class]
         );
     }

@@ -62,7 +62,7 @@ class course_usage extends system_report {
         $this->add_columns($courseid);
         $this->add_filters();
 
-        $this->set_downloadable(true, get_string('report:courseusage', 'local_quicknote'));
+        $this->set_downloadable(true, get_string('report:usage', 'local_quicknote'));
         $this->set_default_no_results_notice(new lang_string('report:nonotes', 'local_quicknote'));
     }
 
@@ -141,7 +141,7 @@ class course_usage extends system_report {
      * @return string
      */
     public static function get_name(): string {
-        return get_string('report:courseusage', 'local_quicknote');
+        return get_string('report:usage', 'local_quicknote');
     }
 
     /**
