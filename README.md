@@ -1,8 +1,8 @@
 # QuickNote #
 
-Designed for the native Boost experience in Moodle 4.4 and 4.5+, QuickNote helps students capture important excerpts while reading course materials, connect those excerpts to personal reflections, and return to the exact place where learning happened. For teachers and administrators, it provides simple controls to decide when and where the tool is available.
+Designed for the native Boost experience in Moodle **4.5 LTS** and **5.0+**, QuickNote helps students capture important excerpts while reading course materials, connect those excerpts to personal reflections, and return to the exact place where learning happened. For teachers and administrators, it provides granular controls, privacy-first usage analytics, and flexible data retention policies.
 
-Instead of forcing learners to copy text into external apps, QuickNote keeps the study workflow inside Moodle. Students can highlight a passage, save it instantly as a quote, add their own interpretation, and revisit the original context later through browser text-fragment navigation. The result is a cleaner, more focused note-taking experience that supports active reading, revision, and deeper engagement with course content.
+Instead of forcing learners to copy text into external apps, QuickNote keeps the study workflow inside Moodle. Students can highlight a passage, save it instantly as a quote, dictate or write their own interpretation, attach screenshots, and revisit the original context later through browser text-fragment navigation. The result is a cleaner, more focused note-taking experience that supports active reading, revision, and deeper engagement with course content.
 
 <div align="center">
 <a href="https://ateeducacion.github.io/moodle-playground/?blueprint-url=https://gist.githubusercontent.com/Matheu46/ab4a85fb82d52fee6c1b40c21203d5c5/raw/blueprint.json" target="_blank" rel="noopener"><img src=".github/assets/playground-preview-button.svg" alt="Preview in Moodle Playground" width="200"></a>
@@ -11,23 +11,24 @@ Instead of forcing learners to copy text into external apps, QuickNote keeps the
 
 ## ✨ Features
 
-- **Granular Control:** Advanced settings for site administrators (page exclusions, default policies) and teachers (toggle visibility per course or specific pages).
-- **Default Site Policy**: Administrators can define whether the feature should be enabled or disabled by default for newly configured courses.
-- **Highlight to Note**: Students can select text anywhere inside a course page and use a floating action button to save the selection instantly as a quote.
-- **Scroll to Text Fragments**: Quote references use browser text fragments (`#:~:text=`), allowing QuickNote to return users to the exact original passage and highlight it visually.
-- **Quote and Reflection Separation**: The interface clearly separates the quoted course text from the student's own annotation or reflection.
-- **Native Sidebar Drawer**: Notes are managed inside a right-hand sidebar drawer integrated with the Boost user experience, accessible from a floating action button or navigation entry point.
-- **Notes Center (view.php):** A dedicated dashboard for students to view all their notes with Global Search, Course Filtering, sorted by last modified date, and equipped with Pagination (configurable display limits) for optimal database performance.
-- **PDF and Markdown Export:** Students can export their compiled notes and reflections directly from the Notes Center to a PDF and Markdown file.
-- **Auto-save & Core Safety**: Notes are saved automatically via Moodle AJAX services. Includes native Backup & Restore support and automatic deletion of notes when a user is unenrolled.
-- **Screenshot Attachments & Lightbox Gallery:** Paste screenshots directly from the clipboard (`Ctrl+V` / `Cmd+V`) into any note. Includes automatic client-side compression, an in-app accessible lightbox gallery with keyboard navigation, direct image downloads, and administrative upload limits.
-- **Search and Management**: Students can filter notes in real time and delete notes they no longer need.
+- **Highlight to Note & Text Fragments**: Select text anywhere inside a course page (including same-origin H5P iframes) to save it as a quote and return later to the exact passage via browser text-fragment navigation (`#:~:text=`).
+- **Native Boost Drawer & Navbar Integration**: Manage notes inside a minimalist, distraction-free drawer (right or left), triggered via a floating action button, a top navigation bar toggle, or both, with a global keyboard shortcut (`Alt + Q`) and responsive mobile backdrop.
+- **Voice Dictation (Speech-to-Text)**: Dictate notes hands-free using the browser's Web Speech API, complete with recording indicators and accessible `aria-live` status announcements.
+- **Screenshot Attachments & Lightbox Gallery**: Paste screenshots directly from the clipboard (`Ctrl+V` / `Cmd+V`) with client-side compression, an accessible lightbox gallery, per-note limits, and per-user storage quotas.
+- **General Notes (Dashboard & Site Home)**: Optional personal notebook on the Dashboard (`/my/`) and Site home so learners can take notes outside courses.
+- **Notes Center (`view.php`) & Bulk Actions**: Full-page dashboard with global search, course filtering, pagination, PDF and Markdown export, and multi-select bulk actions (including `Shift + Click` range selection for bulk delete and export).
+- **Teacher Usage Report & Report Builder**:
+  - Built-in anonymous course usage report (`QuickNote usage`) displaying aggregated note counts and unique learners per page, automatically resolving activity titles, forum discussions, book chapters, lesson pages, and wiki pages.
+  - Optional Moodle Report Builder datasource for institutional engagement analytics. **Strictly privacy-first**: private note contents and quoted text are never exposed in reports.
+- **Granular Cached Controls & Assessment Integrity**: MUC-cached course and per-activity settings (Default / Enabled / Disabled), automatic exclusion from secure exam window layouts (`secure`) and configurable page type patterns (`mod-quiz-attempt` by default).
+- **Data Retention Policies**: Choose whether notes are removed or preserved when a course is deleted (migrated to General notes with broken links cleared) or when a user is unenrolled.
+- **Auto-save, Privacy API, RTL & Accessibility**: Automatic AJAX saving with lazy loading, full GDPR Privacy API support, Backup & Restore of settings (excluding student notes), full RTL layout support, and keyboard accessibility.
 
 ## ✅ Prerequisites
 
-- Moodle `4.4+` (Compatible with Moodle < 4.4 down to `4.1` with limitations, see below)
-- Boost theme
-- Boost child themes are also supported
+- **Moodle `5.0+`** (`main` branch — Moodle 5.0 to 5.3)
+- **Moodle `4.5 LTS`** (`MOODLE_405_STABLE` branch)
+- Boost theme (or Boost child themes)
 
 QuickNote is designed natively for the Moodle Boost interface. Compatibility with non-Boost themes is not the primary target.
 
@@ -37,44 +38,46 @@ QuickNote includes controls for both site administrators and course teachers.
 
 ### Administrator settings
 
-Administrators can define the default behavior for new courses:
+Go to `Site administration > Plugins > Local plugins > QuickNote` to configure site-wide policies:
 
-1. Go to `Site administration > Plugins > Local plugins > QuickNote`.
-2. Configure the default state for the plugin:
-   `Enabled` or `Disabled` for courses that have not yet been individually configured.
-3. Configure screenshot policies:
-   - **Enable screenshots**: Globally enable or disable the screenshot attachment feature (disabled by default to prevent unexpected storage usage).
-   - **Maximum file size**: Set maximum allowed upload size per screenshot (defaults to 2 MB).
-   - **Maximum screenshots per note**: Limit how many images a note can hold (defaults to 3 images).
+- **Availability & Scope**:
+  - **Enabled by default**: Defines whether the QuickNote drawer is enabled by default in courses that have not yet been manually configured.
+  - **Enable on Dashboard** / **Enable on Site home**: Display the QuickNote drawer as a personal notebook on `/my/` and the site home page.
+  - **Position**: Choose where the QuickNote toggle and drawer appear (`Right`, `Left`, `Top navigation bar only`, or `Both`).
+  - **Disabled page types**: Line-separated page type patterns where QuickNote is disabled by default using `*` wildcards (defaults to `mod-quiz-attempt`). Teachers can override this per activity.
+- **Voice & Screenshots**:
+  - **Enable voice dictation**: Globally enable or disable browser speech-to-text dictation (enabled by default).
+  - **Enable screenshots**: Globally enable or disable clipboard screenshot attachments (disabled by default).
+  - **Maximum screenshot size**: Maximum file size per screenshot (defaults to `2 MB`).
+  - **Maximum screenshots per note**: Maximum images per note (defaults to `3`).
+  - **User storage quota**: Total screenshot storage quota per user across all courses (`10 MB` to `200 MB`, or `Unlimited`; defaults to `20 MB`).
+- **Notes Center & Reporting**:
+  - **Notes per page**: Pagination size in the Notes center (`12`, `24`, `48`, or `All`; defaults to `12`).
+  - **Enable Report Builder datasource**: Controls whether site administrators and managers can build custom reports using the QuickNote datasource in Moodle Report Builder (enabled by default).
+- **Data Retention**:
+  - **Preserve notes when course is deleted**: When enabled, notes from a deleted course are migrated to General notes (with course links cleared) instead of being deleted.
+  - **Preserve notes when unenrolled**: When enabled, users keep access to their personal notes in the Notes center after unenrolment.
 
-This allows institutions to decide whether QuickNote should be available broadly by default or enabled selectively, while tightly governing disk storage.
+### Teacher course & activity settings
 
-### Teacher course settings
+Teachers can control QuickNote per course and per activity:
 
-Teachers can control QuickNote per course:
-
-1. Open the target course.
-2. Go to the course settings form.
-3. Find the `QuickNote` section.
-4. Enable or disable QuickNote for that course.
+1. **Course level**: Open the course settings form, expand the `QuickNote` section, and enable or disable QuickNote for that course.
+2. **Activity level**: Open any activity's settings form, locate `QuickNote on this activity`, and choose `Default`, `Enabled`, or `Disabled`.
+3. **Course usage report**: Navigate to `Reports > QuickNote usage` inside the course to view anonymous, aggregated engagement metrics per page.
 
 ### Advanced Permissions (Capabilities)
 
-QuickNote integrates natively with Moodle's Role and Permission system through the `local/quicknote:use` and `local/quicknote:uploadscreenshot` capabilities defined at the System level (`CONTEXT_SYSTEM`):
+QuickNote integrates natively with Moodle's Role and Permission system through three capabilities:
 
-- **System & Dashboard Access:** All authenticated users (`user` archetype) have permission to use QuickNote on the Dashboard (`/my/`) and Front Page by default. Anonymous guest accounts (`isguestuser()`) are strictly blocked across all web services, page views, and file downloads.
-- **Course-level Access:** Within enrolled courses, Students, Teachers, and Managers have access by default. Users must be enrolled and permitted to view the course via `require_login($course)`.
-- **Screenshot Permissions (`local/quicknote:uploadscreenshot`):** Governs who can paste and attach screenshots to notes. Administrators can revoke this capability for specific roles (e.g., student roles) to prevent image storage while still allowing them to create text notes.
-- **Restricting Roles in Specific Courses (e.g., Students Only):** Because authenticated users have permission at the system level for personal Dashboard notes, if you want a course where **only students can use QuickNote** (and teachers or tutors cannot), navigate to the course's **Participants > Permissions**, locate `local/quicknote:use`, and set the excluded role (e.g., *Teacher*) to **Prohibit** (`CAP_PROHIBIT`). Because the prohibition is scoped strictly to that course context, it blocks the tool inside that course while allowing those teachers to keep using QuickNote normally on their personal Dashboard.
-- **Individual Student Restrictions:** If a specific student is misusing the tool, you do not need to disable QuickNote for the entire class. An administrator can create a custom role (e.g., "QuickNote Restricted") with `local/quicknote:use` set to **Prohibit**. This role can be assigned either globally (*Site administration > Users > Permissions > Assign system roles*) or locally within a single course to instantly revoke access for that specific user.
-
-> [!NOTE]
-> **Moodle < 4.4 Compatibility**: The course-level toggle within the course settings form is only supported on Moodle 4.4+. In Moodle versions older than 4.4, the plugin will run based on the default site-wide policy defined by the administrator, as older Moodle core versions do not support local plugin settings injection on the course edit form.
-
-This makes it easy to align the tool with the pedagogical design of each course.
+- **`local/quicknote:use` (`CONTEXT_SYSTEM`)**: Allows authenticated users (`user` archetype) to create and manage notes on the Dashboard, Site home, and enrolled courses. Anonymous guest accounts (`isguestuser()`) are strictly blocked across all web services, page views, and file downloads.
+- **`local/quicknote:uploadscreenshot` (`CONTEXT_SYSTEM`)**: Governs who can paste and attach screenshots to notes. Administrators can revoke this capability for specific roles while still allowing text notes.
+- **`local/quicknote:viewreport` (`CONTEXT_COURSE`)**: Allows Teachers, Editing Teachers, and Managers to view the anonymous course usage report (`Reports > QuickNote usage`).
+- **Restricting Roles in Specific Courses (e.g., Students Only)**: Because authenticated users have `local/quicknote:use` at the system level for personal Dashboard notes, if you want a course where **only students can use QuickNote**, go to the course's **Participants > Permissions**, locate `local/quicknote:use`, and set the excluded role (e.g., *Teacher*) to **Prohibit** (`CAP_PROHIBIT`). This blocks QuickNote inside that course while preserving Dashboard access.
+- **Individual Student Restrictions**: Create a custom role with `local/quicknote:use` set to **Prohibit** and assign it globally or within a single course to revoke access for a specific user.
 
 > [!IMPORTANT]
-> **Data Access vs UI Visibility**: Disabling QuickNote at the course level completely blocks the API, making it secure for exams. However, disabling it via per-activity overrides only hides the UI; students can still access their notes on other course pages.
+> **Data Access vs UI Visibility**: Disabling QuickNote at the course level blocks creating or editing notes in that course (while still allowing owners to view and delete their own existing notes from the Notes center). Per-activity overrides control UI visibility on individual activity pages, and secure exam layouts (`secure`) and quiz attempts (`mod-quiz-attempt`) are excluded automatically.
 
 ### Backup and Restore
 
@@ -86,27 +89,27 @@ QuickNote can be installed like any standard Moodle local plugin.
 
 ### Option 1: Install from ZIP
 
-1. Download the plugin ZIP package.
+1. Download the plugin ZIP package matching your Moodle version (`main` for Moodle 5.0+, `MOODLE_405_STABLE` for Moodle 4.5 LTS).
 2. Log in to Moodle as an administrator.
 3. Go to `Site administration > Plugins > Install plugins`.
 4. Upload the ZIP file.
-5. Follow the Moodle installation steps.
-6. Complete the upgrade process when prompted.
+5. Follow the Moodle installation steps and complete the upgrade process when prompted.
 
 ### Option 2: Install from Git
 
 Clone or copy the plugin into your Moodle local plugins directory:
 
 ```bash
+# For Moodle 5.0+ (public/local/quicknote on Moodle 5.1+)
 git clone https://github.com/Matheu46/moodle-local_quicknote.git /path/to/moodle/local/quicknote
+
+# For Moodle 4.5 LTS
+git clone -b MOODLE_405_STABLE https://github.com/Matheu46/moodle-local_quicknote.git /path/to/moodle/local/quicknote
 ```
 
 Then complete the Moodle upgrade:
 
-1. Log in as an administrator.
-2. Go to `Site administration > Notifications`.
-
-Or run the CLI upgrade:
+1. Log in as an administrator and go to `Site administration > Notifications`, or run:
 
 ```bash
 php admin/cli/upgrade.php
@@ -116,29 +119,28 @@ php admin/cli/upgrade.php
 
 QuickNote is designed to be simple for students from the first interaction.
 
-1. Open any supported course page.
-2. Select a meaningful excerpt from the learning material.
-3. Click the floating button that appears near the selection.
-4. QuickNote saves the selected passage as a quote and opens the sidebar drawer.
-5. Add a personal reflection, interpretation, summary, or study note in the annotation field.
+1. Open any supported course page (or press `Alt + Q` to open the drawer and start a note immediately).
+2. Select a meaningful excerpt from the learning material and click the floating button that appears near the selection.
+3. QuickNote saves the selected passage as a quote and opens the drawer.
+4. Type or **dictate** (using the microphone button) a personal reflection, interpretation, or summary.
+5. **Attach Screenshots**: Paste images directly into a note with `Ctrl+V` / `Cmd+V`. Click any thumbnail to view it in full screen via the built-in lightbox gallery or download it.
 6. Continue reading while notes are saved automatically in the background.
-7. Use the search field later to find notes quickly.
+7. Use the drawer search field or open the **Notes center** to filter by course, search globally, select multiple notes (`Shift + Click`) for bulk deletion, or export notes to PDF / Markdown.
 8. Click `View in text` to return to the original page location and highlight the saved passage.
-9. **Attach Screenshots**: Paste images directly into a note with `Ctrl+V` / `Cmd+V`. Click any thumbnail to view it in full screen via the built-in lightbox gallery, navigate between screenshots, or download them to your device.
 
 ## 💡 Design Principles & Contributing
 
 QuickNote was built with clear pedagogical and architectural priorities. If you are planning to contribute or propose new features, please keep these core principles in mind:
 
-1. **Simplicity First, Especially in the Sidebar Drawer:**
-   - The primary goal of the sidebar drawer is frictionless active reading. It must remain minimalist, intuitive, and distraction-free.
-   - Rich management workflows belong in the full-page **Notes Center**, not inside the reading companion drawer.
+1. **Simplicity First, Especially in the Drawer:**
+   - The primary goal of the drawer is frictionless active reading. It must remain minimalist, intuitive, and distraction-free.
+   - Rich management workflows belong in the full-page **Notes center**, not inside the reading companion drawer.
 
 2. **Performance Is a Feature:**
    - Any proposed feature that impacts page load times, DOM complexity, API payload size, database query efficiency, or browser memory usage must be thoroughly evaluated and benchmarked.
 
 3. **Prudence with Interface Additions:**
-   - Every additional button, toolbar, or setting inside the sidebar drawer competes for student attention.
+   - Every additional button, toolbar, or setting inside the drawer competes for student attention.
    - New features that add UI complexity to the drawer or risk introducing performance overhead will require careful evaluation before acceptance.
 
 ## 🧩 Plugin Details
@@ -146,12 +148,12 @@ QuickNote was built with clear pedagogical and architectural priorities. If you 
 - **Plugin name**: QuickNote
 - **Component**: `local_quicknote`
 - **Plugin type**: Local plugin
-- **Primary interface target**: Moodle Boost right-hand drawer workflow
+- **Primary interface target**: Moodle Boost drawer workflow
 
 ## 🐛 Bug Reports & Support
 
 If you find a bug or have a feature request, please open an issue on our tracker:
-[(https://github.com/Matheu46/moodle-local_quicknote/issues)](#)
+[https://github.com/Matheu46/moodle-local_quicknote/issues](https://github.com/Matheu46/moodle-local_quicknote/issues)
 
 Pull requests are welcome!
 
